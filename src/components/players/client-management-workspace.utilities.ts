@@ -86,8 +86,8 @@ export const viewStyles = {
   "client_row_client_row_clickable": [
     "client-row", "client-row-clickable", "tw:grid", "tw:grid-cols-[28px_minmax(150px,_1.3fr)_minmax(100px,_.8fr)_minmax(125px,_.9fr)_minmax(130px,_1fr)_minmax(110px,_.9fr)_minmax(100px,_.7fr)]",
     "tw:max-[1220px]:grid-cols-[28px_1fr_1fr]", "tw:viewport-620:grid-cols-[28px_1fr]", "tw:gap-y-[12px]", "tw:viewport-620:gap-y-[5px]",
-    "tw:gap-x-[12px]", "tw:viewport-620:gap-x-[5px]", "tw:items-center", "tw:min-h-[61px]",
-    "tw:pt-[10px]", "tw:pr-[13px]", "tw:pb-[10px]", "tw:pl-[13px]",
+    "tw:gap-x-[12px]", "tw:viewport-620:gap-x-[5px]", "tw:items-center", "tw:min-h-[46px]",
+    "tw:pt-[5px]", "tw:pr-[13px]", "tw:pb-[5px]", "tw:pl-[13px]",
     "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:#edf1f6]", "tw:text-[color:#40546e]",
     "tw:text-[.75rem]", "tw:[&:last-child]:border-b-[length:0]", "tw:[&:last-child]:[border-bottom-style:none]", "tw:[&:last-child]:border-b-[color:currentColor]",
     "tw:[&_>_div:first-child]:grid", "tw:[&_>_div:first-child]:gap-y-[2px]", "tw:[&_>_div:first-child]:gap-x-[2px]", "tw:[&_strong]:text-[color:#14355e]",

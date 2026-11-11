@@ -1,3 +1,6 @@
+import type { Prisma } from "@prisma/client";
+import { ServerListPagination } from "@/components/ui/list-pagination";
+import { paginationInput, paginationRange } from "@/lib/pagination";
 import { decorateCompositions } from "@/lib/products/composition";
 import { CloseRequestsWatcher } from "@/components/comandas/close-requests-watcher";
 import { bookingServicesInclude, bookingServiceRows } from "@/lib/comandas/booking-service";
@@ -17,7 +20,7 @@ import { arenaToday, arenaWallClockToInstant, instantToArenaWallClock } from "@/
 import { withArenaTransaction } from "@/lib/rls";
 
 type ComandasPageProps = {
-  searchParams?: Promise<{ date?: string; search?: string; ids?: string; new?: "client" | "avulsa"; player?: string }>;
+  searchParams?: Promise<{ page?: string; pageSize?: string; date?: string; search?: string; ids?: string; new?: "client" | "avulsa"; player?: string }>;
 };
 
 function CommandIcon({ name }: { name: "search" | "receipt" | "calendar" | "list" | "plus" }) {
@@ -67,15 +70,20 @@ export default async function ComandasPage(props: ComandasPageProps) {
   const calendarEnd = new Date(calendarStart);
   calendarEnd.setDate(calendarEnd.getDate() + 42);
 
-  const [comandas, openComandas, players, products, paymentMethodSettings, pendingDebts, bankAccounts] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
-    tx.comanda.findMany({
-      where: {
+  const commandWhere: Prisma.ComandaWhereInput = {
         arenaId: auth.arenaId,
         status: "OPEN",
         ...(requestedIds.length ? { id: { in: requestedIds } } : { OR: [{ openedAt: { gte: arenaWallClockToInstant(selectedDate), lt: arenaWallClockToInstant(nextDate) } }, { closeRequestedAt: { not: null } }] }),
         ...(search ? { label: { contains: search, mode: "insensitive" } } : {})
-      },
-      orderBy: [{ closeRequestedAt: { sort: "asc", nulls: "last" } }, { openedAt: "desc" }],
+      };
+  const paging = paginationInput(searchParams);
+  const commandCount = await withArenaTransaction(auth.arenaId, tx => tx.comanda.count({ where: commandWhere }));
+  const commandPage = paginationRange(commandCount, paging.page, paging.pageSize);
+  const [comandas, openComandas, players, products, paymentMethodSettings, pendingDebts, bankAccounts] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
+    tx.comanda.findMany({
+      where: commandWhere,
+      skip: (commandPage.page - 1) * paging.pageSize, take: paging.pageSize,
+      orderBy: [{ closeRequestedAt: { sort: "asc", nulls: "last" } }, { openedAt: "desc" }, { id: "asc" }],
       include: { bookingServices: bookingServicesInclude, player: { select: { name: true, balanceMovements: { where: { kind: "MONEY" }, select: { amountCents: true } } } }, items: { include: { product: { select: { name: true } } }, orderBy: { createdAt: "asc" } }, requests: { where: { status: "PENDING" }, include: { product: { select: { name: true } }, }, orderBy: { createdAt: "desc" } } }
     }),
     tx.comanda.findMany({
@@ -125,6 +133,6 @@ export default async function ComandasPage(props: ComandasPageProps) {
     {searchParams?.new === "avulsa" ? <section className={viewStyles.commands_create_panel}><SafeActionForm action={createComandaAction} className={viewStyles.commands_create_form} successMessage="Comanda avulsa aberta."><input type="hidden" name="type" value="AVULSA" />{operational?.comandaCardsEnabled ? <label className={viewStyles.field}>Número do cartão de comanda<input name="cardNumber" maxLength={40} pattern="[A-Za-z0-9_-]+" placeholder="Opcional · digite ou leia o cartão" /></label> : null}<label className={viewStyles.field}>Nome da comanda<input name="label" placeholder="Ex.: Mesa 4" required /></label><SubmitButton label="Abrir comanda" pendingLabel="Abrindo..." className={`${viewStyles.button_button_primary} tw:bg-[#087443]! tw:[background-image:none]! tw:border-[#087443]! tw:text-white!`} /><Link href={`/comandas?${baseParams}`} className={viewStyles.button}>Cancelar</Link></SafeActionForm></section> : null}
 
     <CloseRequestsWatcher revision={`${closeRequestStats._count.id}:${closeRequestStats._max.closeRequestedAt?.toISOString() ?? ""}`} />
-    <section className={viewStyles.commands_list_commands_day_panel}><div className={viewStyles.commands_list_head}>{comandas.length ? <Link href={`/comandas?${new URLSearchParams({ date: toDateInput(selectedDate), new: "client" })}`} className={viewStyles.button_button_primary}><CommandIcon name="plus" /> Nova comanda</Link> : null}<span><i aria-hidden="true"><CommandIcon name="list" /></i> {comandas.length} comanda{comandas.length === 1 ? "" : "s"}</span></div>{comandas.length ? <div className={viewStyles.commands_list_items}>{comandas.map((comanda) => <CommandCard bankAccounts={bankAccounts} requireFullPayment={operational?.requireFullPayment ?? false} preventOverpayment={operational?.preventOverpayment ?? true} key={comanda.id} canDelete={canDeleteComandas} people={players.map(player => ({ ...player, openComanda: openComandas.find(command => command.playerId === player.id)?.code }))} products={products.map(product => product.isService ? { ...product, category: { name: "Serviços" } } : product)} paymentMethods={paymentMethods} debts={comanda.playerId ? (debtsByPlayer[comanda.playerId] ?? []).filter(debt => !comanda.bookingServices.some(service => service.participant.financialEntryId === debt.id)) : []} clientCreditCents={Math.max(0, comanda.player?.balanceMovements.reduce((total, movement) => total + movement.amountCents, 0) ?? 0)} comanda={{ id: comanda.id, playerId: comanda.playerId, code: comanda.code, cardNumber: comanda.cardNumber, closeRequestedAt: comanda.closeRequestedAt, label: comanda.label, type: comanda.type, openedByUserName: comanda.openedByUserName, bookingServices: bookingServiceRows(comanda.bookingServices), playerName: comanda.player?.name, items: comanda.items, requests: comanda.requests.map((request) => ({ id: request.id, quantity: request.quantity, productName: request.product.name + (request.compositionLabel ? ` · ${request.compositionLabel}` : "") })) }} />)}</div> : <div className={viewStyles.commands_empty}><div className={viewStyles.commands_empty_illustration} aria-hidden="true"><CommandIcon name="receipt" /></div><strong>Nenhuma comanda neste dia.</strong><span>Crie uma nova comanda para iniciar o atendimento.</span><Link href={`/comandas?${new URLSearchParams({ date: toDateInput(selectedDate), new: "client" })}`} className={viewStyles.button_button_primary_commands_empty_action}><CommandIcon name="plus" /> Nova Comanda</Link></div>}</section>
+    <section className={viewStyles.commands_list_commands_day_panel}><div className={viewStyles.commands_list_head}>{comandas.length ? <Link href={`/comandas?${new URLSearchParams({ date: toDateInput(selectedDate), new: "client" })}`} className={viewStyles.button_button_primary}><CommandIcon name="plus" /> Nova comanda</Link> : null}<span><i aria-hidden="true"><CommandIcon name="list" /></i> {comandas.length} comanda{comandas.length === 1 ? "" : "s"}</span></div>{comandas.length ? <div className={viewStyles.commands_list_items}>{comandas.map((comanda) => <CommandCard bankAccounts={bankAccounts} requireFullPayment={operational?.requireFullPayment ?? false} preventOverpayment={operational?.preventOverpayment ?? true} key={comanda.id} canDelete={canDeleteComandas} people={players.map(player => ({ ...player, openComanda: openComandas.find(command => command.playerId === player.id)?.code }))} products={products.map(product => product.isService ? { ...product, category: { name: "Serviços" } } : product)} paymentMethods={paymentMethods} debts={comanda.playerId ? (debtsByPlayer[comanda.playerId] ?? []).filter(debt => !comanda.bookingServices.some(service => service.participant.financialEntryId === debt.id)) : []} clientCreditCents={Math.max(0, comanda.player?.balanceMovements.reduce((total, movement) => total + movement.amountCents, 0) ?? 0)} comanda={{ id: comanda.id, playerId: comanda.playerId, code: comanda.code, cardNumber: comanda.cardNumber, closeRequestedAt: comanda.closeRequestedAt, label: comanda.label, type: comanda.type, openedByUserName: comanda.openedByUserName, bookingServices: bookingServiceRows(comanda.bookingServices), playerName: comanda.player?.name, items: comanda.items, requests: comanda.requests.map((request) => ({ id: request.id, quantity: request.quantity, productName: request.product.name + (request.compositionLabel ? ` · ${request.compositionLabel}` : "") })) }} />)}<ServerListPagination total={commandCount} page={commandPage.page} pageSize={paging.pageSize} label="comandas" /></div> : <div className={viewStyles.commands_empty}><div className={viewStyles.commands_empty_illustration} aria-hidden="true"><CommandIcon name="receipt" /></div><strong>Nenhuma comanda neste dia.</strong><span>Crie uma nova comanda para iniciar o atendimento.</span><Link href={`/comandas?${new URLSearchParams({ date: toDateInput(selectedDate), new: "client" })}`} className={viewStyles.button_button_primary_commands_empty_action}><CommandIcon name="plus" /> Nova Comanda</Link></div>}</section>
   </div>;
 }

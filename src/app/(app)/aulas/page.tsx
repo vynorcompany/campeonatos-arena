@@ -1,3 +1,4 @@
+import { PaginatedList, PaginatedTableRows } from "@/components/ui/list-pagination";
 
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { lessonCreditBalances } from "@/lib/academy/lesson-credits";
@@ -219,7 +220,7 @@ export default async function LessonsPage() {
             </tr>
           </thead>
           <tbody>
-            {students.map((student) => (
+            <PaginatedTableRows>{students.map((student) => (
               <tr key={student.id}>
                 <td>
                   <StudentActionsCell
@@ -244,14 +245,14 @@ export default async function LessonsPage() {
                   </SafeActionForm>
                 </td>
               </tr>
-            ))}
+            ))}</PaginatedTableRows>
           </tbody>
         </table>
       </SectionCard>
 
       <SectionCard title="Histórico e conclusão de aulas" description="Marque faltas antes de concluir. Alunos presentes consomem uma aula do pacote." hideHeading>
         <div className={viewStyles.lesson_list}>
-          {lessons.map((lesson) => (
+          <PaginatedList>{lessons.map((lesson) => (
             <article key={lesson.id} className={viewStyles.lesson_item}>
               <div>
                 <span className={viewStyles.eyebrow}>{lesson.status === "COMPLETED" ? "Concluída" : "Em aberto"}</span>
@@ -288,8 +289,8 @@ export default async function LessonsPage() {
                 <SubmitButton label="Excluir aula" pendingLabel="Excluindo..." className={viewStyles.button_button_danger} />
               </SafeActionForm>
             </article>
-          ))}
-          {!lessons.length ? <p className={viewStyles.muted}>Nenhuma aula registrada ainda.</p> : null}
+          ))}{!lessons.length ? <p className={viewStyles.muted}>Nenhuma aula registrada ainda.</p> : null}</PaginatedList>
+
         </div>
       </SectionCard>
     {canViewModule("students",auth.arenaRole,auth.systemRole,auth.viewPermissions)?<LessonCreditRequestsPanel arenaId={auth.arenaId}/>:null}

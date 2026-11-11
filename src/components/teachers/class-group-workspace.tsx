@@ -1,4 +1,5 @@
 "use client";
+import { PaginatedList } from "@/components/ui/list-pagination";
 import { viewStyles } from "./class-group-workspace.utilities";
 
 import { useState } from "react";
@@ -25,7 +26,7 @@ export function ClassGroupWorkspace({ teachers, plans, groups, requests }: { tea
       <label className={viewStyles.class_group_notes}>Observações<input name="notes" placeholder="Ex.: turma para iniciantes" /></label>
       <SubmitButton label="Criar turma" pendingLabel="Criando..." className={viewStyles.button_button_primary} />
     </SafeActionForm>
-    <div className={viewStyles.class_group_list}>{groups.map((group) => <article key={group.id}><header><div><strong>{group.name}</strong><span>{group.teacher.name}</span></div></header><div>{group.schedules.map((schedule) => <span key={schedule.id}>{weekdays[schedule.weekday]} · {schedule.startTime} · {group.enrollments.length}/{schedule.capacity} vagas</span>)}</div></article>)}{!groups.length ? <p className={viewStyles.muted}>Nenhuma turma criada ainda.</p> : null}</div>
+    <div className={viewStyles.class_group_list}><PaginatedList>{groups.map((group) => <article key={group.id}><header><div><strong>{group.name}</strong><span>{group.teacher.name}</span></div></header><div>{group.schedules.map((schedule) => <span key={schedule.id}>{weekdays[schedule.weekday]} · {schedule.startTime} · {group.enrollments.length}/{schedule.capacity} vagas</span>)}</div></article>)}{!groups.length ? <p className={viewStyles.muted}>Nenhuma turma criada ainda.</p> : null}</PaginatedList></div>
     <section className="class-group-requests"><header><strong>Solicitações pendentes</strong><span>{requests.length}</span></header>{requests.map((request) => <SafeActionForm action={approveClassGroupRequestAction} className="class-group-request" key={request.id} successMessage="Matrícula aprovada e cobrança criada."><input type="hidden" name="requestId" value={request.id} /><div><strong>{request.student.name}</strong><span>{request.classGroup.name}</span></div><label>Plano<select name="planId" required defaultValue=""><option value="" disabled>Selecione o plano</option>{request.classGroup.plans.map(({ plan }) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></label><label>Início<input name="startedAt" type="date" required /></label><label>Vencimento<input name="dueDay" type="number" min="1" max="28" defaultValue="10" required /></label><SubmitButton label="Aprovar matrícula" pendingLabel="Aprovando..." className={viewStyles.button_button_primary_button_small} /></SafeActionForm>)}{!requests.length ? <p className={viewStyles.muted}>Nenhuma solicitação aguardando análise.</p> : null}</section>
   </section>;
 }

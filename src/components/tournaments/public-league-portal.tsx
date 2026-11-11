@@ -1,4 +1,5 @@
 "use client";
+import { PaginatedList } from "@/components/ui/list-pagination";
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 
 import { PortalChoice } from "@/components/portal/portal-choice";
@@ -170,14 +171,14 @@ export function PublicLeaguePortal({
           <h3>Duplas inscritas</h3>
           {portal.selectedLeaguePairs.length ? (
             <div>
-              {portal.selectedLeaguePairs.map((pair) => (
+              <PaginatedList>{portal.selectedLeaguePairs.map((pair) => (
                 <article key={pair.id}>
                   <div>
                     <strong>{pair.name}</strong>
                   </div>
                   {pair.groupName ? <small>{pair.groupName}</small> : null}
                 </article>
-              ))}
+              ))}</PaginatedList>
             </div>
           ) : (
             <p className={mutedText}>{portal.leagueCategories.length ? "Ainda não há duplas nesta categoria." : "Nenhuma categoria de liga ativa."}</p>
@@ -185,7 +186,7 @@ export function PublicLeaguePortal({
         </section>
         <section aria-label="Duplas inscritas" className="tw:mx-1 tw:mt-3 tw:mb-24 tw:hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:viewport-700:block tw:dark:border-[#3e5e8b] tw:dark:bg-[#10294c]">
           <div className="tw:mb-3 tw:flex tw:items-center tw:justify-between tw:gap-3"><h2 className="tw:m-0 tw:text-base tw:font-semibold tw:text-[#133047]! tw:dark:text-[#eaf3ff]!">Duplas inscritas</h2><span className="tw:text-xs tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{portal.selectedLeaguePairs.length}</span></div>
-          {portal.selectedLeaguePairs.length ? <div className="tw:grid tw:gap-2">{portal.selectedLeaguePairs.map((pair, index) => <article key={pair.id} className="tw:flex tw:items-start tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#2a4161] tw:dark:bg-[#102441]"><span className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#174983] tw:text-xs tw:font-semibold tw:text-white! tw:dark:bg-[#174983] tw:dark:text-white!">{index + 1}</span><div className="tw:min-w-0"><strong className="tw:block tw:break-words tw:text-sm tw:leading-snug tw:text-[#133047]! tw:dark:text-[#eaf3ff]!">{pair.name}</strong>{pair.groupName ? <small className="tw:mt-1 tw:block tw:text-xs tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{pair.groupName}</small> : null}</div></article>)}</div> : <p className="tw:m-0 tw:text-sm tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{portal.leagueCategories.length ? "Ainda não há duplas nesta categoria." : "Nenhuma categoria de liga ativa."}</p>}
+          {portal.selectedLeaguePairs.length ? <div className="tw:grid tw:gap-2"><PaginatedList>{portal.selectedLeaguePairs.map((pair, index) => <article key={pair.id} className="tw:flex tw:items-start tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#2a4161] tw:dark:bg-[#102441]"><span className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#174983] tw:text-xs tw:font-semibold tw:text-white! tw:dark:bg-[#174983] tw:dark:text-white!">{index + 1}</span><div className="tw:min-w-0"><strong className="tw:block tw:break-words tw:text-sm tw:leading-snug tw:text-[#133047]! tw:dark:text-[#eaf3ff]!">{pair.name}</strong>{pair.groupName ? <small className="tw:mt-1 tw:block tw:text-xs tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{pair.groupName}</small> : null}</div></article>)}</PaginatedList></div> : <p className="tw:m-0 tw:text-sm tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{portal.leagueCategories.length ? "Ainda não há duplas nesta categoria." : "Nenhuma categoria de liga ativa."}</p>}
         </section></>
       ) : (
         <>
@@ -215,7 +216,7 @@ export function PublicLeaguePortal({
           {showPrize && portal.prizes.length ? (
             <section className={viewStyles.public_league_prizes}>
               <h3>Premiação da Liga</h3>
-              {portal.prizes.map((prize) => (
+              <PaginatedList>{portal.prizes.map((prize) => (
                 <article key={prize.id}>
                   <strong>
                     {prize.eventName} · {prize.categoryName}
@@ -224,7 +225,7 @@ export function PublicLeaguePortal({
                     {prize.description}
                   </p>
                 </article>
-              ))}
+              ))}</PaginatedList>
             </section>
           ) : null}
           <section className={cx(viewStyles.portal_league_results, "tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[minmax(0,1fr)]! tw:viewport-700:[&_h3]:text-[#133047]! tw:viewport-700:dark:[&_h3]:text-[#eaf3ff]! tw:viewport-700:[&_>_header_>_small]:hidden! tw:viewport-700:[&_>_header_span]:hidden!")}>
@@ -265,7 +266,7 @@ export function PublicLeaguePortal({
                       </small>
                     </header>
                     <div>
-                      {selectedWeek.results.map((result) => (
+                      <PaginatedList>{selectedWeek.results.map((result) => (
                         <article id={`jogo-${result.id}`} key={result.id} className="tw:viewport-700:block! tw:viewport-700:rounded-2xl! tw:viewport-700:border! tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:p-3! tw:viewport-700:dark:border-[#2a4161]! tw:viewport-700:dark:bg-[#0b1a30]! tw:viewport-700:[&_strong]:text-[#133047]! tw:viewport-700:dark:[&_strong]:text-[#eaf3ff]!">
                           <div className="tw:hidden tw:viewport-700:block"><div className="tw:mb-3 tw:flex tw:items-center tw:justify-between tw:gap-2 tw:text-[.67rem] tw:font-medium tw:text-[#606874] tw:dark:text-[#a4b3c8]"><span>{result.scheduledAtLabel || "Horário a definir"}</span><span>{result.finished ? "Encerrado" : result.scheduledAtLabel ? "Agendado" : "Aguardando"}</span></div><div className="tw:grid tw:grid-cols-[minmax(0,1fr)_auto] tw:items-center tw:gap-x-3 tw:gap-y-2"><div className="tw:min-w-0"><span className="tw:block tw:text-[.64rem] tw:font-semibold tw:uppercase tw:text-[#08387b] tw:dark:text-[#5b92de]">Mandante</span><strong className="tw:mt-1 tw:block tw:text-sm tw:leading-snug tw:font-semibold tw:text-[#133047] tw:dark:text-[#eaf3ff]">{result.homePairName}</strong></div><b className="tw:text-base tw:text-[#08387b] tw:dark:text-[#5b92de]">{result.finished ? result.homeScore ?? 0 : ""}</b><div className="tw:min-w-0"><span className="tw:block tw:text-[.64rem] tw:font-semibold tw:uppercase tw:text-[#606874] tw:dark:text-[#a4b3c8]">Visitante</span><strong className="tw:mt-1 tw:block tw:text-sm tw:leading-snug tw:font-semibold tw:text-[#133047] tw:dark:text-[#eaf3ff]">{result.awayPairName}</strong></div><b className="tw:text-base tw:text-[#606874] tw:dark:text-[#a4b3c8]">{result.finished ? result.awayScore ?? 0 : ""}</b></div>{result.finished && result.setScores.length ? <div className="tw:mt-3 tw:flex tw:justify-between tw:border-t tw:border-[#d8e5e9] tw:pt-2 tw:text-[.7rem] tw:dark:border-[#2a4161]"><span className="tw:text-[#606874] tw:dark:text-[#a4b3c8]">Games</span><strong className="tw:text-[#133047] tw:dark:text-[#eaf3ff]">{result.setScores.map(([home, away]) => `${home}–${away}`).join(" · ")}</strong></div> : null}</div>
                           <strong className={cx(viewStyles.portal_league_match_sides, "tw:viewport-700:hidden!")}>
@@ -311,7 +312,7 @@ export function PublicLeaguePortal({
                           {!result.finished && result.canSchedule ? <Link href={`${arenaBookingPath(arenaSlug)}?match=${encodeURIComponent(result.id)}`} className="tw:mt-3 tw:inline-flex tw:items-center tw:gap-1 tw:rounded-md tw:border tw:border-blue-300 tw:px-3 tw:py-1.5 tw:text-xs tw:font-medium tw:text-blue-700 tw:dark:text-blue-200">Agendar Confronto</Link> : null}
                           {result.reservationLabel ? <small className="tw:mt-3 tw:block tw:text-xs tw:text-[#354f70] tw:dark:text-[#c2d5ee]">{result.reservationStatus === "PENDING_PAYMENT" ? "Aguardando pagamento" : result.reservationStatus === "PENDING_CONFIRMATION" ? "Aguardando confirmação" : "Reserva confirmada"} · {result.reservationLabel}</small> : null}
                         </article>
-                      ))}
+                      ))}</PaginatedList>
                     </div>
                   </section>
                 ) : null}
@@ -322,7 +323,7 @@ export function PublicLeaguePortal({
           </section>
           {ownPairs.length ? (
             <section className={viewStyles.public_portal_pairs}>
-              {ownPairs.map((pair) => (
+              <PaginatedList>{ownPairs.map((pair) => (
                 <article className={viewStyles.public_portal_pair} key={pair.id}>
                   <header>
                     <strong>{pair.name}</strong>
@@ -463,7 +464,7 @@ export function PublicLeaguePortal({
                     )}
                   </details>
                 </article>
-              ))}
+              ))}</PaginatedList>
             </section>
           ) : null}
 

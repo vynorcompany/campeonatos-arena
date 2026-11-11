@@ -275,7 +275,7 @@ test("teacher metrics keep the label and value in a vertical compact stack on ev
 
   assert.ok(utilityClasses("teacher-detail-page").length, "teacher-detail-page has component Tailwind utilities");
   assert.ok(utilityClasses("teacher-detail-page").length, "teacher-detail-page has component Tailwind utilities");
-  assert.match(styleRules("teacher-directory-item"), /min-height: 68px/);
+  assert.match(styleRules("teacher-directory-item"), /min-height: 48px/);
 });
 
 test("teacher tabs keep one shared hero and metric layout", () => {
@@ -657,7 +657,7 @@ test("teachers directory uses compact rows and an explicit status indicator", ()
   ];
 
   assert.match(workspace, /teacher-directory-status-dot/);
-  assert.match(styleRules("teacher-directory-item"), /min-height: 68px/);
+  assert.match(styleRules("teacher-directory-item"), /min-height: 48px/);
   assert.ok(utilityClasses("teacher-directory-status-dot").length, "teacher-directory-status-dot has component Tailwind utilities");
 });
 

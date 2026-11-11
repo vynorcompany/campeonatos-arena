@@ -124,7 +124,9 @@ test("closed commands are excluded from the active command grid without a duplic
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
 
-  assert.match(page, /const \[comandas[\s\S]{0,650}?where: \{\s*arenaId: auth\.arenaId,\s*status: "OPEN",/);
+  assert.match(page, /const commandWhere:[\s\S]*?arenaId: auth\.arenaId,[\s\S]*?status: "OPEN"/);
+  assert.match(page, /tx\.comanda\.count\(\{ where: commandWhere \}\)/);
+  assert.match(page, /const \[comandas[\s\S]{0,650}?where: commandWhere/);
   assert.doesNotMatch(card, /setInterval/);
   assert.equal((page.match(/<VisiblePageRefresh/g) ?? []).length, 1);
 });

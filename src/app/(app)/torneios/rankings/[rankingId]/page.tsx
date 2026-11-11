@@ -1,3 +1,4 @@
+import { PaginatedList, PaginatedTableRows } from "@/components/ui/list-pagination";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
@@ -86,7 +87,7 @@ function RankingLeaderboard({
   return (
     <>
       <div className="tw:hidden tw:viewport-680:grid tw:gap-3" aria-label="Classificação">
-        {rows.map((row) => (
+        <PaginatedList>{rows.map((row) => (
           <article key={row.key} className="tw:min-w-0 tw:rounded-xl tw:border tw:border-[#d9e5f1] tw:bg-white tw:p-3">
             <div className="tw:flex tw:min-w-0 tw:items-start tw:gap-3">
               <span className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-lg tw:bg-[#174983] tw:text-sm tw:font-bold tw:text-white">#{row.position}</span>
@@ -98,7 +99,7 @@ function RankingLeaderboard({
               <span className="tw:break-words">Último torneio: <strong className="tw:text-[#102b50]">{row.lastTournament}</strong></span>
             </div>
           </article>
-        ))}
+        ))}</PaginatedList>
       </div>
       <table className={cx(viewStyles.data_table, "tw:viewport-680:hidden!")}>
         <thead>
@@ -111,7 +112,7 @@ function RankingLeaderboard({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          <PaginatedTableRows>{rows.map((row) => (
             <tr key={row.key}>
               <td>#{row.position}</td>
               <td><strong>{row.name}</strong></td>
@@ -119,7 +120,7 @@ function RankingLeaderboard({
               <td>{row.participations}</td>
               <td>{row.lastTournament}</td>
             </tr>
-          ))}
+          ))}</PaginatedTableRows>
         </tbody>
       </table>
     </>

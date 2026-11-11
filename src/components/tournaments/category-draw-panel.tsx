@@ -1,3 +1,4 @@
+import { PaginatedList } from "@/components/ui/list-pagination";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./category-draw-panel.utilities";
 import Link from "next/link";
@@ -90,7 +91,7 @@ export function CategoryDrawPanel({
 
   return (
     <div className={viewStyles.stack_md}>
-      {categories.map((category) => {
+      <PaginatedList>{categories.map((category) => {
         const competition = category.competition;
         const canReopenLeague = competition?.format === "LEAGUE" && competition.status === "PUBLISHED" && competition.matches.every((match) => !match.winnerPairId && match.homeScore == null && match.awayScore == null && match.homeSet1 == null && match.awaySet1 == null && match.homeSet2 == null && match.awaySet2 == null && match.homeSet3 == null && match.awaySet3 == null && match.manualStatus !== "LIVE" && match.manualStatus !== "FINISHED");
 
@@ -237,7 +238,7 @@ export function CategoryDrawPanel({
             )}
           </article>
         );
-      })}
+      })}</PaginatedList>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { AccountsLedger } from "@/components/finance/accounts-ledger";
 import { requireFinanceView } from "@/lib/auth/guards";
 import { canDeleteFinancialEntries, canPerformPermission } from "@/lib/permissions";
 import { financialEntryPermission } from "@/lib/finance/entry-permissions";
-import { getAccountsLedger } from "@/lib/finance/accounts";
+import { getAccountsLedgerPage } from "@/lib/finance/accounts";
 import { prisma } from "@/lib/prisma";
 
 export default async function AccountsReceivablePage(props: { searchParams?: Promise<Record<string, string | undefined>> }) {
@@ -12,8 +12,8 @@ export default async function AccountsReceivablePage(props: { searchParams?: Pro
   const auth = await requireFinanceView("receivable");
   const prisma = arenaDatabase(auth.arenaId);
   const filters = { ...searchParams, includeEarlier: searchParams?.includeEarlier === "1", includeVoided: searchParams?.includeVoided === "1", dateField: searchParams?.dateField === "paidAt" ? "paidAt" as const : "dueDate" as const };
-  const [entries, methods, categories, banks, plans, products, clients, usedCategories] = await Promise.all([
-    getAccountsLedger(auth.arenaId, "REVENUE", filters), prisma.paymentMethodSetting.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
+  const [ledger, methods, categories, banks, plans, products, clients, usedCategories] = await Promise.all([
+    getAccountsLedgerPage(auth.arenaId, "REVENUE", filters, searchParams), prisma.paymentMethodSetting.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
     prisma.financialCategory.findMany({ where: { arenaId: auth.arenaId, active: true, type: { in: ["REVENUE", "BOTH"] } }, select: { name: true }, orderBy: { name: "asc" } }),
     prisma.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.plan.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, monthlyPriceCents: true, teacherAssignments: { where: { active: true }, select: { monthlyPriceCents: true, teacher: { select: { id: true, name: true } } }, orderBy: { teacher: { name: "asc" } } } }, orderBy: { name: "asc" } }),
@@ -25,5 +25,5 @@ export default async function AccountsReceivablePage(props: { searchParams?: Pro
     ? teacherAssignments.map(({ teacher, monthlyPriceCents }) => ({ ...plan, monthlyPriceCents, teacherId: teacher.id, teacherName: teacher.name }))
     : [{ ...plan, teacherId: "", teacherName: "" }]);
   const may = (key: string) => canPerformPermission(key, auth.arenaRole, auth.systemRole, auth.editPermissions);
-  return <AccountsLedger title="Contas a Receber" type="REVENUE" entries={entries} filters={filters} categories={[...new Set([...categories.map(item => item.name), ...usedCategories.map(item => item.category)])]} bankAccounts={banks} plans={planOptions} products={products} suppliers={[]} clients={clients} canCreateEntries={may(financialEntryPermission("REVENUE", "create"))} canEditEntries={may(financialEntryPermission("REVENUE", "edit"))} canSettleEntries={may(financialEntryPermission("REVENUE", "settle"))} canManageSettings={may("finance:settings:manage")} canDeleteEntries={canDeleteFinancialEntries(auth.arenaRole, auth.systemRole, auth.editPermissions)} paymentMethods={methods.length ? methods.map((method) => method.name) : ["Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito"]} />;
+  return <AccountsLedger title="Contas a Receber" type="REVENUE" entries={ledger.entries} pagination={ledger} filters={filters} categories={[...new Set([...categories.map(item => item.name), ...usedCategories.map(item => item.category)])]} bankAccounts={banks} plans={planOptions} products={products} suppliers={[]} clients={clients} canCreateEntries={may(financialEntryPermission("REVENUE", "create"))} canEditEntries={may(financialEntryPermission("REVENUE", "edit"))} canSettleEntries={may(financialEntryPermission("REVENUE", "settle"))} canManageSettings={may("finance:settings:manage")} canDeleteEntries={canDeleteFinancialEntries(auth.arenaRole, auth.systemRole, auth.editPermissions)} paymentMethods={methods.length ? methods.map((method) => method.name) : ["Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito"]} />;
 }

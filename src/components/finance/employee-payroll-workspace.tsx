@@ -1,4 +1,7 @@
 "use client";
+import { PayslipImportDialog } from "./payslip-import-dialog";
+import type { PayslipDraft } from "@/lib/finance/payslip-import";
+import { PaginatedList } from "@/components/ui/list-pagination";
 import { useFilterMemory } from "@/components/filters/filter-memory";
 import { MonthPicker } from "@/components/forms/month-picker";
 import { Modal } from "@/components/ui/modal";
@@ -28,7 +31,7 @@ const today = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Pa
 const emptyAmounts: PayrollAmounts = { fixedSalaryCents: 0, monthlyMinutes: 13200, overtimeMinutes: 0, overtimePercentage: 50, nightMinutes: 0, nightOvertimeMinutes: 0, nightPercentage: 20, nightHourMinutes: 52.5, bonusCents: 0, benefitsCents: 0, discountCents: 0, advanceCents: 0 };
 const hourMinutes = (value: string) => Math.max(0, Math.round((Number(value.replace(",", ".")) || 0) * 60));
 
-function PayrollForm({ employees, entries, referenceMonth, initial, canCreate, canEdit, canSettle, close }: { employees: Employee[]; entries: EmployeePayrollRow[]; referenceMonth: string; initial: EmployeePayrollRow | null; canCreate: boolean; canEdit: boolean; canSettle: boolean; close: () => void }) {
+function PayrollForm({ employees, entries, referenceMonth, initial, canCreate, canEdit, canSettle, importDraft, close }: { importDraft?: PayslipDraft; employees: Employee[]; entries: EmployeePayrollRow[]; referenceMonth: string; initial: EmployeePayrollRow | null; canCreate: boolean; canEdit: boolean; canSettle: boolean; close: () => void }) {
   const [userId, setUserId] = useState(initial?.userId ?? "");
   const [month, setMonth] = useState(initial?.referenceMonth ?? referenceMonth);
   const [amounts, setAmounts] = useState<PayrollAmounts>(initial ?? emptyAmounts);
@@ -47,14 +50,17 @@ function PayrollForm({ employees, entries, referenceMonth, initial, canCreate, c
   const totals = calculateEmployeePayroll(amounts);
   const changeEmployee = (id: string, nextMonth: string) => {
     setUserId(id); setMonth(nextMonth);
+    if (importDraft) return;
     const found = entries.find(entry => entry.userId === id && entry.referenceMonth === nextMonth);
     setAmounts(found ?? emptyAmounts); setMonthlyHours(String((found?.monthlyMinutes ?? 13200) / 60)); setOvertimeHours(String((found?.overtimeMinutes ?? 0) / 60));
     setNightHours(String((found?.nightMinutes ?? 0) / 60)); setNightOvertimeHours(String((found?.nightOvertimeMinutes ?? 0) / 60));
     setStatus(found?.financialEntry?.status === "PAID" ? "PAID" : "PENDING"); setDueDate(found?.financialEntry?.dueDate || today()); setPaidAt(found?.financialEntry?.paidAt || today()); setNotes(found?.notes ?? "");
   };
   const moneyFields = [["fixedSalaryCents", "fixedSalary", "Salário base"], ["bonusCents", "bonus", "Adicionais e bônus"], ["benefitsCents", "benefits", "Benefícios"], ["discountCents", "discount", "Descontos"], ["advanceCents", "advance", "Adiantamentos"]] as const;
-  return <Modal open title={matching ? "Editar folha" : "Nova folha"} onClose={close} width="tw:max-w-[820px]">
-    <SafeActionForm action={upsertPayrollEntryAction} className={styles.form} successMessage="Folha salva em Contas a Pagar." onSuccess={close}>
+  return <Modal open title={matching ? "Editar folha" : "Nova folha"} onClose={close} width="tw:max-w-[880px]" heightClassName="tw:bg-[#f5f8fc]! tw:[&>header]:rounded-md tw:[&>header]:bg-[#174983] tw:[&>header]:p-3 tw:[&>header]:text-white">
+    <SafeActionForm action={upsertPayrollEntryAction} className="tw:flex tw:h-full tw:min-h-0 tw:flex-col tw:gap-3" successMessage="Folha salva em Contas a Pagar." successHref={`/financeiro/folha?mes=${encodeURIComponent(month)}`} onSuccess={close}>
+      <div className={`${styles.form} tw:min-h-0 tw:flex-1 tw:content-start tw:overflow-y-auto tw:overscroll-contain tw:pr-1`}>
+      {importDraft ? <section className="tw:col-span-full tw:grid tw:gap-2 tw:rounded-md tw:border tw:border-[#b9d0eb] tw:bg-[#edf3fb] tw:p-3"><span className="tw:text-sm tw:font-medium">Holerite importado · líquido {money(importDraft.netCents)}</span>{importDraft.warnings.map(warning => <p key={warning} className="tw:m-0 tw:text-xs tw:leading-relaxed tw:text-[#354f70]">{warning}</p>)}</section> : null}
       <input type="hidden" name="expectedVersion" value={matching ? `${matching.updatedAt}|${matching.financialEntry?.updatedAt ?? "NONE"}` : "NEW"} />
       <label>Funcionário{!canCreate ? <input type="hidden" name="userId" value={userId} /> : null}<select name={canCreate ? "userId" : undefined} required disabled={!canCreate} value={userId} onChange={event => changeEmployee(event.target.value, month)}><option value="">Selecione o funcionário</option>{employees.map(employee => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></label>
       <MonthPicker name="referenceMonth" label="Mês de referência" disabled={!canCreate} value={month} onChange={value => changeEmployee(userId, value)} />
@@ -78,7 +84,7 @@ function PayrollForm({ employees, entries, referenceMonth, initial, canCreate, c
       <label className={styles.full}>Observações<input name="notes" maxLength={2000} value={notes} onChange={event => setNotes(event.target.value)} /></label>
       <div className={styles.preview} aria-live="polite"><span>Horas extras</span><strong>{money(totals.overtimeCents)}</strong><span>Adicional noturno{amounts.nightMinutes ? ` · ${totals.nightEquivalentHours.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} h convertidas` : ""}</span><strong>{money(totals.nightCents)}</strong><span>Extras noturnas{amounts.nightOvertimeMinutes ? ` · ${totals.nightOvertimeEquivalentHours.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} h convertidas` : ""}</span><strong>{money(totals.nightOvertimeCents)}</strong><span>Descontos e adiantamentos</span><strong>{money(totals.deductionsCents)}</strong><span className="tw:font-semibold">Total líquido</span><strong className="tw:text-lg! tw:font-bold" data-testid="payroll-total">{money(totals.totalCents)}</strong></div>
       {!canSave ? <p className="tw:col-span-full tw:m-0 tw:text-xs tw:text-[var(--muted)]">Você não tem permissão para {matching ? "editar esta folha" : "criar uma nova folha"}.</p> : null}
-      <div className="tw:col-span-full tw:flex tw:flex-wrap tw:justify-end tw:gap-2"><button type="button" className={styles.secondary} onClick={close}>Cancelar</button>{canSave ? <SubmitButton label="Salvar folha" pendingLabel="Salvando..." className={styles.button} /> : null}</div>
+      </div><div className="tw:flex tw:shrink-0 tw:flex-wrap tw:justify-end tw:gap-2 tw:border-t tw:border-[#d5e1ef] tw:bg-white tw:pt-3"><button type="button" className={styles.secondary} onClick={close}>Cancelar</button>{canSave ? <SubmitButton label="Salvar folha" pendingLabel="Salvando..." className={styles.button} /> : null}</div>
     </SafeActionForm>
   </Modal>;
 }
@@ -87,7 +93,7 @@ export function EmployeePayrollWorkspace({ employees, entries, referenceMonth, c
   const [query, setQuery] = useFilterMemory("payroll-query", "");
   const [filterMonth, setFilterMonth] = useState(referenceMonth);
   useEffect(()=>setFilterMonth(referenceMonth),[referenceMonth]);
-  const [form, setForm] = useState<{ entry: EmployeePayrollRow | null } | null>(null);
+  const [form, setForm] = useState<{ entry: EmployeePayrollRow | null; importDraft?: PayslipDraft } | null>(null);
   const close = useRef(() => setForm(null)).current;
   const visible = entries.filter(entry => entry.employeeName.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR")));
   const summary = entries.reduce((totals, row) => {
@@ -96,16 +102,21 @@ export function EmployeePayrollWorkspace({ employees, entries, referenceMonth, c
     const balance = getFinancialEntryBalance(entry.amountCents, entry.settlements, entry.status);
     return { total: totals.total + entry.amountCents, paid: totals.paid + balance.paidCents, pending: totals.pending + balance.outstandingCents };
   }, { total: 0, paid: 0, pending: 0 });
+  const importPayslip = (draft: PayslipDraft, fileName: string) => {
+    const normalized = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase("pt-BR");
+    const employee = employees.find(item => normalized(item.name) === normalized(draft.employeeName));
+    setForm({ importDraft: draft, entry: { ...draft.amounts, id: "IMPORT", updatedAt: "", userId: employee?.id ?? null, employeeName: draft.employeeName, referenceMonth: draft.referenceMonth || referenceMonth, notes: `Importado de holerite: ${fileName.slice(0, 180)}. Proventos ${money(draft.grossCents)}; descontos ${money(draft.amounts.discountCents)}; líquido ${money(draft.netCents)}.`, financialEntry: null } });
+  };
   return <section className={styles.page}>
-    <WorkspaceHeading title="Folha de pagamento">{canCreate ? <button type="button" className={styles.button} disabled={!employees.length} onClick={() => setForm({ entry: null })}>Nova folha</button> : null}</WorkspaceHeading>
+    <WorkspaceHeading title="Folha de pagamento">{canCreate ? <PayslipImportDialog onImport={importPayslip}/> : null}{canCreate ? <button type="button" className={styles.button} disabled={!employees.length} onClick={() => setForm({ entry: null })}>Nova folha</button> : null}</WorkspaceHeading>
     <div className={styles.filters}><form method="get" action="/financeiro/folha" className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-end tw:gap-2"><MonthPicker name="mes" value={filterMonth} onChange={setFilterMonth} /><button className={`${styles.secondary} tw:h-9`}>Filtrar</button></form><label className="tw:grid tw:min-w-0 tw:gap-1 tw:text-xs tw:font-semibold">Funcionário<input type="search" aria-label="Buscar funcionário" placeholder="Buscar funcionário..." value={query} onChange={event => setQuery(event.target.value)} /></label><Link href="/financeiro/contas-a-pagar" className={`${styles.secondary} tw:h-9 tw:justify-self-start`}>Contas a Pagar</Link></div>
     <div className={styles.summary}><div><span>Total da folha</span><strong>{money(summary.total)}</strong></div><div><span>Pago</span><strong className="tw:text-emerald-700">{money(summary.paid)}</strong></div><div><span>A pagar</span><strong className="tw:text-red-700">{money(summary.pending)}</strong></div></div>
-    <div className={styles.list}>{visible.map(row => {
+    <div className={styles.list}><PaginatedList>{visible.map(row => {
       const entry = row.financialEntry;
       const status = entry?.status === "PAID" ? "Pago" : entry?.status === "VOIDED" ? "Cancelado" : entry ? "A pagar" : "Lançamento excluído";
       return <article className={styles.row} key={row.id}><div><strong>{row.employeeName}</strong><small>{row.referenceMonth.split("-").reverse().join("/")} · {(row.overtimeMinutes / 60).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} h extras{row.nightMinutes || row.nightOvertimeMinutes ? ` · ${(((row.nightMinutes ?? 0) + (row.nightOvertimeMinutes ?? 0)) / 60).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} h noturnas` : ""}</small></div><div><strong>{money(entry?.amountCents ?? calculateEmployeePayroll(row).totalCents)}</strong><small>{entry?.status === "PAID" ? "Pago em " + entry.paidAt.split("-").reverse().join("/") : entry?.dueDate ? "Vence em " + entry.dueDate.split("-").reverse().join("/") : ""}</small></div><span className={entry?.status === "PAID" ? "tw:text-xs tw:font-semibold tw:text-emerald-700" : "tw:text-xs tw:font-semibold tw:text-[var(--muted)]"}>{status}</span>{canEdit ? <button type="button" className={styles.secondary} disabled={!employees.some(employee => employee.id === row.userId) || entry?.status === "VOIDED"} onClick={() => setForm({ entry: row })} aria-label={`Editar folha de ${row.employeeName}`}>Editar</button> : null}</article>;
-    })}{!visible.length ? <p className="tw:m-0 tw:p-4 tw:text-sm tw:text-[var(--muted)]">{entries.length ? "Nenhuma folha corresponde à busca." : "Nenhuma folha de funcionários neste mês."}</p> : null}</div>
+    })}{!visible.length ? <p className="tw:m-0 tw:p-4 tw:text-sm tw:text-[var(--muted)]">{entries.length ? "Nenhuma folha corresponde à busca." : "Nenhuma folha de funcionários neste mês."}</p> : null}</PaginatedList></div>
     {!employees.length ? <p className="tw:m-0 tw:text-sm tw:text-[var(--muted)]">Cadastre um usuário na arena para criar uma folha.</p> : null}
-    {form ? <PayrollForm employees={employees} entries={entries} referenceMonth={referenceMonth} initial={form.entry} canCreate={canCreate} canEdit={canEdit} canSettle={canSettle} close={close} /> : null}
+    {form ? <PayrollForm employees={employees} entries={entries} referenceMonth={referenceMonth} initial={form.entry} importDraft={form.importDraft} canCreate={canCreate} canEdit={canEdit} canSettle={canSettle} close={close} /> : null}
   </section>;
 }

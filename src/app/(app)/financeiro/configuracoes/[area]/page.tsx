@@ -1,3 +1,4 @@
+import { PaginatedList } from "@/components/ui/list-pagination";
 import { FiscalSettingsForm } from "@/components/fiscal/fiscal-settings-form";
 import { DRE_GROUP_OPTIONS } from "@/lib/reports/dre";
 import { SupplierDialog } from "@/components/finance/supplier-dialog";
@@ -34,7 +35,7 @@ const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "curren
 const backLink = () => <Link className={`${viewStyles.button_button_small} tw:justify-self-start tw:w-fit`} href="/financeiro/configuracoes">Voltar às configurações</Link>;
 function CreatePanel({ label, children }: { label: string; children: ReactNode }) { return <details className={viewStyles.setting_create_panel}><summary className={viewStyles.button_button_primary_button_small}>{label}</summary><div>{children}</div></details>; }
 function Status({ children, tone = "active" }: { children: ReactNode; tone?: "active" | "neutral" | "revenue" | "expense" }) { return <span className={cx(`${viewStyles.settings_status} settings-status-${tone}`)}>{children}</span>; }
-function List({ columns, empty, children }: { columns: string[]; empty: boolean; children: ReactNode }) { return <div className={viewStyles.settings_operational_list}><div className={viewStyles.settings_operational_head}>{columns.map((column) => <span key={column}>{column}</span>)}</div>{empty ? <p className={viewStyles.client_empty}>Nenhum cadastro nesta área.</p> : children}</div>; }
+function List({ columns, empty, children }: { columns: string[]; empty: boolean; children: ReactNode }) { return <div className={viewStyles.settings_operational_list}><div className={viewStyles.settings_operational_head}>{columns.map((column) => <span key={column}>{column}</span>)}</div><PaginatedList>{empty ? <p className={viewStyles.client_empty}>Nenhum cadastro nesta área.</p> : children}</PaginatedList></div>; }
 
 
 export default async function FinancialSettingAreaPage(

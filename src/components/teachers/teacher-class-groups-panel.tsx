@@ -1,4 +1,5 @@
 "use client";
+import { PaginatedList } from "@/components/ui/list-pagination";
 import { Modal } from "@/components/ui/modal";
 
 import { cx } from "@/lib/ui/classes";
@@ -462,7 +463,7 @@ export function TeacherClassGroupsPanel({
             <span>Vagas</span>
             <span>Ações</span>
           </div>
-          {classRows.map(({ group, schedule }) => (
+          <PaginatedList>{classRows.map(({ group, schedule }) => (
             <article className={viewStyles.teacher_class_row} key={schedule.id}>
               <span className={viewStyles.teacher_class_name}>
                 <strong>{group.name}</strong>
@@ -591,7 +592,7 @@ export function TeacherClassGroupsPanel({
                 </div>
               </details>
             </article>
-          ))}
+          ))}</PaginatedList>
           {!classRows.length ? (
             <p className={viewStyles.muted_teacher_class_empty}>
               Nenhuma turma vinculada a este professor ainda.
