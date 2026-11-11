@@ -83,7 +83,7 @@ export default async function ComandasPage(props: ComandasPageProps) {
     tx.comanda.findMany({
       where: commandWhere,
       skip: (commandPage.page - 1) * paging.pageSize, take: paging.pageSize,
-      orderBy: [{ closeRequestedAt: { sort: "asc", nulls: "last" } }, { openedAt: "desc" }],
+      orderBy: [{ closeRequestedAt: { sort: "asc", nulls: "last" } }, { openedAt: "desc" }, { id: "asc" }],
       include: { bookingServices: bookingServicesInclude, player: { select: { name: true, balanceMovements: { where: { kind: "MONEY" }, select: { amountCents: true } } } }, items: { include: { product: { select: { name: true } } }, orderBy: { createdAt: "asc" } }, requests: { where: { status: "PENDING" }, include: { product: { select: { name: true } }, }, orderBy: { createdAt: "desc" } } }
     }),
     tx.comanda.findMany({
