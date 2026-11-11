@@ -1,4 +1,4 @@
-import { PaginatedList } from "@/components/ui/list-pagination";
+
 import { currentPlanBill } from "@/lib/academy/current-plan-bill";
 import { lessonCreditBalances } from "@/lib/academy/lesson-credits";
 import { withArenaTransaction } from "@/lib/rls";
@@ -421,7 +421,7 @@ export default async function TeacherDetailPage(
               </div>
             </header>
             <div className={viewStyles.teacher_plan_cards}>
-              <PaginatedList>{teacher.planAssignments.map(({ plan, monthlyPriceCents, priceChanges }) => (
+              <>{teacher.planAssignments.map(({ plan, monthlyPriceCents, priceChanges }) => (
                 <article key={plan.id}>
                   <div>
                     <strong>{plan.name}</strong>
@@ -432,7 +432,7 @@ export default async function TeacherDetailPage(
                   </div>
                   <div className="tw:flex! tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><TeacherPlanEditor teacherId={teacher.id} plan={{ id: plan.id, name: plan.name, monthlyPriceCents, creditExpiryCycle: plan.creditExpiryCycle, creditExpiryDays: plan.creditExpiryDays }} /><TeacherPlanPriceSchedule teacherId={teacher.id} planId={plan.id} planName={plan.name} currentPriceCents={monthlyPriceCents} changes={priceChanges.map(change => ({ id: change.id, amountCents: change.amountCents, effectiveDate: change.effectiveDate.toISOString().slice(0, 10) }))}/><TeacherPlanCreateDialog teacherId={teacher.id} initialPlan={{ creditExpiryCycle: plan.creditExpiryCycle, creditExpiryDays: plan.creditExpiryDays, name: plan.name, classesPerMonth: plan.classesPerMonth, monthlyPriceCents, notes: plan.notes }} /></div>
                 </article>
-              ))}</PaginatedList>
+              ))}</>
               {!teacher.planAssignments.length ? (
                 <p className={viewStyles.muted}>Nenhum plano vinculado.</p>
               ) : null}

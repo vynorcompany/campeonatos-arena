@@ -1,4 +1,4 @@
-import { PaginatedList } from "@/components/ui/list-pagination";
+
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
@@ -92,7 +92,7 @@ export default async function SupportPage() {
 
       <SectionCard title="Chamados" hideHeading>
         <div className={viewStyles.support_ticket_list}>
-          <PaginatedList>{tickets.map((ticket) => (
+          <>{tickets.map((ticket) => (
             <article key={ticket.id} className={viewStyles.support_ticket_card}>
               <div>
                 <span className={cx(`${viewStyles.ticket_status} ticket-status-${ticket.status.toLowerCase()}`)}>{statusLabels[ticket.status] ?? ticket.status}</span>
@@ -108,7 +108,7 @@ export default async function SupportPage() {
                 <span>Atualizado em {ticket.updatedAt.toLocaleDateString("pt-BR")}</span>
               </div>
             </article>
-          ))}{!tickets.length ? <p className={viewStyles.muted}>Nenhum chamado aberto.</p> : null}</PaginatedList>
+          ))}{!tickets.length ? <p className={viewStyles.muted}>Nenhum chamado aberto.</p> : null}</>
 
         </div>
       </SectionCard>

@@ -1,4 +1,4 @@
-import { PaginatedList, PaginatedTableRows } from "@/components/ui/list-pagination";
+
 
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { lessonCreditBalances } from "@/lib/academy/lesson-credits";
@@ -93,7 +93,7 @@ export default async function StudentsPage() {
             </tr>
           </thead>
           <tbody>
-            <PaginatedTableRows>{students.map((student) => (
+            <>{students.map((student) => (
               <tr key={student.id}>
                 <td>
                   <StudentActionsCell
@@ -118,7 +118,7 @@ export default async function StudentsPage() {
                   </SafeActionForm>
                 </td>
               </tr>
-            ))}</PaginatedTableRows>
+            ))}</>
           </tbody>
         </table>
       </SectionCard>

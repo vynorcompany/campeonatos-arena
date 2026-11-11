@@ -22,3 +22,14 @@ export function planDueDays(values: unknown[], fallback=10) {
   if(!days.length || days.some(d=>!Number.isInteger(d)||d<1||d>28)) throw new Error("Escolha vencimentos entre os dias 1 e 28.");
   return days;
 }
+
+export function fixedCycle(base: number, credits: number, year: number, month: number, weekdays: number[], prorate: boolean) {
+  const occurrences = weekdays.reduce((sum,day)=>sum+fixedMonthAmount(0,year,month,day,false).occurrences,0);
+  const ratio = prorate ? occurrences / (4 * weekdays.length) : 1;
+  return { occurrences, amountCents: Math.round(base * ratio), credits: credits > 0 ? Math.max(1,Math.round(credits * ratio)) : occurrences };
+}
+export function fixedSchedules(value: unknown, fallback: {weekday: number;startMinute:number}) {
+  const rows = value == null || value === "" ? [fallback] : JSON.parse(String(value));
+  if(!Array.isArray(rows)||rows.length<1||rows.length>7||rows.some(r=>!Number.isInteger(r.weekday)||r.weekday<0||r.weekday>6||!Number.isInteger(r.startMinute)||r.startMinute<0||r.startMinute>=1440)||new Set(rows.map(r=>r.weekday)).size!==rows.length) throw new Error("Selecione dias diferentes e horários válidos para o plano.");
+  return rows as {weekday:number;startMinute:number}[];
+}

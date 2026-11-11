@@ -1,5 +1,5 @@
 "use client";
-import { PaginatedList } from "@/components/ui/list-pagination";
+
 import { Modal } from "@/components/ui/modal";
 
 
@@ -40,14 +40,14 @@ export function LeagueHistoryPanel({ cycles, successHref }: { successHref: strin
 
   return <section className={styles.panel} aria-labelledby="league-history-title">
     <header className={styles.panelHeader}><h2 id="league-history-title" className="tw:sr-only">Histórico mensal</h2><span>{closedCycles.length} ciclo{closedCycles.length === 1 ? "" : "s"}</span></header>
-    <div className={styles.list}><PaginatedList>{closedCycles.map((cycle) =>
+    <div className={styles.list}><>{closedCycles.map((cycle) =>
       <button key={cycle.id} type="button" className={styles.month} onClick={() => setSelectedId(cycle.id)} aria-label={`Ver histórico de ${monthLabel(cycle.referenceMonth)}`}>
         <strong>{monthLabel(cycle.referenceMonth)}</strong>
         <span>{cycle.completedMatches}/{cycle.matchCount} jogos concluídos</span>
         <small>Campeã: {cycle.championName ?? "não definida"}</small>
         <span className={styles.view}>Ver mês <span aria-hidden="true">→</span></span>
       </button>
-    )}</PaginatedList></div>
+    )}</></div>
     {selected ? <Modal title={`Histórico · ${monthLabel(selected.referenceMonth)}`} open onClose={closeHistory} width="tw:max-w-[800px]">
           <div className={styles.dialogBody}>
             <div className={styles.highlights}>

@@ -18,3 +18,10 @@ test("custom due date choices normalize duplicates and reject invalid choices",(
  assert.deepEqual(planDueDays(["15","5","15"]),[5,15]);assert.deepEqual(planDueDays([],10),[10]);
  for(const invalid of [[0],[29],["abc"],[1.5]]) assert.throws(()=>planDueDays(invalid));
 });
+test("two weekly days produce one monthly amount and configurable credits",async()=>{
+ const {fixedCycle,fixedSchedules}=await import("../src/lib/plans/fixed-court");
+ assert.deepEqual(fixedSchedules('[{"weekday":1,"startMinute":600},{"weekday":3,"startMinute":660}]',{weekday:0,startMinute:0}),[{weekday:1,startMinute:600},{weekday:3,startMinute:660}]);
+ assert.throws(()=>fixedSchedules('[{"weekday":1,"startMinute":600},{"weekday":1,"startMinute":660}]',{weekday:0,startMinute:0}),/dias diferentes/);
+ assert.deepEqual(fixedCycle(40000,8,2035,0,[1,3],true),{amountCents:50000,credits:10,occurrences:10});
+ assert.deepEqual(fixedCycle(40000,8,2035,0,[1,3],false),{amountCents:40000,credits:8,occurrences:10});
+});

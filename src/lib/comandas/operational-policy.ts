@@ -5,22 +5,27 @@ import { getOutstandingCents } from "@/lib/finance/settlements";
 import { ownedReceivables, retainedContactNeedsReview } from "@/lib/legal/retained-contact";
 
 type Payment = { paymentMethod: string; amountCents: number; bankAccountId?: string };
-export function applyComandaPaymentPolicy(input: { totalCents: number; creditCents: number; payments: readonly Payment[]; preventOverpayment: boolean; requireFullPayment: boolean; allowPartial: boolean; playerId: string | null }) {
+export function applyComandaPaymentPolicy(input: { totalCents: number; creditCents: number; payments: readonly Payment[]; preventOverpayment: boolean; requireFullPayment: boolean; allowPartial: boolean; playerId: string | null; excessDisposition?: "CREDIT" | "CHANGE" }) {
   const paymentTotal = input.payments.reduce((sum, payment) => sum + payment.amountCents, 0);
   if (![input.totalCents, input.creditCents, paymentTotal].every(Number.isSafeInteger) || input.totalCents < 0 || input.creditCents < 0 || input.creditCents > input.totalCents || input.payments.some(payment => !Number.isSafeInteger(payment.amountCents) || payment.amountCents <= 0)) throw new Error("Valores de pagamento inválidos.");
   const excessCents = Math.max(0, paymentTotal + input.creditCents - input.totalCents);
-  if (excessCents && input.preventOverpayment) throw new Error("Os pagamentos não podem ultrapassar o total a receber.");
-  if (excessCents && !input.playerId) throw new Error("Vincule um cliente para registrar crédito de pagamento excedente.");
+  if (excessCents && input.preventOverpayment && !input.excessDisposition) throw new Error("Os pagamentos não podem ultrapassar o total a receber.");
+  if (excessCents && input.excessDisposition !== "CHANGE" && !input.playerId) throw new Error("Vincule um cliente para registrar crédito de pagamento excedente.");
   const outstandingCents = Math.max(0, input.totalCents - paymentTotal - input.creditCents);
   if (outstandingCents && input.requireFullPayment && !input.allowPartial) throw new Error("Esta arena exige quitação integral. Autorize o saldo pendente para continuar.");
   let budget = input.totalCents - input.creditCents;
   const appliedPayments: Payment[] = []; const excessPayments: Payment[] = [];
-  for (const payment of input.payments) {
+  const normalized = input.payments.map(payment => ({...payment}));
+  let changeCents = input.excessDisposition === "CHANGE" ? excessCents : 0;
+  const cash = (value: string) => /^(dinheiro|cash)$/i.test(value.trim());
+  if (changeCents > normalized.filter(p => cash(p.paymentMethod)).reduce((sum,p) => sum+p.amountCents,0)) throw new Error("O troco deve ser coberto pelo valor recebido em dinheiro. Ajuste os pagamentos ou escolha gerar saldo.");
+  for (let i=normalized.length-1;i>=0 && changeCents;i--) if(cash(normalized[i].paymentMethod)) { const returned = Math.min(changeCents,normalized[i].amountCents); normalized[i].amountCents -= returned; changeCents -= returned; }
+  for (const payment of normalized) {
     const applied = Math.min(budget, payment.amountCents); budget -= applied;
     if (applied) appliedPayments.push({ ...payment, amountCents: applied });
     if (payment.amountCents > applied) excessPayments.push({ ...payment, amountCents: payment.amountCents - applied });
   }
-  return { appliedPayments, excessPayments, excessCents, outstandingCents, partialOverride: Boolean(outstandingCents && input.requireFullPayment && input.allowPartial) };
+  return { appliedPayments, excessPayments, changeCents: input.excessDisposition === "CHANGE" ? excessCents : 0, excessCents: input.excessDisposition === "CHANGE" ? 0 : excessCents, outstandingCents, partialOverride: Boolean(outstandingCents && input.requireFullPayment && input.allowPartial) };
 }
 
 export async function assertComandaMayOpen(tx: Prisma.TransactionClient, arenaId: string, playerId: string, today = arenaToday()) {

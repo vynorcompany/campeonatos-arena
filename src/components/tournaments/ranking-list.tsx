@@ -1,4 +1,4 @@
-import { PaginatedList } from "@/components/ui/list-pagination";
+
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { viewStyles } from "./ranking-list.utilities";
 import Link from "next/link";
@@ -30,7 +30,7 @@ export function RankingList({ rankings }: RankingListProps) {
   return (
     <section className={viewStyles.active_event_list} aria-label="Rankings ativos">
       <div className={`${ui.head} tw:grid-cols-[minmax(0,1fr)_auto]`}><span>Ranking</span><span>Ações</span></div>
-      <PaginatedList>{rankings.map((ranking) => (
+      <>{rankings.map((ranking) => (
         <article key={ranking.id} className={viewStyles.active_event_row}>
           <div>
             <strong>{ranking.name}</strong>
@@ -43,7 +43,7 @@ export function RankingList({ rankings }: RankingListProps) {
             Abrir
           </Link>
         </article>
-      ))}</PaginatedList>
+      ))}</>
     </section>
   );
 }

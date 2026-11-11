@@ -35,6 +35,10 @@ test("financial pagination limits hydrated rows, keeps full-filter totals and is
   const unique=new Set([...first.entries,...second.entries,...third.entries].map(e=>e.id));assert.equal(unique.size,45);assert.ok(!unique.has(ids[47]));
   const focused = await exports.getAccountsLedgerPage!(own.id,"EXPENSE",{category,status:"OPEN"},{entryId:third.entries[0].id});
   assert.equal(focused.page,3);assert.ok(focused.entries.some(entry=>entry.id===third.entries[0].id));
+  await admin.financialEntry.update({where:{id:ids[0]},data:{amountCents:9000}});
+  await admin.financialEntry.update({where:{id:ids[44]},data:{amountCents:7000}});
+  const sorted=await exports.getAccountsLedgerPage!(own.id,"EXPENSE",{category,status:"OPEN",sort:"amountCents",direction:"desc"},{page:1});
+  assert.deepEqual(sorted.entries.slice(0,2).map(e=>e.id),[ids[0],ids[44]],"ordena todo o conjunto antes de paginar");
   assert.equal((await read(1,100)).entries.length,45);assert.equal((await read(1,999)).entries.length,20);
  }finally{await admin.financialEntry.deleteMany({where:{id:{in:ids}}});await Promise.all([admin.$disconnect(),runtime.$disconnect()]);}
 });

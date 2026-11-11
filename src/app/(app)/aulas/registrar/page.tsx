@@ -1,4 +1,4 @@
-import { PaginatedList } from "@/components/ui/list-pagination";
+
 import { LessonPaymentFields } from "@/components/finance/lesson-payment-fields";
 import { arenaDatabase } from "@/lib/arena-database";
 import { viewStyles } from "./page.utilities";
@@ -100,7 +100,7 @@ export default async function RegisterLessonPage() {
 
       <SectionCard className={viewStyles.panel} title="Histórico e conclusão" description="Marque faltas antes de concluir. Alunos presentes consomem uma aula do pacote." hideHeading>
         <div className={viewStyles.lesson_list}>
-          <PaginatedList>{lessons.map((lesson) => (
+          <>{lessons.map((lesson) => (
             <article key={lesson.id} className={viewStyles.lesson_item}>
               <div>
                 <span className={viewStyles.eyebrow}>{lesson.status === "COMPLETED" ? "Concluída" : "Em aberto"}</span>
@@ -137,7 +137,7 @@ export default async function RegisterLessonPage() {
                 <SubmitButton label="Excluir aula" pendingLabel="Excluindo..." className={viewStyles.button_button_danger} />
               </SafeActionForm>
             </article>
-          ))}{!lessons.length ? <p className={viewStyles.muted}>Nenhuma aula registrada ainda.</p> : null}</PaginatedList>
+          ))}{!lessons.length ? <p className={viewStyles.muted}>Nenhuma aula registrada ainda.</p> : null}</>
 
         </div>
       </SectionCard>

@@ -2,8 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
+import { randomUUID } from "node:crypto";
+import { reservationCreditGrants } from "../src/lib/plans/reservation-credits";
 import {z} from "zod";
-import { availableFixedTimes, fixedMonthAmount } from "../src/lib/plans/fixed-court";
+import { availableFixedTimes, fixedMonthAmount, fixedCycle, fixedSchedules } from "../src/lib/plans/fixed-court";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import {portalCheckoutPolicy} from "../src/lib/payments/portal-checkout-policy";
 import ts from "typescript";
@@ -67,7 +69,7 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
                 "@/lib/payments/boleto-cancellation":{boletoCancellationDisposition},
                 "@/lib/payments/recurring-charge-eligibility":{recurringBoletoIssueDeadline},
                 "@/lib/payments/recurring-online-charges":{issueRecurringOnlineChargeForEntry:async()=>({created:false,skipped:false})},
-                "@/lib/payments/mercado-pago":{getMercadoPagoPayment:async(_arena:string,id:string)=>{assert.equal(_arena,arena.id);return{status:providerStatuses[id]??"pending"};},cancelMercadoPagoPayment:async(_arena:string,id:string)=>{assert.equal(_arena,arena.id);canceledProvider.push(id);if(cancelFails)throw new Error("Pagamento já recebido no emissor.");},createHostedCheckout:async()=>{providerCalls++;return {id:"guardian-checkout-qa",checkoutUrl:"https://checkout.example.test/guardian"};}}, "next/cache": { revalidatePath() { } },
+                "@/lib/payments/mercado-pago":{getMercadoPagoPayment:async(_arena:string,id:string)=>{assert.equal(_arena,arena.id);return{status:providerStatuses[id]??"pending"};},cancelMercadoPagoPayment:async(_arena:string,id:string)=>{assert.equal(_arena,arena.id);canceledProvider.push(id);if(cancelFails)throw new Error("Pagamento já recebido no emissor.");},createHostedCheckout:async()=>{providerCalls++;return {id:"guardian-checkout-qa",checkoutUrl:"https://checkout.example.test/guardian"};}}, "node:crypto": { randomUUID }, "next/cache": { revalidatePath() { } },
                 "@/lib/auth/guards": { requirePermission: async () => auth, requireModuleEdit: async () => auth },
                 "@/lib/auth/session": { requireArenaAccess: async () => auth },
                 "@/lib/permissions": { canPerformPermission: () => true },
@@ -78,7 +80,7 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
                 "@/lib/finance/ledger": { getFinancialEntryBalance },
                 "@/lib/finance/revalidation": { refreshFinanceRoutes() { } },
                 "@/lib/rls": { withArenaTransaction: async (id: string, fn: any) => { assert.equal(id, arena.id); return fn(tx); } },
-                "@/lib/plans/fixed-court":{availableFixedTimes,fixedMonthAmount},
+                "@/lib/plans/fixed-court":{availableFixedTimes,fixedMonthAmount,fixedCycle,fixedSchedules},
                 "@/lib/finance/receiving-bank-account":{requireReceivingBankAccount},
                 "@/lib/calendar/online-booking-hold": { activeCourtOccurrenceWhere },
                 "@/lib/scheduling/recurrence": { expandWeeklyOccurrences },
@@ -159,6 +161,22 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
             assert.equal(await tx.financialEntry.count({where:{...recurringBoletoEntryWhere(arena.id),id:{in:futureBoletoBills.map(e=>e.id)}}}),2);
             assert.equal(futureBoletoBills[0].dueDate?.toISOString().slice(0,10),"2035-01-15");
 
+            const multiCourt=await tx.court.create({data:{arenaId:arena.id,name:"Quadra multi QA"}});
+            for(const weekday of [1,3]) await tx.courtWeeklyRule.create({data:{courtId:multiCourt.id,weekday,startsAtMinute:420,endsAtMinute:1320}});
+            const multiPlan=await tx.sponsorshipPlan.create({data:{arenaId:arena.id,name:"Plano 2x QA",kind:"FIXED_COURT",reservationCredits:8,dueDays:[10],monthlyAmountCents:40000}});
+            const multiForm=new FormData();
+            Object.entries({planId:multiPlan.id,playerId:parent.id,courtId:multiCourt.id,durationMinutes:"90",startsAt:"2035-01-01",endsAt:"2035-02-28",schedules:JSON.stringify([{weekday:1,startMinute:600},{weekday:3,startMinute:660}]),dueDay:"10",prorateFifthWeek:"on"}).forEach(([k,v])=>multiForm.set(k,v));
+            assert.equal((await fixed.enrollFixedCourtPlanAction(multiForm)).success,true);
+            const multiSeries=await tx.scheduleBookingSeries.findMany({where:{sponsorshipPlanId:multiPlan.id}});
+            assert.equal(multiSeries.length,2);assert.equal(multiSeries[0].fixedPlanEnrollmentId,multiSeries[1].fixedPlanEnrollmentId);
+            const multiBills=await tx.financialEntry.findMany({where:{source:"FIXED_COURT_PLAN",externalReference:{in:multiSeries.map(r=>r.id)}},orderBy:{dueDate:"asc"}});
+            assert.equal(multiBills.length,2,"uma mensalidade por ciclo, não por dia");assert.equal(multiBills[0].amountCents,50000);assert.match(multiBills[0].notes,/10 créditos de reserva/);assert.equal(multiBills[1].amountCents,40000);assert.match(multiBills[1].notes,/8 créditos de reserva/);
+            await tx.financialEntry.update({where:{id:multiBills[0].id},data:{status:"PAID",paidAt:new Date()}});
+            await tx.sponsorshipPlan.update({where:{id:multiPlan.id},data:{reservationCredits:16}});
+            assert.equal((await reservationCreditGrants(tx,arena.id,[parent.id])).find(g=>g.entryId===multiBills[0].id)?.quantity,10,"créditos pagos preservam a configuração daquele ciclo");
+            const endMulti=new FormData();endMulti.set("seriesId",multiSeries[1].id);assert.equal((await fixed.endFixedCourtPlanAction(endMulti)).success,true);
+            assert.equal(await tx.scheduleBookingSeries.count({where:{sponsorshipPlanId:multiPlan.id,status:"ACTIVE"}}),0);
+            assert.equal(await tx.scheduleOccurrence.count({where:{bookingSeriesId:{in:multiSeries.map(r=>r.id)},status:{not:"CANCELED"}}}),0);
             const explicitClaim=await claimFinancialOnlineCharge(tx,{arenaId:arena.id,entryId:futureBoletoBills[0].id,method:"BOLETO",expectedAmountCents:futureBoletoBills[0].amountCents,requireActiveBoletoRecurrence:true});
             assert.equal(explicitClaim.ok,true);
             assert.equal((await claimFinancialOnlineCharge(tx,{arenaId:arena.id,entryId:futureBoletoBills[0].id,method:"BOLETO",expectedAmountCents:futureBoletoBills[0].amountCents,requireActiveBoletoRecurrence:true})).ok,false,"não duplica emissão em andamento");

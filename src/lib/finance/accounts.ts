@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { paginationInput, paginationRange } from "@/lib/pagination";
 import { accountLastPaymentDate } from "@/lib/finance/account-payment-date";
 import { getFinancialEntryBalance } from "@/lib/finance/ledger";
@@ -5,7 +6,7 @@ import { classificationFilter } from "@/lib/finance/classification-filter";
 import { teacherPlanCondition } from "@/lib/finance/plan-filter";
 import { withArenaTransaction } from "@/lib/rls";
 
-export type LedgerFilters = { name?: string; start?: string; end?: string; status?: string; paymentMethod?: string; bankAccountId?: string; category?: string; description?: string; productId?: string; planId?: string; dateField?: "dueDate" | "paidAt"; includeEarlier?: boolean; includeVoided?: boolean; };
+export type LedgerFilters = { sort?: string; direction?: string; name?: string; start?: string; end?: string; status?: string; paymentMethod?: string; bankAccountId?: string; category?: string; description?: string; productId?: string; planId?: string; dateField?: "dueDate" | "paidAt"; includeEarlier?: boolean; includeVoided?: boolean; };
 
 function parseFilterDate(value?: string, end = false) { return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T${end ? "23:59:59.999" : "00:00:00.000"}`) : null; }
 
@@ -44,7 +45,10 @@ function ledgerWhere(arenaId: string, type: "REVENUE" | "EXPENSE", filters: Ledg
 
 export async function getAccountsLedger(arenaId: string, type: "REVENUE" | "EXPENSE", filters: LedgerFilters = {}, paging?: { skip: number; take: number }) {
   const { where, dateField } = ledgerWhere(arenaId, type, filters);
-  const entries = await withArenaTransaction(arenaId, (tx) => tx.financialEntry.findMany({ where, ...(paging ? { skip: paging.skip, take: paging.take } : {}), orderBy: [{ [dateField]: dateField === "dueDate" && type === "REVENUE" ? { sort: "asc", nulls: "first" } : "asc" }, { createdAt: "asc" }, { id: "asc" }], include: { fiscalDocument:{select:{id:true}}, billingPlayer: { select: { name: true } }, player: { select: { name: true } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true, paymentMethod: true, paidAt: true, notes: true } }, recurrence: { select: { onlinePaymentMethod: true } }, scheduleParticipant: { select: { player: { select: { name: true } } } }, sale: { select: { customerName: true, comanda: { select: { id: true, code: true, label: true } } } }, supplier: { select: { name: true } } } }));
+  const directSort = ["dueDate","paidAt","category","description","amountCents","status"].includes(filters.sort ?? "") ? filters.sort! : null;
+  const direction = filters.direction === "desc" ? "desc" as const : "asc" as const;
+  const orderBy: Prisma.FinancialEntryOrderByWithRelationInput[] = directSort ? [{[directSort]: direction},{id:"asc"}] : [{[dateField]:dateField === "dueDate" && type === "REVENUE" ? {sort:"asc",nulls:"first"}:"asc"},{createdAt:"asc"},{id:"asc"}];
+  const entries = await withArenaTransaction(arenaId, (tx) => tx.financialEntry.findMany({ where, ...(paging ? { skip: paging.skip, take: paging.take } : {}), orderBy, include: { fiscalDocument:{select:{id:true}}, billingPlayer: { select: { name: true } }, player: { select: { name: true } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true, paymentMethod: true, paidAt: true, notes: true } }, recurrence: { select: { onlinePaymentMethod: true } }, scheduleParticipant: { select: { player: { select: { name: true } } } }, sale: { select: { customerName: true, comanda: { select: { id: true, code: true, label: true } } } }, supplier: { select: { name: true } } } }));
   return entries.map((entry) => ({ id: entry.id, updatedAt: entry.updatedAt.toISOString(), source: entry.source, canCardInstallment: entry.source==="MANUAL"&&entry.status==="PENDING"&&!entry.recurrenceId&&!entry.saleId&&!entry.planId&&!entry.scheduleParticipant&&!entry.fiscalDocument&&!entry.onlinePaymentId&&!entry.onlinePaymentUrl&&!entry.settlements.length, playerId: entry.playerId, supplierId: entry.supplierId, payeeEmployeeId: entry.payeeEmployeeId, payeeTeacherId: entry.payeeTeacherId, counterpartyName: entry.billingPlayer?.name || entry.counterpartyName || entry.player?.name || entry.supplier?.name || entry.scheduleParticipant?.player.name || entry.sale?.comanda?.label || entry.sale?.customerName || "Não informado", category: entry.category, description: entry.billingPlayerId && entry.billingPlayerId !== entry.playerId ? `${entry.description} · Dependente: ${entry.player?.name ?? "Cliente"}` : entry.description, amountCents: entry.amountCents, paymentMethod: entry.paymentMethod, bankAccountId: entry.bankAccountId, planId: entry.planId, productId: entry.productId, comanda: entry.sale?.comanda ? { id: entry.sale.comanda.id, code: entry.sale.comanda.code, label: entry.sale.comanda.label } : null, onlineProvider: entry.onlineProvider, onlinePaymentId: entry.onlinePaymentId, onlinePaymentUrl: entry.onlinePaymentUrl, onlinePaymentQrCode: entry.onlinePaymentQrCode, onlinePaymentMethod: entry.recurrence?.onlinePaymentMethod ?? "", onlinePaymentPublishedAt: entry.onlinePaymentPublishedAt?.toISOString() ?? null, onlinePaymentViewedAt: entry.onlinePaymentViewedAt?.toISOString() ?? null, competenceDate: entry.competenceDate?.toISOString().slice(0, 10) ?? null, dueDate: entry.dueDate ? entry.dueDate.toISOString().slice(0, 10) : null, paidAt: accountLastPaymentDate(entry), notes: entry.notes, status: entry.status, voidReason: entry.voidReason, settlements: entry.settlements.map((settlement) => ({ ...settlement, paidAt: settlement.paidAt.toISOString().slice(0, 10) })), balance: getFinancialEntryBalance(entry.amountCents, entry.settlements, entry.status) }));
 }
 
@@ -73,6 +77,15 @@ export async function getAccountsLedgerPage(arenaId: string, type: "REVENUE" | "
     return { total, activeCount: active._count, totalCents: active._sum.amountCents ?? 0 };
   });
   const range = paginationRange(summary.total, request.page, request.pageSize);
-  const entries = await getAccountsLedger(arenaId, type, filters, { skip: (range.page - 1) * request.pageSize, take: request.pageSize });
+  const keys = ["dueDate", "paidAt", "counterpartyName", "category", "description", "amountCents", "status"] as const;
+  const sort = keys.find(key => key === filters.sort);
+  let entries;
+  if (sort === "counterpartyName" || sort === "paidAt" || (sort && !input.page && targetId)) {
+    const all = await getAccountsLedger(arenaId, type, filters);
+    const direction = filters.direction === "desc" ? -1 : 1;
+    all.sort((a,b) => { const x=a[sort], y=b[sort]; const compared = typeof x === "number" && typeof y === "number" ? x-y : String(x ?? "").localeCompare(String(y ?? ""), "pt-BR", { numeric: true, sensitivity: "base" }); return direction * compared || a.id.localeCompare(b.id); });
+    if (!input.page && targetId) { const index = all.findIndex(entry => entry.id === targetId); if(index >= 0) range.page = Math.floor(index / request.pageSize) + 1; }
+    entries = all.slice((range.page - 1) * request.pageSize, range.page * request.pageSize);
+  } else entries = await getAccountsLedger(arenaId, type, filters, { skip: (range.page - 1) * request.pageSize, take: request.pageSize });
   return { ...summary, entries, page: range.page, pageSize: request.pageSize };
 }

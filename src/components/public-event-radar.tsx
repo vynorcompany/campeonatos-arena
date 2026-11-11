@@ -1,4 +1,4 @@
-import { PaginatedList } from "@/components/ui/list-pagination";
+
 import { PortalLocalTabs } from "@/components/portal/local-tabs";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./public-event-radar.utilities";
@@ -86,7 +86,7 @@ export async function PublicEventRadar({
         </header>
         {visibleEvents.length ? (
           <div>
-            <PaginatedList>{visibleEvents.map((event) => (
+            <>{visibleEvents.map((event) => (
               <article key={event.id}>
                 <div className={viewStyles.event_radar_arena}>
                   {event.arena.logoUrl ? (
@@ -129,7 +129,7 @@ export async function PublicEventRadar({
                   </span>
                 )}
               </article>
-            ))}</PaginatedList>
+            ))}</>
           </div>
         ) : (
           <div className={viewStyles.portal_empty}>

@@ -31,7 +31,7 @@ export const viewStyles = {
     "tw:[&:hover::after]:[transform:translate(-50%,_0)]", "tw:[&:focus-visible::after]:opacity-[1]", "tw:[&:focus-visible::after]:[transform:translate(-50%,_0)]",
   ].join(" "),
   "online_charge_status_online_charge_pending": [
-    "online-charge-status", "online-charge-pending", "tw:block", "tw:mt-[5px]",
-    "tw:text-[.65rem]", "tw:font-[800]", "tw:text-[color:#a35a00]",
+    "online-charge-status", "online-charge-pending", "tw:block", "tw:mt-[2px]",
+    "tw:text-[.65rem]", "tw:font-normal", "tw:text-[color:#a35a00]",
   ].join(" "),
 } as const;

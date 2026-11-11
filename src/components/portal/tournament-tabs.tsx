@@ -1,4 +1,4 @@
-import { PaginatedList, PaginatedTableRows } from "@/components/ui/list-pagination";
+
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "@/components/tournaments/public-standings.utilities";
 import { PortalLocalTabs } from "./local-tabs";
@@ -75,7 +75,7 @@ function PrizePanel({ portal }: { portal: Portal }) {
         <h2 className="tw:mb-3 tw:text-lg tw:font-semibold">Premiação</h2>
         {portal?.prizes.length ? (
           <div className="tw:grid tw:gap-2">
-            <PaginatedList>{portal.prizes.map((prize) => (
+            <>{portal.prizes.map((prize) => (
               <article
                 key={prize.id}
                 className="tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#2a4161] tw:dark:bg-[#102441]"
@@ -88,7 +88,7 @@ function PrizePanel({ portal }: { portal: Portal }) {
                 </small>
                 <p className="tw:mt-2 tw:text-sm">{prize.description}</p>
               </article>
-            ))}</PaginatedList>
+            ))}</>
           </div>
         ) : (
           <p className="tw:text-sm tw:text-[#606874] tw:dark:text-[#a4b3c8]">
@@ -186,7 +186,7 @@ function RankingPanel({
       {data.selected?.kind === "GENERAL_RANKING" ? (
         <>
           <div className="tw:hidden tw:viewport-700:grid tw:gap-2">
-            <PaginatedList>{data.selected.rows.map((row) => (
+            <>{data.selected.rows.map((row) => (
               <article
                 key={`${row.position}-${row.playerName}`}
                 className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#2a4161] tw:dark:bg-[#102441]"
@@ -206,7 +206,7 @@ function RankingPanel({
                   {row.points} pts
                 </b>
               </article>
-            ))}</PaginatedList>
+            ))}</>
           </div>
           <table
             className={cx(
@@ -223,14 +223,14 @@ function RankingPanel({
               </tr>
             </thead>
             <tbody>
-              <PaginatedTableRows>{data.selected.rows.map((row) => (
+              <>{data.selected.rows.map((row) => (
                 <tr key={`${row.position}-${row.playerName}`}>
                   <td>{row.position}</td>
                   <td>{row.playerName}</td>
                   <td>{row.points}</td>
                   <td>{row.tournamentsPlayed}</td>
                 </tr>
-              ))}</PaginatedTableRows>
+              ))}</>
             </tbody>
           </table>
         </>
@@ -239,7 +239,7 @@ function RankingPanel({
       data.selected.format === "LEAGUE" ? (
         <>
           <div className="tw:hidden tw:viewport-700:grid tw:gap-2">
-            <PaginatedList>{data.selected.leagueStandings.map((standing) => (
+            <>{data.selected.leagueStandings.map((standing) => (
               <article
                 key={standing.position}
                 className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#2a4161] tw:dark:bg-[#102441]"
@@ -260,7 +260,7 @@ function RankingPanel({
                   {standing.points} pts
                 </b>
               </article>
-            ))}</PaginatedList>
+            ))}</>
           </div>
           <table
             className={cx(
@@ -312,7 +312,7 @@ function RankingPanel({
               </tr>
             </thead>
             <tbody>
-              <PaginatedTableRows>{data.selected.leagueStandings.map((standing) => (
+              <>{data.selected.leagueStandings.map((standing) => (
                 <tr key={standing.position}>
                   <td>{standing.position}</td>
                   <td>{standing.pairName}</td>
@@ -322,7 +322,7 @@ function RankingPanel({
                   <td>{standing.losses}</td>
                   <td>{standing.differential}</td>
                 </tr>
-              ))}</PaginatedTableRows>
+              ))}</>
             </tbody>
           </table>
         </>

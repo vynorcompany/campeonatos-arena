@@ -1,5 +1,5 @@
 "use client";
-import { PaginatedList } from "@/components/ui/list-pagination";
+
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 
 import { CompositionFields } from "@/components/products/composition-fields";
@@ -99,7 +99,7 @@ export function PortalClientComandas({ data: initialData, arenaSlug }: { data: D
     startTransition(async () => { try { await requestPortalComandaOpenAction(form); setMessage("Solicitação enviada à equipe. Aguarde a abertura da sua comanda."); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível enviar a solicitação."); } });
   }}>{pending ? "Enviando…" : "Solicitar abertura de comanda"}</button>{message && !messageFor ? <p role="status" className="tw:m-0 tw:text-sm">{message}</p> : null}</div>;
   return <section aria-label="Minhas comandas" className="tw:[&_strong]:font-medium tw:[&_b]:font-medium tw:grid tw:min-w-0 tw:gap-4 tw:p-3">
-    <PaginatedList>{data.comandas.map(comanda => {
+    <>{data.comandas.map(comanda => {
       const draft = drafts[comanda.id];
       const selected = Object.entries(draft?.quantities ?? {}).map(([key, quantity]) => ({ key, choices:draftLines[key]?.choices ?? {}, product: data.products.find(product => product.id === draftLines[key]?.productId), quantity })).filter(row => row.product);
       const count = selected.reduce((sum, row) => sum + row.quantity, 0);
@@ -126,6 +126,6 @@ export function PortalClientComandas({ data: initialData, arenaSlug }: { data: D
         </div>
         </div>
       </article>;
-    })}</PaginatedList>
+    })}</>
   </section>;
 }
