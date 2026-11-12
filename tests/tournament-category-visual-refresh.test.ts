@@ -31,7 +31,7 @@ test("visão geral da Liga usa um cabeçalho e painel operacional coerentes", ()
   assert.match(page, /category-detail-hero/);
   assert.match(page, /league-overview-bottom/);
   assert.ok(utilityClasses("league-overview-bottom").length, "league-overview-bottom has component Tailwind utilities");
-  assert.match(styleRules("league-overview-primary-action", {context: ".button"}), /min-height: 38px/);
+  assert.match(styleRules("league-overview-primary-action"), /margin-left: auto/);
 });
 
 test("área da categoria mantém ações e formulário de duplas em escala compacta", () => {
@@ -43,7 +43,8 @@ test("área da categoria mantém ações e formulário de duplas em escala compa
   const pair = readFileSync(resolve(process.cwd(), "src/components/tournaments/category-pair-form.tsx"), "utf8");
   assert.match(pair, /<Modal title="Adicionar dupla"/);
   assert.match(pair, /onSuccess=\{close\}/);
-  assert.match(styleRules("category-detail-hero"), /padding-top: 18px[\s\S]*padding-right: 20px/);
+  assert.match(styleRules("category-detail-hero"), /padding: calc\(var\(--tw-spacing\) \* 5\)/);
+  assert.match(styleRules("category-detail-hero"), /min-width: 0px/);
   assert.ok(utilityClasses("league-overview-bottom").length, "league-overview-bottom has component Tailwind utilities");
 });
 

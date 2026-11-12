@@ -1,11 +1,10 @@
-import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
   "grid_form": sharedUtilities.gridForm,
   "field_form_full": sharedUtilities.fieldFormFull,
-  "muted": sharedUtilities.muted,
-  "field": sharedUtilities.field,
+  "muted": "tw:m-0 tw:text-[13px] tw:leading-relaxed tw:text-[#465c75]",
+  "field": "tw:grid tw:min-w-0 tw:gap-1.5 tw:text-[13px] tw:font-normal tw:text-[#243e5d] tw:[&_:is(input,select,textarea)]:min-w-0 tw:[&_:is(input,select,textarea)]:w-full tw:[&_:is(input,select,textarea)]:min-h-9 tw:[&_:is(input,select,textarea)]:rounded-[5px] tw:[&_:is(input,select,textarea)]:border tw:[&_:is(input,select,textarea)]:border-[#718bac] tw:[&_:is(input,select,textarea)]:bg-white tw:[&_:is(input,select,textarea)]:px-2.5 tw:[&_:is(input,select,textarea)]:py-2 tw:[&_:is(input,select,textarea)]:text-[13px] tw:[&_:is(input,select,textarea)]:text-[#172b45] tw:[&_label]:font-normal tw:[&_input::placeholder]:text-[#50637a]",
   "muted_form_full": sharedUtilities.mutedFormFull,
   "field_form_full_2": [
     "field", "field-inline", "form-full", "tw:grid",
@@ -32,7 +31,7 @@ export const viewStyles = {
     "tw:[grid-column:1_/_-1]",
   ].join(" "),
   "field_field_submit_form_full": sharedUtilities.fieldFieldSubmitFormFull,
-  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
+  "button_button_primary": "button button-primary tw:inline-flex tw:min-h-9 tw:w-fit tw:max-w-full tw:items-center tw:justify-center tw:gap-2 tw:rounded-[5px] tw:border tw:px-3 tw:py-2 tw:text-[13px] tw:font-normal tw:leading-tight tw:no-underline tw:cursor-pointer tw:disabled:cursor-default tw:disabled:opacity-60 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:[&_svg]:size-4 tw:border-[#205da8] tw:bg-[#205da8] tw:text-white tw:hover:bg-[#174983]",
   "public_visibility_switch": [
     "public-visibility-switch", "tw:inline-flex", "tw:items-center", "tw:[&_label]:inline-flex",
     "tw:[&_label]:items-center", "tw:[&_label]:gap-y-[7px]", "tw:[&_label]:gap-x-[7px]", "tw:[&_label]:text-[color:#536982]",

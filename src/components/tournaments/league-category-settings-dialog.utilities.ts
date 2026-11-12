@@ -1,29 +1,16 @@
-import { managementControls } from "@/components/ui/management-controls";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
-  "button_button_small_league_category_edit_trigger": ([
-    "button", "button-small", "league-category-edit-trigger", "tw:inline-flex",
-    "tw:items-center", "tw:justify-center", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
-    "tw:min-h-[30px]", "tw:pt-[5px]", "tw:pr-[8px]", "tw:pb-[5px]",
-    "tw:pl-[8px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]",
-    "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]",
-    "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
-    "tw:border-l-[color:var(--line)]", "tw:rounded-[var(--radius-control)]", "tw:bg-[color:var(--panel)]", "tw:[background-image:none]",
-    "tw:text-[color:var(--text)]", "tw:text-[.72rem]", "tw:[transition:transform_180ms_var(--ease-standard),_border-color_180ms_var(--ease-standard),_background_180ms_var(--ease-standard),_box-shadow_180ms_var(--ease-standard),_color_180ms_var(--ease-standard)]", "tw:hover:border-t-[color:var(--line-strong)]",
-    "tw:hover:border-r-[color:var(--line-strong)]", "tw:hover:border-b-[color:var(--line-strong)]", "tw:hover:border-l-[color:var(--line-strong)]", "tw:hover:[transform:translateY(-1px)]",
-    "tw:hover:[box-shadow:0_10px_20px_rgba(28,_54,_89,_0.08)]", "tw:disabled:opacity-[0.72]", "tw:disabled:cursor-wait", "tw:[&:active]:[transform:translateY(0)]",
-    "tw:[&:active]:[box-shadow:none]", "tw:ml-[4px]",
-  ].join(" ")) + " " + managementControls.secondary,
-  "league_settings_dialog": "league-settings-dialog tw:grid tw:min-w-0 tw:gap-4 tw:[&_footer]:flex tw:[&_footer]:flex-wrap tw:[&_footer]:justify-end tw:[&_footer]:gap-2 tw:[&_footer]:border-t tw:[&_footer]:border-[var(--line)] tw:[&_footer]:pt-3",
+  "button_button_small_league_category_edit_trigger": "button tw:inline-flex tw:min-h-9 tw:w-fit tw:max-w-full tw:items-center tw:justify-center tw:gap-2 tw:rounded-[5px] tw:border tw:px-3 tw:py-2 tw:text-[13px] tw:font-normal tw:leading-tight tw:no-underline tw:cursor-pointer tw:disabled:cursor-default tw:disabled:opacity-60 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:[&_svg]:size-4 tw:border-[#718bac] tw:bg-[#edf3fb] tw:text-[#174983] tw:hover:bg-[#dce9f8]",
+  "league_settings_dialog": "league-settings-dialog tw:flex tw:min-h-full tw:min-w-0 tw:flex-col tw:gap-4 tw:[&_footer]:mt-auto tw:[&_footer]:flex tw:[&_footer]:flex-wrap tw:[&_footer]:justify-end tw:[&_footer]:gap-2 tw:[&_footer]:border-t tw:[&_footer]:border-[var(--line)] tw:[&_footer]:pt-3",
   "eyebrow": sharedUtilities.eyebrow,
-  "button_button_small": (ui.secondary) + " " + managementControls.secondary,
-  "field": `${ui.field} tw:[&_:where(input,select)]:rounded-[7px]!`,
+  "button_button_small": "button tw:inline-flex tw:min-h-9 tw:w-fit tw:max-w-full tw:items-center tw:justify-center tw:gap-2 tw:rounded-[5px] tw:border tw:px-3 tw:py-2 tw:text-[13px] tw:font-normal tw:leading-tight tw:no-underline tw:cursor-pointer tw:disabled:cursor-default tw:disabled:opacity-60 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:[&_svg]:size-4 tw:border-[#718bac] tw:bg-[#edf3fb] tw:text-[#174983] tw:hover:bg-[#dce9f8]",
+  "field": "tw:grid tw:min-w-0 tw:gap-1.5 tw:text-[13px] tw:font-normal tw:text-[#243e5d] tw:[&_:is(input,select,textarea)]:min-w-0 tw:[&_:is(input,select,textarea)]:w-full tw:[&_:is(input,select,textarea)]:min-h-9 tw:[&_:is(input,select,textarea)]:rounded-[5px] tw:[&_:is(input,select,textarea)]:border tw:[&_:is(input,select,textarea)]:border-[#718bac] tw:[&_:is(input,select,textarea)]:bg-white tw:[&_:is(input,select,textarea)]:px-2.5 tw:[&_:is(input,select,textarea)]:py-2 tw:[&_:is(input,select,textarea)]:text-[13px] tw:[&_:is(input,select,textarea)]:text-[#172b45] tw:[&_label]:font-normal tw:[&_input::placeholder]:text-[#50637a]",
   "league_settings_grid": [
     "league-settings-grid", "tw:grid", "tw:grid-cols-[repeat(2,minmax(0,1fr))]", "tw:viewport-760:grid-cols-[1fr]",
     "tw:gap-y-[12px]", "tw:gap-x-[12px]",
   ].join(" "),
-  "button": (ui.secondary) + " " + managementControls.secondary,
-  "button_button_primary": (ui.primary) + " " + managementControls.primary,
+  "button": "button tw:inline-flex tw:min-h-9 tw:w-fit tw:max-w-full tw:items-center tw:justify-center tw:gap-2 tw:rounded-[5px] tw:border tw:px-3 tw:py-2 tw:text-[13px] tw:font-normal tw:leading-tight tw:no-underline tw:cursor-pointer tw:disabled:cursor-default tw:disabled:opacity-60 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:[&_svg]:size-4 tw:border-[#718bac] tw:bg-[#edf3fb] tw:text-[#174983] tw:hover:bg-[#dce9f8]",
+  "button_button_primary": "button button-primary tw:inline-flex tw:min-h-9 tw:w-fit tw:max-w-full tw:items-center tw:justify-center tw:gap-2 tw:rounded-[5px] tw:border tw:px-3 tw:py-2 tw:text-[13px] tw:font-normal tw:leading-tight tw:no-underline tw:cursor-pointer tw:disabled:cursor-default tw:disabled:opacity-60 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:[&_svg]:size-4 tw:border-[#205da8] tw:bg-[#205da8] tw:text-white tw:hover:bg-[#174983]",
 } as const;

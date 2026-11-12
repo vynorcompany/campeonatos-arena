@@ -24,7 +24,7 @@ export function AthleteCreatePanel({ openLabel = "Adicionar novo atleta", guardi
         {iconOnly ? <ActionIcon name="userPlus"/> : isOpen ? "Fechar cadastro" : openLabel}
       </button>
 
-      <Modal title="Novo cliente" open={isOpen} onClose={close} width="tw:max-w-[800px]" tone="management">{isOpen ? <PlayerForm guardians={guardians} /> : null}</Modal>
+      <Modal title="Novo cliente" open={isOpen} onClose={close} width="tw:max-w-[1060px]" heightClassName="tw:h-[min(760px,calc(100dvh_-_32px))]!" tone="management-strong">{isOpen ? <PlayerForm guardians={guardians} onCancel={close} /> : null}</Modal>
     </div>
   );
 }
