@@ -30,7 +30,7 @@ export function NewProductDialog({
         title="Novo produto"
         width="tw:max-w-[640px]"
         open={open}
-        onClose={close}
+        onClose={close} tone="management"
       >
         <SafeActionForm
           action={createProductAction}

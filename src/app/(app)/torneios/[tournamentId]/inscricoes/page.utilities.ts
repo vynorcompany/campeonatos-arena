@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -5,13 +6,13 @@ export const viewStyles = {
   "page_header_tournament_management_header": sharedUtilities.pageHeaderTournamentManagementHeader,
   "eyebrow": sharedUtilities.eyebrow,
   "muted": sharedUtilities.muted,
-  "button": sharedUtilities.button,
+  "button": (sharedUtilities.button) + " " + managementControls.secondary,
   "section_card": sharedUtilities.sectionCard2,
-  "tournament_registration_filters": [
+  "tournament_registration_filters": ([
     "tournament-registration-filters", "tw:grid", "tw:grid-cols-[minmax(220px,_1.4fr)_repeat(2,_minmax(160px,_.7fr))_auto]", "tw:viewport-760:grid-cols-[1fr]",
     "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:pb-[18px]", "tw:border-b-[length:1px]",
     "tw:[border-bottom-style:solid]", "tw:border-b-[color:#e3ebf4]",
-  ].join(" "),
+  ].join(" ")) + " " + managementControls.filters,
   "tournament_registration_list": [
     "tournament-registration-list", "tw:grid", "tw:gap-y-[10px]", "tw:gap-x-[10px]",
     "tw:pt-[16px]",
@@ -52,5 +53,5 @@ export const viewStyles = {
     "tw:[&_label]:gap-y-[6px]", "tw:[&_label]:gap-x-[6px]", "tw:[&_label]:text-[color:#354e6d]", "tw:[&_label]:text-[.82rem]",
     "tw:[&_label]:font-[700]", "tw:[&_.button]:[align-self:end]",
   ].join(" "),
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
 } as const;

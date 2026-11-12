@@ -18,7 +18,7 @@ function Dialog({ title, children, close }: { title: string; children: React.Rea
   const closeRef = useRef(close);
   closeRef.current = close;
   const onClose = useCallback(() => closeRef.current(), []);
-  return <Modal open title={title} onClose={onClose} width="tw:max-w-[640px]">{children}</Modal>;
+  return <Modal open title={title} onClose={onClose} width="tw:max-w-[640px]" tone="management">{children}</Modal>;
 }
 
 export function CreateSponsorshipPlanButton({ action, courts = [] }: { action: Action; courts?: { id:string; name:string }[] }) {

@@ -17,7 +17,7 @@ export function TeacherPlanEditor({ teacherId, plan }: PlanEditorProps) {
   const close = useCallback(() => setOpen(false), []);
   return <>
     <button type="button" className={ui.secondary} onClick={() => setOpen(true)}><EventIcon name="edit" />Editar plano</button>
-    <Modal title={`Editar plano · ${plan.name}`} width="tw:max-w-[560px]" open={open} onClose={close}>
+    <Modal title={`Editar plano · ${plan.name}`} width="tw:max-w-[560px]" open={open} onClose={close} tone="management">
       <SafeActionForm action={updateTeacherPlanWithPriceAction} className="tw:flex tw:h-full tw:min-w-0 tw:flex-col tw:gap-4" successMessage="Plano atualizado. Os alunos atuais mantêm seus valores contratados." onSuccess={close}>
         <input type="hidden" name="teacherId" value={teacherId} />
         <input type="hidden" name="planId" value={plan.id} />

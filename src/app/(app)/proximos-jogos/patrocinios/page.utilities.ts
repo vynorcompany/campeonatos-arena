@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -62,7 +63,7 @@ export const viewStyles = {
     "tw:[&_>_span]:font-[800]", "tw:[&_b]:min-w-0", "tw:[&_b]:break-words",
     "tw:[&_b]:whitespace-normal", "tw:[&_b]:text-[.82rem]", "tw:[&_.button]:min-w-[30px]", "tw:[&_.button]:[padding-inline:7px]",
   ].join(" "),
-  "button_button_danger_button_small_sponsor_delete_button": [
+  "button_button_danger_button_small_sponsor_delete_button": ([
     "button", "button-danger", "button-small", "sponsor-delete-button",
     "tw:inline-flex", "tw:items-center", "tw:justify-center", "tw:gap-y-[6px]",
     "tw:gap-x-[6px]", "tw:min-h-[30px]", "tw:pt-[0]!", "tw:pr-[0]!",
@@ -77,15 +78,15 @@ export const viewStyles = {
     "tw:hover:text-[color:#992f29]", "tw:w-[32px]", "tw:min-w-[32px]!", "tw:h-[32px]",
     "tw:[overflow-x:hidden]", "tw:[overflow-y:hidden]", "tw:[background-position:center]", "tw:[background-repeat:no-repeat]",
     "tw:[background-size:15px]", "tw:[text-indent:0]",
-  ].join(" "),
+  ].join(" ")) + " " + managementControls.danger,
   "muted": sharedUtilities.muted,
   "active_event_actions": [
     "active-event-actions", "tw:flex", "tw:flex-wrap", "tw:[align-self:end]",
     "tw:justify-start", "tw:gap-y-[8px]", "tw:gap-x-[8px]", "tw:[&_.button]:min-h-[36px]",
     "tw:[&_.button]:[padding-inline:12px]", "tw:[&_.button]:text-[.78rem]", "tw:[&_.button]:font-[700]",
   ].join(" "),
-  "button_button_primary_button_small": sharedUtilities.buttonButtonPrimaryButtonSmall,
-  "button_button_secondary_button_small": sharedUtilities.buttonButtonSecondaryButtonSmall,
+  "button_button_primary_button_small": (sharedUtilities.buttonButtonPrimaryButtonSmall) + " " + managementControls.primary,
+  "button_button_secondary_button_small": (sharedUtilities.buttonButtonSecondaryButtonSmall) + " " + managementControls.secondary,
   "sponsor_empty_state": [
     "sponsor-empty-state", "tw:grid", "tw:gap-y-[5px]", "tw:gap-x-[5px]",
     "tw:max-w-[520px]", "tw:pt-[18px]", "tw:pr-[18px]", "tw:pb-[18px]",

@@ -1,8 +1,9 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
-  "button_button_primary": ui.primary,
+  "button_button_primary": (ui.primary) + " " + managementControls.primary,
   "stack_md": sharedUtilities.stackMd,
   "section_card_stack_md_category_operation_panel": sharedUtilities.sectionCardStackMdCategoryOperationPanel,
   "league_registration_panel": [
@@ -49,7 +50,7 @@ export const viewStyles = {
   "league_registration_pair_name": [
     "league-registration-pair-name", "tw:[&_strong]:text-[color:#0c1d40]", "tw:[&_strong]:text-[.88rem]", "tw:[&_strong]:leading-[1.4]",
   ].join(" "),
-  "button_button_danger": sharedUtilities.buttonButtonDanger,
+  "button_button_danger": (sharedUtilities.buttonButtonDanger) + " " + managementControls.danger,
   "stack_xs_league_registration_replacements": [
     "stack-xs", "league-registration-replacements", "tw:grid", "tw:gap-y-[6px]",
     "tw:gap-x-[6px]", "tw:[&_.inline-pair-edit]:grid", "tw:[&_.inline-pair-edit]:grid-cols-[minmax(230px,_1fr)_auto]", "tw:viewport-1180:[&_.inline-pair-edit]:grid-cols-[minmax(0,_1fr)_auto]",
@@ -77,5 +78,5 @@ export const viewStyles = {
     "tw:[&_select]:rounded-[var(--radius-md)]", "tw:[&_select]:bg-[color:var(--panel)]", "tw:[&_select]:[background-image:none]", "tw:[&_select]:text-[color:var(--text)]",
     "tw:[&_.button]:min-h-[38px]",
   ].join(" "),
-  "button_button_small": ui.secondary,
+  "button_button_small": (ui.secondary) + " " + managementControls.secondary,
 } as const;

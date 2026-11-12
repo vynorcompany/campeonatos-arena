@@ -10,7 +10,7 @@ const money = (value: number) => (value / 100).toLocaleString("pt-BR", { style: 
 export function TeacherPlanPriceSchedule({ teacherId, planId, planName, currentPriceCents, changes }: { teacherId: string; planId: string; planName: string; currentPriceCents: number; changes: { id: string; amountCents: number; effectiveDate: string }[] }) {
   const [open, setOpen] = useState(false); const close = useCallback(() => setOpen(false), []);
   return <><button type="button" className={ui.secondary} onClick={() => setOpen(true)}>Programar reajuste</button>
-    <Modal title={`Reajustes · ${planName}`} open={open} onClose={close} width="tw:max-w-[620px]">
+    <Modal title={`Reajustes · ${planName}`} open={open} onClose={close} width="tw:max-w-[620px]" tone="management">
       <div className="tw:flex tw:h-full tw:min-w-0 tw:flex-col tw:gap-4">
         <p className="tw:m-0 tw:text-sm">Mensalidade atual: <span className="tw:font-medium">{money(currentPriceCents)}</span></p>
         {changes.length ? <div className="tw:grid tw:gap-2" aria-label="Reajustes programados">{changes.map(change => <div key={change.id} className={`${ui.panel} tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2 tw:text-sm`}><span>{change.effectiveDate.split("-").reverse().join("/")} · {money(change.amountCents)}</span><SafeActionForm action={cancelPlanPriceChangeAction} successMessage="Reajuste cancelado."><input type="hidden" name="changeId" value={change.id}/><SubmitButton label="Cancelar reajuste" className={ui.secondary}/></SafeActionForm></div>)}</div> : null}

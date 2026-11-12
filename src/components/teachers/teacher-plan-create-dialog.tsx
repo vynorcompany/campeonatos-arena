@@ -22,7 +22,7 @@ export function TeacherPlanCreateDialog({ teacherId, initialPlan }: { teacherId:
     <button type="button" className={initialPlan ? planCopyButton : viewStyles.button_button_primary_button_small_teacher_plan_create_trigger} aria-label={initialPlan ? `Duplicar plano ${initialPlan.name}` : undefined} title={initialPlan ? "Duplicar plano" : undefined} onClick={() => setOpen(true)}>
       {initialPlan ? <svg aria-hidden="true" className="tw:size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg> : <><EventIcon name="user-plus" /> Novo plano</>}
     </button>
-    <Modal title={initialPlan ? "Duplicar plano" : "Novo plano"} open={open} onClose={closeDialog} width="tw:max-w-[520px]">
+    <Modal title={initialPlan ? "Duplicar plano" : "Novo plano"} open={open} onClose={closeDialog} width="tw:max-w-[520px]" tone="management">
         <SafeActionForm action={createTeacherPlanWithPriceAction} className="tw:flex tw:h-full tw:min-w-0 tw:flex-col tw:gap-4" successMessage="Plano criado." onSuccess={() => setOpen(false)}>
           <input type="hidden" name="teacherId" value={teacherId}/>
           <div className="tw:grid tw:min-w-0 tw:gap-4 tw:sm:grid-cols-2"><label className={`${field} tw:sm:col-span-2`}>Nome do plano<input name="name" required minLength={2} maxLength={120} defaultValue={initialPlan ? `${initialPlan.name.slice(0, 112)} (cópia)` : ""} data-modal-autofocus /></label>

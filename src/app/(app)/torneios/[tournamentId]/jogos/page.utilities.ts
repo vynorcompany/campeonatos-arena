@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -27,7 +28,7 @@ export const viewStyles = {
   "page_header": sharedUtilities.pageHeader,
   "eyebrow": sharedUtilities.eyebrow,
   "muted": sharedUtilities.muted,
-  "button": sharedUtilities.button,
+  "button": (sharedUtilities.button) + " " + managementControls.secondary,
   "section_card_tournament_games_list": [
     "section-card", "tournament-games-list", "tw:pt-[0]", "tw:pr-[0]",
     "tw:pb-[0]", "tw:pl-[0]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
@@ -59,5 +60,5 @@ export const viewStyles = {
     "tw:[&_select]:min-h-[36px]", "tw:[&_select]:text-[.78rem]", "tw:[&_.button]:min-h-[36px]", "tw:[&_.button]:whitespace-nowrap",
     "tw:viewport-820:[&_.button]:[grid-column:1_/_-1]", "tw:viewport-460:[&_.button]:[grid-column:auto]",
   ].join(" "),
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
 } as const;

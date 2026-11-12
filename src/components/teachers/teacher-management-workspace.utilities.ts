@@ -1,8 +1,9 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
   "eyebrow": sharedUtilities.eyebrow,
-  "button_button_small": sharedUtilities.buttonButtonSmall,
+  "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
   "grid_form": sharedUtilities.gridForm + " teacher-create-form tw:[&_:where(input,select)]:rounded-[7px]!",
   "field_form_full": sharedUtilities.fieldFormFull,
   "field": sharedUtilities.field,
@@ -11,12 +12,12 @@ export const viewStyles = {
     "tw:gap-y-[8px]", "tw:gap-x-[8px]", "tw:mt-[8px]", "tw:[grid-column:1_/_-1]",
     "tw:flex-wrap tw:viewport-620:flex-col tw:viewport-620:[&>button]:w-full tw:viewport-620:[&>button]:flex-1 tw:viewport-620:[&>button]:min-h-10",
   ].join(" "),
-  "button": sharedUtilities.button,
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button": (sharedUtilities.button) + " " + managementControls.secondary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
   "teacher_directory": "teacher-directory tw:grid tw:min-w-0 tw:gap-3",
   "teacher_management_toolbar": "teacher-management-toolbar tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:[&_h1]:m-0 tw:[&_h1]:text-[1.5rem] tw:[&_h1]:font-semibold",
-  "button_button_primary_button_small": sharedUtilities.buttonButtonPrimaryButtonSmall,
-  "teacher_directory_filters": "teacher-directory-filters tw:grid tw:grid-cols-[minmax(0,1fr)_minmax(140px,0.45fr)_minmax(180px,0.55fr)] tw:gap-2 tw:viewport-1000:grid-cols-2 tw:viewport-620:grid-cols-1 tw:[&_label]:flex tw:[&_label]:min-w-0 tw:[&_label]:items-center tw:[&_label]:gap-2 tw:viewport-1000:[&_label]:col-span-2 tw:viewport-620:[&_label]:col-span-1 tw:[&_input]:min-w-0 tw:[&_input]:w-full tw:[&_select]:min-w-0 tw:[&_select]:w-full",
+  "button_button_primary_button_small": (sharedUtilities.buttonButtonPrimaryButtonSmall) + " " + managementControls.primary,
+  "teacher_directory_filters": ("teacher-directory-filters tw:grid tw:grid-cols-[minmax(0,1fr)_minmax(140px,0.45fr)_minmax(180px,0.55fr)] tw:gap-2 tw:viewport-1000:grid-cols-2 tw:viewport-620:grid-cols-1 tw:[&_label]:flex tw:[&_label]:min-w-0 tw:[&_label]:items-center tw:[&_label]:gap-2 tw:viewport-1000:[&_label]:col-span-2 tw:viewport-620:[&_label]:col-span-1 tw:[&_input]:min-w-0 tw:[&_input]:w-full tw:[&_select]:min-w-0 tw:[&_select]:w-full") + " " + managementControls.filters,
   "teacher_directory_list": [
     "teacher-directory-list", "tw:grid", "tw:gap-y-[0]", "tw:gap-x-[0]",
     "tw:[overflow-x:hidden]", "tw:[overflow-y:hidden]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",

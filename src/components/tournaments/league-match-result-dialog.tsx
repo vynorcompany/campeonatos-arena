@@ -44,7 +44,7 @@ export function LeagueMatchResultDialog({ match }: { match: Match }) {
       <button type="button" className={viewStyles.category_league_result_trigger} onClick={() => setOpen(true)}>
         {match.homeSet1 == null ? "Registrar sets" : `${match.homeSet1}–${match.awaySet1} · ${match.homeSet2}–${match.awaySet2}${match.homeSet3 != null ? ` · ${match.homeSet3}–${match.awaySet3}` : ""}`}
       </button>
-      {open ? <Modal title={`Resultado de ${match.label}`} open onClose={closeDialog} width="tw:max-w-[640px]">
+      {open ? <Modal title={`Resultado de ${match.label}`} open onClose={closeDialog} width="tw:max-w-[640px]" tone="management">
           <LeagueMatchResultForm match={match} onClose={() => setOpen(false)} />
       </Modal> : null}
     </>

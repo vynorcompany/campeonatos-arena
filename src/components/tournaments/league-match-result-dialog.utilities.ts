@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
@@ -12,8 +13,8 @@ export const viewStyles = {
     "tw:[&_input]:text-center", "tw:[&_input]:min-w-0", "tw:[&_input]:px-1", "tw:[&_strong]:min-w-0", "tw:[&_strong]:break-words",
   ].join(" "),
   "muted": sharedUtilities.muted,
-  "button": ui.secondary,
-  "button_button_primary": ui.primary,
+  "button": (ui.secondary) + " " + managementControls.secondary,
+  "button_button_primary": (ui.primary) + " " + managementControls.primary,
   "category_league_result_trigger": [
     "category-league-result-trigger", "tw:border-t-[length:0]", "tw:[border-top-style:none]", "tw:border-t-[color:currentColor]",
     "tw:border-r-[length:0]", "tw:[border-right-style:none]", "tw:border-r-[color:currentColor]", "tw:border-b-[length:0]",

@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -96,7 +97,7 @@ export const viewStyles = {
     "report-metrics", "tw:grid", "tw:grid-cols-[repeat(3,_minmax(0,_1fr))]", "tw:viewport-800:grid-cols-[1fr]",
     "tw:gap-y-[12px]", "tw:gap-x-[12px]",
   ].join(" "),
-  "report_advanced_filter": [
+  "report_advanced_filter": ([
     "report-advanced-filter", "tw:grid", "tw:grid-cols-[repeat(5,_minmax(130px,_1fr))_auto]", "tw:viewport-1000:grid-cols-[repeat(3,_minmax(0,_1fr))]",
     "tw:viewport-640:grid-cols-[1fr]", "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:max-w-[1180px]",
     "tw:pt-[14px]", "tw:pr-[14px]", "tw:pb-[14px]", "tw:pl-[14px]",
@@ -109,8 +110,8 @@ export const viewStyles = {
     "tw:[&_select]:pr-[8px]", "tw:[&_select]:pb-[0]", "tw:[&_select]:pl-[8px]", "tw:[&_select]:text-[.74rem]",
     "tw:[&_.button]:[align-self:end]", "tw:[&_.button]:min-h-[34px]", "tw:[&_.button]:whitespace-nowrap", "tw:viewport-1000:[&_.button]:w-[fit-content]",
     "tw:viewport-640:[&_.button]:w-[100%]",
-  ].join(" "),
-  "button_button_primary_button_small": sharedUtilities.buttonButtonPrimaryButtonSmall,
+  ].join(" ")) + " " + managementControls.filters,
+  "button_button_primary_button_small": (sharedUtilities.buttonButtonPrimaryButtonSmall) + " " + managementControls.primary,
   "report_summaries": [
     "report-summaries", "tw:grid", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:viewport-640:grid-cols-[1fr]",
     "tw:gap-y-[12px]", "tw:gap-x-[12px]",
@@ -127,12 +128,12 @@ export const viewStyles = {
     "tw:viewport-800:[&_.page-header]:flex-col",
   ].join(" "),
   "page_header": sharedUtilities.pageHeader,
-  "button_button_small": sharedUtilities.buttonButtonSmall,
-  "report_filter": [
+  "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
+  "report_filter": ([
     "report-filter", "tw:flex", "tw:flex-wrap", "tw:viewport-800:flex-nowrap", "tw:[align-items:end]", "tw:viewport-800:items-stretch",
     "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:[&_label]:grid", "tw:[&_label]:gap-y-[5px]",
     "tw:[&_label]:gap-x-[5px]", "tw:[&_label]:text-[color:#506783]", "tw:[&_label]:text-[.7rem]", "tw:[&_label]:font-[800]",
     "tw:[&_input]:min-h-[34px]", "tw:[&_input]:[padding-inline:9px]", "tw:viewport-800:flex-col", "tw:viewport-800:[&_.button]:w-[fit-content]",
     "tw:min-w-0 tw:[&_label]:min-w-0 tw:[&_input]:min-w-0 tw:[&_input]:w-full tw:viewport-800:[&_.button]:w-full!",
-  ].join(" "),
+  ].join(" ")) + " " + managementControls.filters,
 } as const;

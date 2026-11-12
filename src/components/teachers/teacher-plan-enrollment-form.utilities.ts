@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -70,11 +71,11 @@ export const viewStyles = {
     "tw:[&_>_label]:min-w-[0]", "tw:[&_input]:w-[100%]", "tw:[&_input]:min-w-[0]", "tw:[&_select]:w-[100%]",
     "tw:[&_select]:min-w-[0]",
   ].join(" "),
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
   "form_full": [
     "form-note", "form-full", "tw:[grid-column:1_/_-1]",
   ].join(" "),
-  "button_button_primary_button_small_teacher_insert_student_trigger": [
+  "button_button_primary_button_small_teacher_insert_student_trigger": ([
     "button", "button-primary", "button-small", "teacher-insert-student-trigger",
     "tw:inline-flex", "tw:items-center", "tw:justify-center", "tw:gap-y-[5px]",
     "tw:gap-x-[5px]", "tw:min-h-[32px]", "tw:pt-[6px]", "tw:pr-[10px]",
@@ -87,7 +88,7 @@ export const viewStyles = {
     "tw:hover:[transform:translateY(-1px)]", "tw:hover:[box-shadow:0_10px_20px_rgba(28,_54,_89,_0.08)]", "tw:disabled:opacity-[0.72]", "tw:disabled:cursor-wait",
     "tw:[&:active]:[transform:translateY(0)]", "tw:[&:active]:[box-shadow:none]", "tw:hover:bg-[color:var(--brand-strong)]", "tw:hover:[background-image:none]",
     "tw:font-[700]", "tw:[justify-self:start]", "tw:w-[fit-content]", "tw:min-w-[0]",
-  ].join(" "),
+  ].join(" ")) + " " + managementControls.primary,
   "teacher_student_enrollment_modal": [
     "teacher-student-enrollment-modal", "tw:fixed", "tw:z-[90]", "tw:top-[0]",
     "tw:right-[0]", "tw:bottom-[0]", "tw:left-[0]", "tw:grid",

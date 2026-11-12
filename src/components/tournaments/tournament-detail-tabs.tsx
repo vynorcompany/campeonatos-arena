@@ -17,10 +17,10 @@ export function TournamentOverviewTab({ tournament }: { tournament: NonNullable<
         <MetricCard label="Jogadores" value={tournament.entries.length} />
         <MetricCard label="Duplas" value={tournament.pairs.length} />
         <MetricCard label="Grupos" value={tournament.groups.length} />
-        <MetricCard label="Jogos concluÃ­dos" value={`${done}/${tournament.matches.length}`} />
+        <MetricCard label="Jogos concluídos" value={`${done}/${tournament.matches.length}`} />
       </div>
       <div className={viewStyles.section_card}>
-        <h3>PrÃ³ximas aÃ§Ãµes recomendadas</h3>
+        <h3>Próximas ações recomendadas</h3>
         <p className={viewStyles.muted}>Siga a ordem operacional do torneio com atalhos diretos.</p>
         <div className={viewStyles.section_actions}>
           <Link href={`/torneios/${tournament.id}?tab=participants`} className={viewStyles.button}>Participantes</Link>
@@ -124,7 +124,7 @@ export function TournamentPairsTab({ tournament }: { tournament: NonNullable<Tou
       {tournament.pairs.map((pair) => (
         <div key={pair.id} className={viewStyles.simple_item}>
           <strong>{pair.name}</strong>
-          <span>{pair.totalPoints} pts Â· {pair.group?.name ?? "Sem grupo"}</span>
+          <span>{pair.totalPoints} pts · {pair.group?.name ?? "Sem grupo"}</span>
         </div>
       ))}
     </div>
@@ -185,7 +185,7 @@ export function TournamentGamesTab({ tournament }: { tournament: NonNullable<Tou
         </article>
       ))}
       <div className={viewStyles.section_actions}>
-        <Link href="/jogos" className={viewStyles.button_button_primary}>Abrir gestÃ£o completa de jogos</Link>
+        <Link href="/jogos" className={viewStyles.button_button_primary}>Abrir gestão completa de jogos</Link>
       </div>
     </div>
   );
@@ -194,7 +194,7 @@ export function TournamentGamesTab({ tournament }: { tournament: NonNullable<Tou
 export function TournamentBracketTab({ tournament }: { tournament: NonNullable<TournamentDetails> }) {
   const knockout = tournament.matches.filter((match) => match.stage !== "GROUP");
   if (!tournament.matches.length) {
-    return <EmptyState title="Chave ainda nÃ£o gerada" description="Monte grupos e gere jogos para visualizar a chave." ctaLabel="Gerar jogos" ctaHref="/jogos" />;
+    return <EmptyState title="Chave ainda não gerada" description="Monte grupos e gere jogos para visualizar a chave." ctaLabel="Gerar jogos" ctaHref="/jogos" />;
   }
   return (
     <div className={viewStyles.stack_md}>
@@ -209,14 +209,14 @@ export function TournamentResultsTab({ tournament }: { tournament: NonNullable<T
   const champion = finals.find((match) => !!match.winnerPair)?.winnerPair?.name ?? "A definir";
   return (
     <div className={viewStyles.stack_md}>
-      <article className={viewStyles.section_card}><h3>CampeÃ£o</h3><p>{champion}</p></article>
+      <article className={viewStyles.section_card}><h3>Campeão</h3><p>{champion}</p></article>
       <article className={viewStyles.section_card}>
         <h3>Resultados consolidados</h3>
         <div className={viewStyles.simple_list}>
           {tournament.matches.map((match) => (
             <div className={viewStyles.simple_item} key={match.id}>
               <strong>{match.label}</strong>
-              <span>{match.homeScore ?? "-"} x {match.awayScore ?? "-"} Â· {match.winnerPair?.name ?? "Sem vencedor"}</span>
+              <span>{match.homeScore ?? "-"} x {match.awayScore ?? "-"} · {match.winnerPair?.name ?? "Sem vencedor"}</span>
             </div>
           ))}
         </div>
@@ -229,8 +229,8 @@ export function TournamentSettingsTab({ tournament, rankings }: { tournament: No
   return (
     <div className={viewStyles.stack_md}>
       <article className={viewStyles.section_card}>
-        <h3>ConfiguraÃ§Ãµes do torneio</h3>
-        <p className={viewStyles.muted}>Alterar a estrutura pode desmontar grupos e jogos jÃ¡ montados.</p>
+        <h3>Configurações do torneio</h3>
+        <p className={viewStyles.muted}>Alterar a estrutura pode desmontar grupos e jogos já montados.</p>
         <TournamentForm
           mode="update"
           tournamentId={tournament.id}
@@ -252,7 +252,7 @@ export function TournamentSettingsTab({ tournament, rankings }: { tournament: No
           defaultCategoryList={tournament.categories.map((category) => category.name).join(",")}
           defaultRankingId={tournament.rankingId ?? ""}
           rankings={rankings}
-          submitLabel="Salvar configuraÃ§Ãµes"
+          submitLabel="Salvar configurações"
           pendingLabel="Salvando..."
         />
       </article>

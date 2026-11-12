@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 
@@ -8,18 +9,18 @@ export const viewStyles = {
   page_header_ranking_detail_header: ui.toolbar,
   ranking_detail_identity: "tw:grid tw:min-w-0 tw:gap-1 tw:[&_h1]:m-0 tw:[&_h1]:text-xl tw:[&_h1]:font-semibold tw:[&_h1]:break-words tw:[&_p]:m-0 tw:[&_p]:text-xs tw:[&_p]:text-[var(--muted)]",
   section_actions: "tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:gap-2",
-  button: ui.secondary,
+  button: (ui.secondary) + " " + managementControls.secondary,
   section_card_ranking_detail_period: "ranking-detail-period tw:grid tw:min-w-0 tw:gap-3 tw:rounded-lg tw:border tw:border-[var(--line)] tw:bg-white tw:p-4",
   stack_xs: "tw:grid tw:gap-1 tw:text-xs",
-  button_primary: "tw:border-[#1e5ea8]! tw:bg-[#1e5ea8]! tw:text-white! tw:hover:bg-[#174983]!",
+  button_primary: ("tw:border-[#1e5ea8]! tw:bg-[#1e5ea8]! tw:text-white! tw:hover:bg-[#174983]!") + " " + managementControls.primary,
   inline_form: "tw:flex tw:min-w-0 tw:flex-wrap tw:items-end tw:gap-3 tw:[&>div]:min-w-0 tw:[&>div]:flex-1 tw:[&>div]:basis-44",
   field: ui.field,
-  button_button_primary: ui.primary,
+  button_button_primary: (ui.primary) + " " + managementControls.primary,
   section_actions_form_full: "tw:col-span-full tw:flex tw:justify-end tw:gap-2",
   form_error: sharedUtilities.formError,
   stack_md: ui.page,
   section_card: "tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:border-t tw:border-[var(--line)] tw:pt-3 tw:[&_p]:m-0 tw:[&_p]:text-xs",
-  button_button_danger: sharedUtilities.buttonButtonDangerButtonSmall,
+  button_button_danger: (sharedUtilities.buttonButtonDangerButtonSmall) + " " + managementControls.danger,
   simple_list: "tw:grid tw:min-w-0",
   simple_item: "tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:border-b tw:border-[var(--line)] tw:bg-white tw:px-3 tw:py-3 tw:last:border-0 tw:[&>div]:grid tw:[&>div]:min-w-0 tw:[&>div]:gap-1 tw:[&_strong]:break-words tw:[&_span]:text-xs tw:[&_span]:text-[var(--muted)]",
 } as const;

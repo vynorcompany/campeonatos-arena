@@ -1,8 +1,9 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
-  "button_button_primary": ui.primary,
+  "button_button_primary": (ui.primary) + " " + managementControls.primary,
   "stack_md": sharedUtilities.stackMd,
   "section_card_stack_md_category_operation_panel": sharedUtilities.sectionCardStackMdCategoryOperationPanel,
   "league_games_panel": [
@@ -28,7 +29,7 @@ export const viewStyles = {
     "stack-xs", "tw:grid", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
   ].join(" "),
   "muted": sharedUtilities.muted,
-  "category_game_filter_toolbar": [
+  "category_game_filter_toolbar": ([
     "category-game-filter-toolbar", "tw:grid", "tw:grid-cols-[minmax(160px,_1fr)_minmax(180px,_1fr)_minmax(220px,_1.4fr)_auto]", "tw:viewport-760:grid-cols-[1fr]",
     "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:[align-items:end]", "tw:pt-[16px]",
     "tw:pr-[16px]", "tw:pb-[16px]", "tw:pl-[16px]", "tw:border-t-[length:1px]",
@@ -37,8 +38,8 @@ export const viewStyles = {
     "tw:border-l-[length:1px]", "tw:[border-left-style:solid]", "tw:border-l-[color:var(--line,_#d9e1ea)]", "tw:rounded-[12px]",
     "tw:bg-white", "tw:[background-image:none]", "tw:[&_select]:w-[100%]", "tw:[&_select]:min-h-[38px]",
     "tw:[&_input]:w-[100%]", "tw:[&_input]:min-h-[38px]",
-  ].join(" "),
-  "league_games_filters": [
+  ].join(" ")) + " " + managementControls.filters,
+  "league_games_filters": ([
     "league-games-filters", "tw:pt-[14px]!", "tw:viewport-760:pt-[17px]", "tw:pr-[18px]!",
     "tw:viewport-760:pr-[17px]", "tw:pb-[14px]!", "tw:viewport-760:pb-[17px]", "tw:pl-[18px]!",
     "tw:viewport-760:pl-[17px]", "tw:border-t-[color:#dce7f2]!", "tw:border-r-[color:#dce7f2]!", "tw:border-b-[color:#dce7f2]!",
@@ -47,16 +48,16 @@ export const viewStyles = {
     "tw:[&_.button]:min-h-[36px]", "tw:[&_.button]:border-t-[color:#cedded]", "tw:[&_.button]:border-r-[color:#cedded]", "tw:[&_.button]:border-b-[color:#cedded]",
     "tw:[&_.button]:border-l-[color:#cedded]", "tw:[&_.button]:bg-[color:#fff]", "tw:[&_.button]:[background-image:none]", "tw:[&_.button]:text-[color:#294663]",
     "tw:[&_.button]:[box-shadow:none]", "tw:[&_.button]:text-[.77rem]",
-  ].join(" "),
-  "category_game_filter_field": [
+  ].join(" ")) + " " + managementControls.filters,
+  "category_game_filter_field": ([
     "category-game-filter-field", "tw:grid", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
     "tw:[&_label]:text-[.8rem]", "tw:[&_label]:font-[700]",
-  ].join(" "),
-  "category_game_filter_field_2": [
+  ].join(" ")) + " " + managementControls.filters,
+  "category_game_filter_field_2": ([
     "category-game-filter-field", "category-game-filter-search", "tw:grid", "tw:gap-y-[6px]",
     "tw:gap-x-[6px]", "tw:[&_label]:text-[.8rem]", "tw:[&_label]:font-[700]",
-  ].join(" "),
-  "button": ui.secondary,
+  ].join(" ")) + " " + managementControls.filters,
+  "button": (ui.secondary) + " " + managementControls.secondary,
   "category_game_list": [
     "category-game-list", "tw:grid", "tw:gap-y-[10px]", "tw:gap-x-[10px]",
   ].join(" "),

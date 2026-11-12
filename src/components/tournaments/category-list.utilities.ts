@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -20,7 +21,7 @@ export const viewStyles = {
     "tw:[&_.button]:text-[.78rem]", "tw:viewport-760:flex-col",
   ].join(" "),
   "muted": sharedUtilities.muted,
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
   "category_add_symbol": [
     "category-add-symbol", "tw:grid", "tw:w-[17px]", "tw:h-[17px]",
     "tw:place-items-center", "tw:text-[1.25rem]", "tw:font-[400]", "tw:leading-[1]",

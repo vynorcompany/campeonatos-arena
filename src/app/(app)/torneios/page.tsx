@@ -46,7 +46,7 @@ export default async function GamesPage(props: GamesPageProps) {
 
   return <div className={viewStyles.stack_md}>
     <WorkspaceHeading eyebrow="COMPETIÇÕES · EM ANDAMENTO" title="Torneios">{canManageTournaments ? <Link href="/torneios/novo" className={ui.primary}>Novo evento</Link> : null}</WorkspaceHeading>
-    <nav className="tw:flex tw:flex-wrap tw:gap-1 tw:rounded-lg tw:border tw:border-[var(--line)] tw:bg-white tw:p-1" aria-label="Situação dos eventos"><Link href="/torneios" aria-current={searchParams?.status !== "finished" ? "page" : undefined} className={`${ui.secondary} tw:aria-[current=page]:bg-[#174983] tw:aria-[current=page]:text-white`}>Eventos ativos</Link><Link href="/torneios?status=finished" aria-current={searchParams?.status === "finished" ? "page" : undefined} className={`${ui.secondary} tw:aria-[current=page]:bg-[#174983] tw:aria-[current=page]:text-white`}>Finalizados</Link>{canViewTournaments ? <Link href="/torneios/rankings" className={ui.secondary}>Rankings</Link> : null}</nav>
+
     {selectedTournament ? <SectionCard title={selectedTournament.name} description={canManageTournaments || canRecordResults ? "Escolha uma categoria para acessar os jogos." : undefined}>
       <div className={viewStyles.active_event_back}>
         <Link href={eventDirectoryPath} className={ui.secondary}>Voltar aos eventos</Link>

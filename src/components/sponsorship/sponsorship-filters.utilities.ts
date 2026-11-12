@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -27,7 +28,7 @@ export const viewStyles = {
     "tw:[&_span]:cursor-pointer", "tw:[&_button:focus-visible]:bg-[#174983]", "tw:[&_button:focus-visible]:text-white", "tw:[&_button:hover]:bg-[color:#174983]", "tw:[&_button:hover]:[background-image:none]", "tw:[&_button:hover]:text-[color:#fff]",
     "tw:[&_button[aria-selected=true]]:bg-[color:#174983]", "tw:[&_button[aria-selected=true]]:[background-image:none]", "tw:[&_button[aria-selected=true]]:text-[color:#fff]",
   ].join(" "),
-  "sponsorship_filter_form": [
+  "sponsorship_filter_form": ([
     "sponsorship-filter-form", "tw:flex", "tw:viewport-760:grid", "tw:[flex:1]",
     "tw:flex-wrap", "tw:items-end", "tw:gap-y-[10px]", "tw:gap-x-[10px]",
     "tw:[&_label]:grid", "tw:[&_label]:min-w-[150px]", "tw:[&_label]:[flex:1_1_160px]", "tw:[&_label]:gap-y-[5px]",
@@ -44,6 +45,6 @@ export const viewStyles = {
     "tw:[&_select]:border-l-[length:1px]", "tw:[&_select]:[border-left-style:solid]", "tw:[&_select]:border-l-[color:#cbd9e8]", "tw:[&_select]:rounded-[8px]",
     "tw:[&_select]:bg-[color:#fff]", "tw:[&_select]:[background-image:none]", "tw:[&_select]:text-[color:#17345e]", "tw:[&_select]:[font:inherit]",
     "tw:viewport-760:grid-cols-[1fr]",
-  ].join(" "),
-  "button_button_small": sharedUtilities.buttonButtonSmall,
+  ].join(" ")) + " " + managementControls.filters,
+  "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
 } as const;

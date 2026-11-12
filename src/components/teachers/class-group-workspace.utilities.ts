@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -64,12 +65,12 @@ export const viewStyles = {
     "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:#e5edf5]", "tw:viewport-700:[&_>_.button]:[grid-column:1_/_-1]",
     "tw:viewport-700:[&_>_.button]:[justify-self:start]",
   ].join(" "),
-  "button_button_small": sharedUtilities.buttonButtonSmall,
-  "button_button_secondary_button_small": sharedUtilities.buttonButtonSecondaryButtonSmall,
+  "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
+  "button_button_secondary_button_small": (sharedUtilities.buttonButtonSecondaryButtonSmall) + " " + managementControls.secondary,
   "class_group_notes": [
     "class-group-notes", "tw:[grid-column:1_/_-1]",
   ].join(" "),
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
   "class_group_list": [
     "class-group-list", "tw:grid", "tw:grid-cols-[repeat(auto-fit,_minmax(270px,_1fr))]", "tw:gap-y-[10px]",
     "tw:gap-x-[10px]", "tw:[&_article]:grid", "tw:[&_article]:gap-y-[10px]", "tw:[&_article]:gap-x-[10px]",
@@ -82,5 +83,5 @@ export const viewStyles = {
     "tw:[&_article_header_span]:text-[color:#526c82]", "tw:[&_article_header_span]:text-[.76rem]", "tw:[&_article_>_div]:grid", "tw:[&_article_>_div]:gap-y-[5px]",
     "tw:[&_article_>_div]:gap-x-[5px]", "tw:[&_article_>_div_span]:text-[color:#45647f]", "tw:[&_article_>_div_span]:text-[.76rem]", "tw:[&_article_>_div_span]:leading-[1.35]",
   ].join(" "),
-  "button_button_primary_button_small": sharedUtilities.buttonButtonPrimaryButtonSmall,
+  "button_button_primary_button_small": (sharedUtilities.buttonButtonPrimaryButtonSmall) + " " + managementControls.primary,
 } as const;

@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -31,7 +32,7 @@ export const viewStyles = {
     "tw:[grid-column:1_/_-1]",
   ].join(" "),
   "field_field_submit_form_full": sharedUtilities.fieldFieldSubmitFormFull,
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
   "public_visibility_switch": [
     "public-visibility-switch", "tw:inline-flex", "tw:items-center", "tw:[&_label]:inline-flex",
     "tw:[&_label]:items-center", "tw:[&_label]:gap-y-[7px]", "tw:[&_label]:gap-x-[7px]", "tw:[&_label]:text-[color:#536982]",

@@ -25,7 +25,7 @@ export function LoyaltySettingsButton({ settings }: { settings: Settings }) {
   const closeSettings = useCallback(() => setOpen(false), []);
   return <>
     <button type="button" className={button} onClick={() => setOpen(true)}>Configurar fidelidade</button>
-    <Modal title="Configurar fidelidade" open={open} onClose={closeSettings} width="tw:max-w-[680px]">
+    <Modal title="Configurar fidelidade" open={open} onClose={closeSettings} width="tw:max-w-[680px]" tone="management">
         <p className="tw:mb-4 tw:text-sm tw:text-[#536b86]">Reservas encerradas contam automaticamente. Visitas avulsas são registradas no cadastro do cliente. A recompensa é entregue pela equipe, sem crédito financeiro automático.</p>
         <SafeActionForm action={updateClientLoyaltySettingsAction} onSuccess={() => setOpen(false)} className="tw:grid tw:gap-4" successMessage="Fidelidade atualizada.">
           <label className="tw:flex tw:items-center tw:gap-2 tw:text-sm tw:font-semibold"><input name="enabled" type="checkbox" defaultChecked={settings.loyaltyEnabled} /> Programa ativo</label>
@@ -56,7 +56,7 @@ export function ClientLoyaltyDialog({ playerId, playerName, canEdit, onClose }: 
       catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível atualizar a fidelidade."); }
     });
   };
-  return <Modal title={`Fidelidade de ${playerName}`} open onClose={closeDialog} width="tw:max-w-[680px]">
+  return <Modal title={`Fidelidade de ${playerName}`} open onClose={closeDialog} width="tw:max-w-[680px]" tone="management">
       {error ? <p role="alert" className="tw:rounded-lg tw:bg-red-50 tw:p-3 tw:text-sm tw:text-red-800">{error}</p> : null}
       {!state ? <p className="tw:text-sm tw:text-[#536b86]">Carregando fidelidade…</p> : !state.settings.loyaltyEnabled ? <p className="tw:rounded-lg tw:border tw:border-[var(--line)] tw:bg-white tw:p-3 tw:text-sm">O programa de fidelidade está desativado nesta arena.</p> : <div className="tw:grid tw:gap-4">
         <div className="tw:grid tw:grid-cols-2 tw:gap-2 tw:sm:grid-cols-4">{[["Reservas concluídas", state.completedReservations], ["Visitas avulsas", state.manualVisits], ["Visitas disponíveis", state.availableVisits], ["Resgates possíveis", state.availableRewards]].map(([label, value]) => <div key={label} className="tw:rounded-xl tw:border tw:border-[#d8e3f0] tw:bg-white tw:p-3"><small className="tw:block tw:text-xs tw:text-[#536b86]">{label}</small><strong className="tw:text-xl">{value}</strong></div>)}</div>

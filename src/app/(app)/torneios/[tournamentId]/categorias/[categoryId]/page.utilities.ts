@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -96,7 +97,7 @@ export const viewStyles = {
     "tw:viewport-1100:pr-[0]", "tw:viewport-1100:pb-[0]", "tw:viewport-1100:border-t-[length:1px]", "tw:viewport-1100:[border-top-style:solid]",
     "tw:viewport-1100:border-t-[color:#dbe6f2]", "tw:viewport-580:[&_.button]:w-[100%]", "tw:[&_.button_.league-icon]:w-[16px]", "tw:[&_.button_.league-icon]:h-[16px]",
   ].join(" "),
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
   "pill": sharedUtilities.pill,
   "league_overview_bottom": [
     "league-overview-bottom", "tw:grid", "tw:grid-cols-[minmax(0,_1.95fr)_minmax(270px,_.9fr)]", "tw:viewport-820:grid-cols-[1fr]",
@@ -189,7 +190,7 @@ export const viewStyles = {
     "league-cycle-card-heading", "tw:flex", "tw:items-center", "tw:gap-y-[12px]",
     "tw:gap-x-[12px]", "tw:[&_.league-overview-section-icon]:w-[50px]", "tw:[&_.league-overview-section-icon]:h-[50px]", "tw:[&_.league-overview-section-icon]:text-[1.45rem]",
   ].join(" "),
-  "button_button_secondary": sharedUtilities.buttonButtonSecondary,
+  "button_button_secondary": (sharedUtilities.buttonButtonSecondary) + " " + managementControls.secondary,
   "category_overview_category_detail_hero": [
     "category-overview", "category-detail-hero", "tw:grid", "tw:grid-cols-[minmax(0,_1fr)_auto]",
     "tw:viewport-980:grid-cols-[1fr]", "tw:gap-y-[12px]", "tw:gap-x-[18px]", "tw:pt-[18px]",

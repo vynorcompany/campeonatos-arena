@@ -146,7 +146,7 @@ export function TeacherClassGroupsPanel({
 
   return (
     <div className={viewStyles.teacher_groups_panel_teacher_class_directory}>
-      <Modal title="Nova turma" open={createOpen} onClose={closeCreate} width="tw:max-w-[760px]">
+      <Modal title="Nova turma" open={createOpen} onClose={closeCreate} width="tw:max-w-[760px]" tone="management">
         <div className="teacher-class-create-panel tw:grid tw:min-w-0 tw:gap-4">
             {!plans.length ? (
               <p className={viewStyles.muted}>
@@ -298,7 +298,7 @@ export function TeacherClassGroupsPanel({
             )}
         </div>
       </Modal>
-      {editingGroup ? <Modal title="Editar turma" open onClose={closeEdit} width="tw:max-w-[760px]">
+      {editingGroup ? <Modal title="Editar turma" open onClose={closeEdit} width="tw:max-w-[760px]" tone="management">
         <div className="teacher-class-create-panel tw:grid tw:min-w-0 tw:gap-4">
             <SafeActionForm
               action={updateTeacherClassGroupAction}

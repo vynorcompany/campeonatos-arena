@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -33,7 +34,7 @@ export const viewStyles = {
     "tw:[&_input]:mb-[0]", "tw:[&_input]:ml-[0]", "tw:[&_input]:w-[18px]", "tw:[&_input]:h-[18px]",
     "tw:[&_input]:[flex:0_0_auto]",
   ].join(" "),
-  "button": sharedUtilities.button,
+  "button": (sharedUtilities.button) + " " + managementControls.secondary,
   "t_review_grid": [
     "t-review-grid", "tw:grid", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:viewport-680:grid-cols-[1fr]",
     "tw:gap-y-[16px]", "tw:gap-x-[16px]", "tw:[&_article]:border-t-[length:1px]", "tw:[&_article]:[border-top-style:solid]",
@@ -44,7 +45,7 @@ export const viewStyles = {
     "tw:[&_article]:[background-image:none]",
   ].join(" "),
   "section_actions": sharedUtilities.sectionActions,
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
   "form_error": sharedUtilities.formError,
   "form_success": sharedUtilities.formSuccess,
 } as const;

@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -42,7 +43,7 @@ export const viewStyles = {
     "tw:bg-[color:#e8f1ff]", "tw:[background-image:none]", "tw:text-[color:#075bcc]", "tw:text-[.78rem]",
     "tw:font-[750]", "tw:[&_.event-icon]:text-[color:#1b72da]",
   ].join(" "),
-  "button": sharedUtilities.button,
+  "button": (sharedUtilities.button) + " " + managementControls.secondary,
   "tournament_delete_action": [
     "tournament-delete-action", "tw:relative", "tw:inline-flex", "tw:[&_.safe-action-confirmation]:absolute",
     "tw:[&_.safe-action-confirmation]:z-[30]", "tw:[&_.safe-action-confirmation]:top-[calc(100%_+_8px)]", "tw:[&_.safe-action-confirmation]:right-[0]", "tw:viewport-600:[&_.safe-action-confirmation]:right-[auto]",
@@ -57,7 +58,7 @@ export const viewStyles = {
     "tw:[&_.safe-action-confirmation-actions]:gap-y-[7px]", "tw:[&_.safe-action-confirmation-actions]:gap-x-[7px]", "tw:[&_.safe-action-confirmation-actions_input]:min-w-[118px]", "tw:[&_.safe-action-confirmation-actions_input]:min-h-[34px]",
     "tw:viewport-600:[&_.safe-action-confirmation]:left-[0]",
   ].join(" "),
-  "button_button_danger": sharedUtilities.buttonButtonDanger,
+  "button_button_danger": (sharedUtilities.buttonButtonDanger) + " " + managementControls.danger,
   "event_metrics_grid": [
     "event-metrics-grid", "tw:grid", "tw:grid-cols-[repeat(4,_minmax(0,_1fr))]", "tw:viewport-1080:grid-cols-[repeat(2,_minmax(0,_1fr))]",
     "tw:viewport-760:grid-cols-[1fr]", "tw:gap-y-[16px]", "tw:gap-x-[16px]",
@@ -145,5 +146,5 @@ export const viewStyles = {
     "tw:[&_select]:min-h-[38px]", "tw:[&_select]:text-[.8rem]", "tw:[&_.button]:[justify-self:start]", "tw:[&_.button]:min-h-[36px]",
     "tw:[&_.button]:whitespace-nowrap",
   ].join(" "),
-  "button_button_small": sharedUtilities.buttonButtonSmall,
+  "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
 } as const;

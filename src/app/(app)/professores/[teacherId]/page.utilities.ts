@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -128,7 +129,7 @@ export const viewStyles = {
     "tw:[&_.safe-action-confirmation-actions_.button]:pb-[5px]", "tw:[&_.safe-action-confirmation-actions_.button]:pl-[9px]", "tw:[&_.safe-action-confirmation-actions_.button]:rounded-[7px]", "tw:[&_.safe-action-confirmation-actions_.button]:text-[.72rem]",
     "tw:viewport-600:[&_.safe-action-confirmation]:left-[0]",
   ].join(" "),
-  "button_button_small": sharedUtilities.buttonButtonSmall,
+  "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
   "teacher_delete_form": [
     "teacher-delete-form", "tw:inline-flex", "tw:relative", "tw:items-center",
     "tw:[&_>_.button]:min-h-[34px]", "tw:[&_>_.button]:pt-[6px]", "tw:[&_>_.button]:pr-[10px]", "tw:[&_>_.button]:pb-[6px]",
@@ -149,7 +150,7 @@ export const viewStyles = {
     "tw:[&_.safe-action-confirmation-actions_.button]:pb-[5px]", "tw:[&_.safe-action-confirmation-actions_.button]:pl-[9px]", "tw:[&_.safe-action-confirmation-actions_.button]:rounded-[7px]", "tw:[&_.safe-action-confirmation-actions_.button]:text-[.72rem]",
     "tw:viewport-600:[&_.safe-action-confirmation]:left-[0]",
   ].join(" "),
-  "button_button_danger_button_small": sharedUtilities.buttonButtonDangerButtonSmall,
+  "button_button_danger_button_small": (sharedUtilities.buttonButtonDangerButtonSmall) + " " + managementControls.danger,
   "teacher_detail_tabs": "teacher-detail-tabs tw:flex tw:min-w-0 tw:flex-wrap tw:gap-1 tw:border-b tw:border-[var(--line)] tw:pb-2 tw:[&_a]:rounded-md tw:[&_a]:px-3 tw:[&_a]:py-2 tw:[&_a]:text-xs tw:[&_a]:font-medium tw:[&_a]:text-[#174983] tw:[&_a[aria-current=page]]:bg-[#174983] tw:[&_a[aria-current=page]]:text-white tw:[&_a:hover]:underline",
   "teacher_detail_metrics": "teacher-detail-metrics tw:grid tw:grid-cols-2 tw:gap-2 tw:md:grid-cols-3 tw:xl:grid-cols-6 tw:[&_article]:flex tw:[&_article]:min-w-0 tw:[&_article]:items-center tw:[&_article]:gap-2 tw:[&_article]:rounded-lg tw:[&_article]:border tw:[&_article]:border-[var(--line)] tw:[&_article]:bg-white tw:[&_article]:p-3 tw:[&_article>div]:grid tw:[&_article>div]:gap-1 tw:[&_article>div>span]:text-[11px] tw:[&_article>div>span]:text-[var(--muted)] tw:[&_strong]:text-xl tw:[&_strong]:font-medium",
   "teacher_detail_metric_icon": "teacher-detail-metric-icon tw:text-[#1e5ea8] tw:[&_svg]:size-4 tw:shrink-0",
@@ -232,7 +233,7 @@ export const viewStyles = {
     "tw:[&_.muted]:text-[color:#64738d]", "tw:[&_.muted]:text-[.95rem]",
   ].join(" "),
   "section_card_teacher_detail_section": "tw:grid tw:min-w-0 tw:gap-3",
-  "filter_bar_compact_teacher_report_filters": [
+  "filter_bar_compact_teacher_report_filters": ([
     "filter-bar-compact", "teacher-report-filters", "tw:pt-[8px]", "tw:pr-[0]",
     "tw:pb-[12px]", "tw:pl-[0]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
     "tw:border-b-[color:var(--line)]", "tw:bg-[color:transparent]", "tw:[background-image:none]", "tw:[&_label]:text-[color:#50657f]",
@@ -243,6 +244,6 @@ export const viewStyles = {
     "tw:viewport-900:grid-cols-[1fr_1fr]", "tw:viewport-600:grid-cols-[1fr]", "tw:gap-y-[8px]", "tw:gap-x-[8px]",
     "tw:[align-items:end]", "tw:[&_label]:grid", "tw:[&_label]:gap-y-[4px]", "tw:[&_label]:gap-x-[4px]",
     "tw:viewport-900:[&_.button]:[grid-column:1_/_-1]",
-  ].join(" "),
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  ].join(" ")) + " " + managementControls.filters,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
 } as const;

@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -7,6 +8,6 @@ export const viewStyles = {
     "tw:ml-[0]", "tw:text-[color:#60758f]", "tw:text-[.72rem]", "tw:leading-[1.45]",
   ].join(" "),
   "teacher_plan_edit_actions": sharedUtilities.teacherPlanEditActions + " tw:mt-auto",
-  "button_button_secondary_button_small": sharedUtilities.buttonButtonSecondaryButtonSmall,
-  "button_button_primary_button_small": sharedUtilities.buttonButtonPrimaryButtonSmall,
+  "button_button_secondary_button_small": (sharedUtilities.buttonButtonSecondaryButtonSmall) + " " + managementControls.secondary,
+  "button_button_primary_button_small": (sharedUtilities.buttonButtonPrimaryButtonSmall) + " " + managementControls.primary,
 } as const;
