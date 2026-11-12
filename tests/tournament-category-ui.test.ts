@@ -411,7 +411,7 @@ test("league category workspaces follow the compact visual density standard", as
     readFile(path.join(workspaceRoot, "docs", "VISUAL_RULES.md"), "utf8"),
   ]);
 
-  assert.match(styleRules("league-overview-metric"), /min-height: 96px/);
+  assert.doesNotMatch(styleRules("league-overview-metric"), /min-height: 96px/);
   assert.match(styleRules("league-overview-primary-action", {"context":".button"}), /min-height: 38px/);
   assert.match(styleRules("league-registration-panel"), /padding-top: 22px/);
   assert.match(rules, /Escala compacta/);

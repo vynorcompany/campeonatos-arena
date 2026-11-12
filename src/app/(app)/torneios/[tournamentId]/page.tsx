@@ -89,13 +89,13 @@ export default async function TournamentDetailPage(props: TournamentDetailPagePr
     <div className={viewStyles.event_dashboard}>
       <header className={viewStyles.event_operation_header}>
         <div className={viewStyles.event_operation_title}>
-          <p className={viewStyles.eyebrow}>Evento</p>
+
           <h1>{tournament.name}</h1>
-          <p className={viewStyles.event_breadcrumb}><Link href="/torneios">Eventos</Link><EventIcon name="chevron" size={13} />{tournament.name}</p>
+
         </div>
         <div className={viewStyles.event_operation_actions}>
           <span className={viewStyles.event_editing_badge}>{eventState} <EventIcon name="edit" size={14} /></span>
-          <PublicRegistrationLinkActions slug={tournament.publicSlug} />
+          <PublicRegistrationLinkActions slug={tournament.publicSlug} compact />
           <Link
             href={`/classificacao/${tournament.arena.slug}`}
             className={viewStyles.button}
@@ -126,10 +126,10 @@ export default async function TournamentDetailPage(props: TournamentDetailPagePr
       </header>
 
       <section className={viewStyles.event_metrics_grid} aria-label="Resumo do evento">
-        <article className={viewStyles.event_metric_card}><span className={viewStyles.event_metric_icon}><EventIcon name="edit" size={24} /></span><div><small>Status do evento</small><strong>{eventState}</strong><p>O evento está visível apenas para administradores.</p></div></article>
-        <article className={viewStyles.event_metric_card}><span className={viewStyles.event_metric_icon}><EventIcon name="trophy" size={24} /></span><div><small>Categorias</small><strong>{tournament.categories.length}</strong><p>Categorias configuradas</p></div></article>
-        <article className={viewStyles.event_metric_card}><span className={viewStyles.event_metric_icon_event_metric_icon_success}><EventIcon name="users" size={24} /></span><div><small>Inscrições / duplas</small><strong>{pairCount}</strong><p>Duplas inscritas</p></div></article>
-        <article className={viewStyles.event_metric_card}><span className={viewStyles.event_metric_icon_event_metric_icon_purple}><EventIcon name="calendar" size={24} /></span><div><small>Criado em</small><strong>{createdAt}</strong><p>Informação do evento</p></div></article>
+        <span><span>Categorias</span><strong>{tournament.categories.length}</strong></span>
+        <span><span>Duplas inscritas</span><strong>{pairCount}</strong></span>
+        <span><span>Categorias concluídas</span><strong>{finishedCategoryCount}</strong></span>
+        <span><span>Criado em</span><strong>{createdAt}</strong></span>
       </section>
 
       <div className={viewStyles.event_detail_grid}>

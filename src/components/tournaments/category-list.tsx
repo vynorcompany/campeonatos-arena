@@ -35,7 +35,7 @@ export function CategoryList({
       <div className={viewStyles.t_category_index_head}>
         <div>
           <h2 id="category-list-title">Categorias do evento</h2>
-          <p className={viewStyles.muted}>Gerencie as categorias e acompanhe as inscrições.</p>
+
         </div>
         <Link
           className={viewStyles.button_button_primary}
@@ -50,8 +50,8 @@ export function CategoryList({
           <div className={viewStyles.t_category_table_head}><span>Categoria</span><span>Tipo</span><span>Duplas inscritas</span><span>Status</span><span>Ações</span></div>
           <>{categories.map((category) => (
             <div className={viewStyles.t_category_row} key={category.id}>
-              <span className={viewStyles.t_category_icon}><EventIcon name="users" /></span>
-              <div className={viewStyles.t_category_name}><strong>{category.name}</strong><small>{category.competition ? "Categoria configurada" : "Aguardando configuração"}</small></div>
+
+              <div className={viewStyles.t_category_name}><strong>{category.name}</strong></div>
               <span className={viewStyles.t_category_format}>
                 {category.competition
                   ? formatLabels[category.competition.format]
@@ -67,7 +67,7 @@ export function CategoryList({
                 href={`/torneios/${tournamentId}/categorias/${category.id}`}
                 className={viewStyles.t_category_enter}
               >
-                Entrar <span aria-hidden="true">›</span>
+                Abrir <EventIcon name="chevron" size={14}/>
               </Link>
             </div>
           ))}</>

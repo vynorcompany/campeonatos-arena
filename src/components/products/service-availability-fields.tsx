@@ -7,7 +7,7 @@ const timeValue = (minute: number) => minute === 1440 ? "23:59" : `${String(Math
 
 export function ServiceAvailabilityFields({ rules, onChange }: { rules: ServiceBookingRules; onChange: (rules: ServiceBookingRules) => void }) {
   const windows = rules.dailyWindows ?? [0,1,2,3,4,5,6].filter(weekday => !rules.weekdays.length || rules.weekdays.includes(weekday)).map(weekday => ({ weekday, startMinute: rules.startMinute, endMinute: rules.endMinute }));
-  return <fieldset className="tw:min-w-0 tw:rounded-md tw:border tw:border-[var(--line)] tw:p-3">
+  return <fieldset className="tw:m-0 tw:min-w-0 tw:border-0 tw:border-t tw:border-[#d8e3ef] tw:px-0 tw:pt-3 tw:pb-0">
     <legend className="tw:px-1 tw:text-xs tw:font-medium">Disponibilidade por dia</legend>
     <div className="tw:grid tw:grid-cols-[46px_minmax(0,1fr)_minmax(0,1fr)] tw:items-center tw:gap-x-2 tw:gap-y-1.5 tw:text-xs tw:viewport-360:grid-cols-2">
       <span className="tw:viewport-360:hidden">Dia</span><span>Início</span><span>Fim</span>

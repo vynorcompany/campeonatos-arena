@@ -23,7 +23,7 @@ test("tournament sidebar keeps active events and rankings children", async () =>
 });
 
 test("unified directory uses the shared compact rows and exposes history", async () => {
-  const source = await readSource("src", "app", "(app)", "torneios", "page.tsx");
+  const source = await readSource("src", "app", "(app)", "torneios", "page.tsx") + "\n" + await readSource("src", "components", "tournaments", "tournament-directory.tsx");
   assert.match(source, /ui\.row/);
   assert.match(source, /Categorias/);
   assert.match(source, /status=finished/);

@@ -1,4 +1,5 @@
 "use client";
+import { ActionIcon, actionIconButton } from "@/components/ui/action-icon";
 import { Modal } from "@/components/ui/modal";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 
@@ -20,11 +21,11 @@ const input = "tw:min-h-10 tw:w-full tw:rounded-lg tw:border tw:border-[#cbd9ea]
 const button = ui.secondary;
 const primary = ui.primary;
 
-export function LoyaltySettingsButton({ settings }: { settings: Settings }) {
+export function LoyaltySettingsButton({ settings, iconOnly = false }: { settings: Settings; iconOnly?: boolean }) {
   const [open, setOpen] = useState(false);
   const closeSettings = useCallback(() => setOpen(false), []);
   return <>
-    <button type="button" className={button} onClick={() => setOpen(true)}>Configurar fidelidade</button>
+    <button type="button" className={iconOnly ? actionIconButton : button} aria-label="Configurar fidelidade" title="Configurar fidelidade" onClick={() => setOpen(true)}>{iconOnly ? <ActionIcon name="settings"/> : "Configurar fidelidade"}</button>
     <Modal title="Configurar fidelidade" open={open} onClose={closeSettings} width="tw:max-w-[680px]" tone="management">
         <p className="tw:mb-4 tw:text-sm tw:text-[#536b86]">Reservas encerradas contam automaticamente. Visitas avulsas são registradas no cadastro do cliente. A recompensa é entregue pela equipe, sem crédito financeiro automático.</p>
         <SafeActionForm action={updateClientLoyaltySettingsAction} onSuccess={() => setOpen(false)} className="tw:grid tw:gap-4" successMessage="Fidelidade atualizada.">

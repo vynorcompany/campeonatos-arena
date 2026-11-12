@@ -20,7 +20,7 @@ type CatalogRow = { code: string; label: string; cst?: string };
 const grid =
   "tw:grid tw:min-w-0 tw:items-start tw:grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] tw:gap-3";
 const group =
-  "tw:m-0 tw:min-w-0 tw:rounded-lg tw:border tw:border-[var(--line)] tw:p-3";
+  "tw:m-0 tw:min-w-0 tw:border-0 tw:border-b tw:border-[#d8e3ef] tw:p-0 tw:pb-4";
 const shortTaxLabels: Record<string, string> = {
   "00": "Integral",
   "20": "Redução de base",
@@ -274,7 +274,7 @@ export function ProductFiscalForm({
     <SafeActionForm
       action={updateProductFiscalProfileAction}
       successMessage="Configuração fiscal do produto salva."
-      className={`${ui.panel} tw:grid tw:gap-4`}
+      className="tw:grid tw:min-w-0 tw:gap-5"
     >
       <input type="hidden" name="productId" value={productId} />
       <input
