@@ -84,3 +84,17 @@ export const updateTournamentParticipantsSchema = z.object({
   tournamentId: z.string().trim().min(1, "Torneio inválido."),
   playerIds: z.array(z.string().trim().min(1)).default([])
 });
+
+const clientIdentity = {
+  personType: z.preprocess(value => value ?? "PF", z.enum(["PF", "PJ"])),
+  cnpj: z.preprocess(value => value ?? "", z.string().trim().toUpperCase().refine(value => !value || /^[A-Z0-9]{12}\d{2}$/.test(value), "CNPJ deve ter 14 posições, com os dois últimos dígitos numéricos.")),
+  name: z.string().trim().min(2, "Informe o nome ou razão social."),
+  allowOverdueComandas: z.boolean().optional(),
+};
+function validateClientName(data: {personType:string;name:string}, ctx: z.RefinementCtx) {
+  if (data.personType === "PF" && !fullNameSchema.safeParse(data.name).success) ctx.addIssue({code:"custom",path:["name"],message:"Informe nome e sobrenome."});
+}
+export const createClientSchema = createPlayerSchema.extend(clientIdentity).superRefine(validateClientName);
+export const updateClientSchema = updatePlayerSchema.extend({...clientIdentity, personType: z.preprocess(value => value === null ? undefined : value, z.enum(["PF","PJ"]).optional()), cnpj: clientIdentity.cnpj.optional()}).superRefine((data,ctx) => validateClientName({...data,personType:data.personType??"PF"},ctx));
+
+export const quickClientSchema = createPlayerSchema.pick({name:true,phone:true,email:true,cpf:true,class:true,gender:true,birthDate:true}).extend({...clientIdentity,phone:z.string().trim().min(8,"Informe um telefone válido.").max(30)}).superRefine(validateClientName);

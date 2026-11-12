@@ -177,8 +177,8 @@ test("pair ranking screens keep category activity in the workspace and summarize
   ]);
 
   assert.match(listPage, /RankingList/);
-  assert.match(rankingList, /formatType\(ranking\.type\)/);
-  assert.match(rankingList, /ranking\._count\.tournaments/);
+  assert.match(rankingList, /r\.type==="PAIR"\?"Duplas":"Individual"/);
+  assert.match(rankingList, /r\._count\.tournaments/);
   assert.doesNotMatch(rankingList, /ranking\.pairLeaderboard/);
   assert.match(detailPage, /ranking\.pairLeaderboard/);
   assert.match(service, /buildPairTournamentSummaries/);

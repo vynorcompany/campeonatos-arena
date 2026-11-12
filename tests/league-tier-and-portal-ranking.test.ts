@@ -6,7 +6,7 @@ import test from "node:test";
 test("edição de cliente preserva a Liga A ou B selecionada", () => {
   const action = readFileSync(resolve(process.cwd(), "src/lib/actions/tournament.ts"), "utf8");
 
-  assert.match(action, /updatePlayerSchema\.safeParse\(\{[\s\S]*leagueTier:\s*formData\.get\("leagueTier"\)/);
+  assert.match(action, /updateClientSchema\.safeParse\(\{[\s\S]*leagueTier:\s*formData\.get\("leagueTier"\)/);
 });
 
 test("ranking do Portal inclui Ligas ativas antes da publicação do ciclo", () => {

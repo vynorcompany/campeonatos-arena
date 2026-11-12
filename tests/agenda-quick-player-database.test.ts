@@ -41,6 +41,8 @@ test("quick client registration accepts absent optional fields, stores profile a
     assert.equal(profile.email,"client@example.test");assert.equal(profile.cpf,"52998224725");assert.equal(profile.class,"B");assert.equal(profile.gender,"Feminino");assert.equal(profile.birthDate?.toISOString().slice(0,10),"1995-06-15");
     assert.match((await exports.createQuickPlayerAction!(form({name:"Outro Cliente",phone:"55 47 99999-0001"}))).error ?? "", /Já existe/);
     assert.match((await exports.createQuickPlayerAction!(form({name:"Cliente Inválido",phone:"47999990003",email:"invalido"}))).error ?? "", /E-mail inválido/);
-    assert.equal(await admin.player.count({where:{arenaId:ids[0]}}),2);
+    const company=await exports.createQuickPlayerAction!(form({name:"Empresa",personType:"PJ",cnpj:"12.345.678/0001-90",phone:"47999990004",allowOverdueComandas:"off"}));
+    const business=await admin.player.findUniqueOrThrow({where:{id:company.id}});assert.equal(business.personType,"PJ");assert.equal(business.cnpj,"12345678000190");assert.equal(business.cpf,"");assert.equal(business.allowOverdueComandas,false);
+    assert.equal(await admin.player.count({where:{arenaId:ids[0]}}),3);
   } finally {await admin.arena.deleteMany({where:{id:{in:ids}}});await runtime.$disconnect();await admin.$disconnect();}
 });

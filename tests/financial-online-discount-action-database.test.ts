@@ -1,3 +1,4 @@
+import { boletoPayerDocument } from "../src/lib/payments/boleto-payer";
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
@@ -28,6 +29,7 @@ test("staff emits the quoted Pix and boleto amount, preserves principal and refu
    "@/lib/rls":{withArenaTransaction:scope},"@/lib/finance/action-schemas":schemas,
    "@/lib/finance/inputs":{parseMoneyToCents},"@/lib/finance/ledger":{getFinancialEntryBalance},
    "@/lib/payments/existing-online-charge":{hasExistingOnlineCharge},"@/lib/payments/financial-online-charge-claim":{claimFinancialOnlineCharge},
+   "@/lib/payments/boleto-payer":{boletoPayerDocument},
    "@/lib/payments/mercado-pago":{createPixPayment:provider,createBoletoPayment:provider,getMissingBoletoPayerFields:()=>[]},
    "@/lib/finance/revalidation":{refreshFinanceRoutes(){}},
   };

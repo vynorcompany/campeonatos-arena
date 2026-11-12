@@ -30,11 +30,15 @@ export function applyComandaPaymentPolicy(input: { totalCents: number; creditCen
 
 export async function assertComandaMayOpen(tx: Prisma.TransactionClient, arenaId: string, playerId: string, today = arenaToday()) {
   const settings = await tx.arenaOperationalSettings.findUnique({ where: { arenaId }, select: { blockDelinquentComandas: true, delinquentAfterDays: true } });
-  if (!settings?.blockDelinquentComandas) return;
-  const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - settings.delinquentAfterDays + 1);
+  const player = await tx.player.findFirst({ where: { id: playerId, arenaId }, select: { allowOverdueComandas: true } });
+  if (!player) throw new Error("Cliente não encontrado.");
+  const blockOverdue = player.allowOverdueComandas === null ? Boolean(settings?.blockDelinquentComandas) : !player.allowOverdueComandas;
+  if (!blockOverdue && !settings?.blockDelinquentComandas) return;
+  const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - (settings?.delinquentAfterDays ?? 1) + 1);
   const reviewReference = await retainedContactNeedsReview(tx, arenaId, playerId, cutoff);
   if (reviewReference) throw new Error(`Este cadastro precisa de revisão da recepção antes de abrir uma comanda. Protocolo: ${reviewReference}.`);
-  const debts = await tx.financialEntry.findMany({ where: { ...ownedReceivables(arenaId, [playerId]), dueDate: { lt: cutoff } }, select: { amountCents: true, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } } });
+  if (!blockOverdue) return;
+  const debts = await tx.financialEntry.findMany({ where: { arenaId, type: { in: ["REVENUE", "INCOME"] }, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] }, OR: [ownedReceivables(arenaId, [playerId]), { billingPlayerId: playerId }], dueDate: { lt: cutoff } }, select: { amountCents: true, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } } });
   if (debts.some(debt => getOutstandingCents(debt.amountCents, debt.settlements) > 0)) throw new Error("A abertura de comanda está bloqueada por pagamentos vencidos deste cliente.");
 }
 

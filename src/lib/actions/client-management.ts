@@ -71,12 +71,15 @@ export async function mergeClientsAction(formData: FormData) {
     const duplicate = clients.find((item) => item.id === parsed.data.duplicatePlayerId);
     if (!primary || !duplicate) return { error: "Cliente não encontrado." };
     if (!primary.active || !duplicate.active || primary.mergedIntoPlayerId || duplicate.mergedIntoPlayerId) return { error: "Selecione dois clientes ativos que ainda não foram mesclados." };
+    if (primary.personType !== duplicate.personType) return { error: "Os cadastros são de tipos diferentes (pessoa física e jurídica). Corrija o tipo antes de mesclar." };
+    if (primary.cnpj && duplicate.cnpj && primary.cnpj !== duplicate.cnpj) return { error: "Os cadastros possuem CNPJs diferentes. Confira as empresas antes de mesclar." };
     await transferClientHistory(tx, auth.arenaId, primary, duplicate);
     // Fill missing contact details without replacing the selected principal's data.
     await tx.player.update({ where: { id: primary.id }, data: {
       phone: primary.phone || duplicate.phone,
       email: primary.email || duplicate.email,
       cpf: primary.cpf || duplicate.cpf,
+      cnpj: primary.cnpj || duplicate.cnpj, allowOverdueComandas: primary.allowOverdueComandas ?? duplicate.allowOverdueComandas,
       birthDate: primary.birthDate ?? duplicate.birthDate,
       guardianId: primary.guardianId ?? duplicate.guardianId,
       ...Object.fromEntries(["addressZipCode","addressStreet","addressNumber","addressNeighborhood","addressCity","addressState","photoUrl","bio"].map(field=>[field,(primary as any)[field] || (duplicate as any)[field]])),
@@ -108,16 +111,18 @@ export async function importClientsAction(formData: FormData) {
   const rows = (await file.text()).replace(/^\uFEFF/, "").split(/\r?\n/).slice(1).map((line) => line.split(";").map((value) => value.trim())).filter(([name]) => name);
   if (!rows.length) throw new Error("O CSV não possui clientes para importar.");
   let imported = 0;
-  const existingClients = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findMany({ where: { arenaId: auth.arenaId }, select: { phone: true, cpf: true } }));
+  const existingClients = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findMany({ where: { arenaId: auth.arenaId }, select: { phone: true, cpf: true, cnpj: true } }));
   const knownPhones = new Set(existingClients.map((client) => normalizeBrazilianPhone(client.phone)).filter(Boolean));
-  const knownCpfs = new Set(existingClients.map((client) => client.cpf.replace(/\D/g, "")).filter(Boolean));
+  const knownCpfs = new Set(existingClients.flatMap((client) => [client.cpf,client.cnpj]).map(value=>value?.replace(/[.\/\-\s]/g, "").toUpperCase()).filter(Boolean));
   await withArenaTransaction(auth.arenaId, async (tx) => {
     for (const [name, phone, cpf] of rows) {
       if (name.length < 2 || phone.replace(/\D/g, "").length < 8) continue;
-      const normalizedPhone = normalizeBrazilianPhone(phone); const normalizedCpf = cpf.replace(/\D/g, "");
-      if (knownPhones.has(normalizedPhone) || (normalizedCpf && knownCpfs.has(normalizedCpf))) continue;
-      await tx.player.create({ data: { arenaId: auth.arenaId, name, phone: normalizedPhone, cpf: normalizedCpf } }); imported += 1;
-      knownPhones.add(normalizedPhone); if (normalizedCpf) knownCpfs.add(normalizedCpf);
+      const normalizedPhone = normalizeBrazilianPhone(phone); const document = (cpf??"").replace(/[.\/\-\s]/g, "").toUpperCase();
+      if (document && !/^\d{11}$/.test(document) && !/^[A-Z0-9]{12}\d{2}$/.test(document)) continue;
+      const company=document.length===14; const normalizedCpf=company?"":document;
+      if (knownPhones.has(normalizedPhone) || (document && knownCpfs.has(document))) continue;
+      await tx.player.create({ data: { arenaId: auth.arenaId, name, phone: normalizedPhone, cpf: normalizedCpf, personType:company?"PJ":"PF", cnpj:company?document:"" } }); imported += 1;
+      knownPhones.add(normalizedPhone); if (document) knownCpfs.add(document);
     }
   });
   refreshClients();

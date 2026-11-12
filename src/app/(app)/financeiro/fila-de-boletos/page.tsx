@@ -6,7 +6,7 @@ import { arenaDatabase } from "@/lib/arena-database";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { recurringBoletoIssueDeadline } from "@/lib/payments/recurring-charge-eligibility";
 import { getFinancialEntryBalance } from "@/lib/finance/ledger";
-const payerSelect = { id: true, name: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } as const;
+const payerSelect = { id: true, name: true, email: true, cpf: true, personType: true, cnpj: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } as const;
 export default async function BoletoQueuePage(props:{searchParams:Promise<{status?:string;q?:string}>}) {
  const auth=await requirePermission("finance:receivable:view"),params=await props.searchParams;
  const status=["queue","issued","canceled"].includes(params.status||"")?params.status!:"queue";

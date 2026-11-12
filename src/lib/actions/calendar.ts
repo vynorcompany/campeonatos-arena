@@ -1,8 +1,9 @@
 "use server";
+import { boletoPayerDocument } from "@/lib/payments/boleto-payer";
 import { redeemReservationCredit } from "@/lib/plans/reservation-credits";
 import { courtRulesForDate } from "@/lib/calendar/date-availability";
 import { staleRecordMessage } from "@/lib/record-version";
-import { createPlayerSchema } from "@/lib/validators/player";
+import { createPlayerSchema, quickClientSchema } from "@/lib/validators/player";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 import { servicePermitsDuration } from "@/lib/calendar/service-booking-rules";
 
@@ -315,7 +316,7 @@ export async function startPublicCourtBookingPaymentAction(formData: FormData) {
   if (!booking || !participant) throw new Error("O prazo de 15 minutos desta reserva terminou. Escolha novamente o horário disponível.");
   if (!participant.player.email) throw new Error("Informe seu e-mail no perfil para continuar com o pagamento online.");
   const paymentInput = { arenaId: arena.id, amountCents: participant.amountCents, description: `Reserva de quadra · ${booking.occurrenceCourts[0]?.court.name ?? "Quadra"}`, payerEmail: participant.player.email, externalReference: `online_booking:${booking.id}` };
-  const payment = parsed.data.method === "PIX" ? await createPixPayment({ ...paymentInput, expiresAt: onlineBookingPixExpiration(booking.createdAt) }) : parsed.data.method === "CARD" ? await createCardCheckout(paymentInput) : await (async () => { const missing = getMissingBoletoPayerFields(participant.player); if (missing.length) throw new Error(`Para emitir boleto, complete no perfil: ${missing.join(", ")}.`); return createBoletoPayment({ ...paymentInput, payerCpf: participant.player.cpf, payerName: participant.player.name, payerAddress: participant.player, expiresAt: new Date(booking.createdAt.getTime() + 3 * 24 * 60 * 60_000) }); })();
+  const payment = parsed.data.method === "PIX" ? await createPixPayment({ ...paymentInput, expiresAt: onlineBookingPixExpiration(booking.createdAt) }) : parsed.data.method === "CARD" ? await createCardCheckout(paymentInput) : await (async () => { const missing = getMissingBoletoPayerFields(participant.player); if (missing.length) throw new Error(`Para emitir boleto, complete no perfil: ${missing.join(", ")}.`); return createBoletoPayment({ ...paymentInput, payerCpf: boletoPayerDocument(participant.player), payerName: participant.player.name, payerAddress: participant.player, expiresAt: new Date(booking.createdAt.getTime() + 3 * 24 * 60 * 60_000) }); })();
   if (!payment.checkoutUrl) throw new Error("Não foi possível abrir o pagamento escolhido.");
   return { checkoutUrl: payment.checkoutUrl };
 }
@@ -418,12 +419,11 @@ export async function createBookingTypeAction(formData: FormData) {
 
 export async function createQuickPlayerAction(formData: FormData) {
   const auth = await requirePermission("players:create");
-  const parsed = createPlayerSchema.pick({ name: true, phone: true, email: true, cpf: true, class: true, gender: true, birthDate: true }).extend({
-    phone: z.string().trim().min(8, "Informe um telefone válido.").max(30),
-  }).safeParse({
+  const parsed = quickClientSchema.safeParse({
     name: formData.get("name"), phone: normalizeBrazilianPhone(String(formData.get("phone") ?? "")),
     email: formData.get("email"), cpf: String(formData.get("cpf") ?? "").replace(/\D/g, ""),
     class: formData.get("class"), gender: formData.get("gender"), birthDate: formData.get("birthDate"),
+    personType:formData.get("personType"), cnpj:String(formData.get("cnpj")??"").replace(/[.\/\-\s]/g,"").toUpperCase(), allowOverdueComandas:formData.has("allowOverdueComandas")?formData.get("allowOverdueComandas")==="on":undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   try {

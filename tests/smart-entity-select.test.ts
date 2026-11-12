@@ -43,6 +43,7 @@ test("seletor mantém a primeira opção implícita e valores controlados sem tr
  if(name==="@/components/ui/modal")return{Modal:()=>null};
  if(name==="@/components/ui/operational-workspace")return{operationalWorkspace:{}};
  if(name==="@/lib/actions/smart-lookup")return{};
+ if(["./client-identity-fields","./phone-input","./client-comanda-permission"].includes(name))return {};
  return require(name);
  }});
  const options=[React.createElement("option",{key:"a",value:"id-a"},"Categoria A"),React.createElement("option",{key:"b",value:"id-b"},"Categoria B")];

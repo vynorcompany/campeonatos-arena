@@ -475,6 +475,7 @@ export async function requestPortalComandaOpenAction(form: FormData) {
     if (!player) throw new Error("Cadastro indisponível. Procure a recepção.");
     const existing = await tx.comanda.findFirst({ where: { arenaId: auth.arenaId, playerId: auth.playerId, status: "OPEN" }, select: { id: true } });
     if (existing) throw new Error("Você já tem uma comanda aberta. Atualize a consulta.");
+    await assertComandaMayOpen(tx, auth.arenaId, auth.playerId);
     const href = `/comandas?new=client&player=${encodeURIComponent(auth.playerId)}`;
     const pending = await tx.arenaNotification.findFirst({ where: { arenaId: auth.arenaId, type: "COMANDA_OPEN_REQUEST", readAt: null, href }, select: { id: true } });
     if (pending) return;

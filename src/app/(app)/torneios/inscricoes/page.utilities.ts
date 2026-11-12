@@ -1,32 +1,4 @@
-import { managementControls } from "@/components/ui/management-controls";
-import { sharedUtilities } from "@/components/ui/shared.utilities";
-/** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 export const viewStyles = {
-  "muted": sharedUtilities.muted,
-  "stack_md": sharedUtilities.stackMd,
-  "page_header": sharedUtilities.pageHeader,
-  "stack_xs": [
-    "stack-xs", "tw:grid", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
-  ].join(" "),
-  "eyebrow": sharedUtilities.eyebrow,
-  "simple_list": sharedUtilities.simpleList,
-  "simple_item": sharedUtilities.simpleItem,
-  "section_actions": sharedUtilities.sectionActions,
-  "button": (sharedUtilities.button) + " " + managementControls.secondary,
-  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
-  "stack_xs_2": [
-    "stack-xs", "tw:[width:100%]", "tw:grid", "tw:gap-y-[6px]",
-    "tw:gap-x-[6px]",
-  ].join(" "),
-  "grid_form": [
-    "grid-form", "tw:[margin-top:0.75rem]", "tw:grid", "tw:gap-y-[14px]",
-    "tw:gap-x-[14px]", "tw:min-w-0", "tw:[&_:where(label,.field)]:min-w-0", "tw:[&_label]:grid", "tw:[&_label]:gap-1.5", "tw:[&_label]:content-start", "tw:[&_:where(input,select)]:min-w-0", "tw:[&_:where(input,select)]:w-full", "tw:[&_:where(input,select)]:rounded-[7px]!", "tw:[&_:where(input,select)]:bg-white!", "tw:grid-cols-[repeat(3,_minmax(0,_1fr))]", "tw:viewport-1120:grid-cols-[1fr]", "tw:[&_textarea]:w-[100%]",
-    "tw:[&_textarea]:pt-[12px]", "tw:[&_textarea]:pr-[14px]", "tw:[&_textarea]:pb-[12px]", "tw:[&_textarea]:pl-[14px]",
-    "tw:[&_textarea]:border-t-[length:1px]", "tw:[&_textarea]:[border-top-style:solid]", "tw:[&_textarea]:border-t-[color:var(--line)]", "tw:[&_textarea]:border-r-[length:1px]",
-    "tw:[&_textarea]:[border-right-style:solid]", "tw:[&_textarea]:border-r-[color:var(--line)]", "tw:[&_textarea]:border-b-[length:1px]", "tw:[&_textarea]:[border-bottom-style:solid]",
-    "tw:[&_textarea]:border-b-[color:var(--line)]", "tw:[&_textarea]:border-l-[length:1px]", "tw:[&_textarea]:[border-left-style:solid]", "tw:[&_textarea]:border-l-[color:var(--line)]",
-    "tw:[&_textarea]:rounded-[var(--radius-md)]", "tw:[&_textarea]:bg-[color:var(--panel)]", "tw:[&_textarea]:[background-image:none]", "tw:[&_textarea]:text-[color:var(--text)]",
-  ].join(" "),
-  "field": sharedUtilities.field,
-  "field_field_submit": sharedUtilities.fieldFieldSubmit,
+ muted:"tw:text-xs tw:text-[#526781]",stack_md:ui.page,stack_xs_2:"tw:grid tw:min-w-0 tw:w-full tw:gap-2",simple_list:"tw:grid tw:min-w-0 tw:gap-0",simple_item:"tw:grid tw:min-w-0 tw:gap-2 tw:border-b tw:border-[var(--line)] tw:py-2 tw:last:border-b-0 tw:text-xs",section_actions:"tw:flex tw:min-w-0 tw:flex-wrap tw:items-end tw:gap-2 tw:[&_select]:h-8! tw:[&_input]:h-8! tw:[&_input]:min-w-0 tw:[&_input]:w-32",button:ui.secondary,button_button_primary:ui.primary,grid_form:"tw:mt-3 tw:grid tw:min-w-0 tw:gap-3 tw:sm:grid-cols-2 tw:lg:grid-cols-3 tw:[&_label]:grid tw:[&_label]:min-w-0 tw:[&_label]:gap-1 tw:[&_input]:min-w-0 tw:[&_select]:min-w-0 tw:[&_input]:w-full tw:[&_select]:w-full tw:[&_input]:h-9! tw:[&_select]:h-9!",field:ui.field,field_field_submit:"tw:col-span-full tw:flex tw:justify-end"
 } as const;

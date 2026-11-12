@@ -9,5 +9,6 @@ test("calendar actions support booking types and quick player creation", () => {
   assert.match(source, /createBookingTypeAction/);
   assert.match(source, /createQuickPlayerAction/);
   assert.match(source, /bookingTypeName/);
-  assert.match(source, /phone.*min\(8/);
+  const validators=readFileSync(resolve(process.cwd(), "src/lib/validators/player.ts"), "utf8");
+  assert.match(validators,/phone.*min\(8/);
 });

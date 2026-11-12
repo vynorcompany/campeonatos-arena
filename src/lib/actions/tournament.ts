@@ -17,6 +17,8 @@ import { normalizeBrazilianPhone } from "@/lib/phone";
 import {
   archivePlayerSchema,
   createPlayerSchema,
+  createClientSchema,
+  updateClientSchema,
   updatePlayerPointsSchema,
   updatePlayerSchema,
   updateTournamentEntryPointsSchema,
@@ -259,7 +261,7 @@ export type RankingActionState = {
 
 export async function createPlayerAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await requireModuleEdit("players");
-  const parsed = createPlayerSchema.safeParse({
+  const parsed = createClientSchema.safeParse({
     name: formData.get("name"),
     points: formData.get("points"),
     class: formData.get("class"),
@@ -270,7 +272,9 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
     addressZipCode: formData.get("addressZipCode"), addressStreet: formData.get("addressStreet"), addressNumber: formData.get("addressNumber"), addressNeighborhood: formData.get("addressNeighborhood"), addressCity: formData.get("addressCity"), addressState: formData.get("addressState"),
     birthDate: formData.get("birthDate"),
     leagueTier: formData.get("leagueTier"),
-    isTeacher: formData.get("isTeacher")
+    isTeacher: formData.get("isTeacher"),
+    personType: formData.get("personType"), cnpj: formData.has("cnpj") ? String(formData.get("cnpj")??"").replace(/[.\/\-\s]/g, "").toUpperCase() : undefined,
+    allowOverdueComandas: formData.has("allowOverdueComandas") ? formData.get("allowOverdueComandas") === "on" : undefined,
   });
 
   if (!parsed.success) {
@@ -294,7 +298,7 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
           gender: parsed.data.gender,
           phone,
           email: parsed.data.email ?? "",
-          cpf: parsed.data.cpf,
+          cpf: parsed.data.cpf, personType: parsed.data.personType, cnpj: parsed.data.cnpj, allowOverdueComandas: parsed.data.allowOverdueComandas,
           addressZipCode: parsed.data.addressZipCode.replace(/\D/g, ""), addressStreet: parsed.data.addressStreet, addressNumber: parsed.data.addressNumber, addressNeighborhood: parsed.data.addressNeighborhood, addressCity: parsed.data.addressCity, addressState: parsed.data.addressState.toUpperCase(),
           birthDate: parsed.data.birthDate,
           ...(photoUrl ? { photoUrl } : {})
@@ -333,7 +337,7 @@ export async function createPlayerAction(_: ActionState, formData: FormData): Pr
 
 export async function updatePlayerAction(formData: FormData) {
   const auth = await requireModuleEdit("players");
-  const parsed = updatePlayerSchema.safeParse({
+  const parsed = updateClientSchema.safeParse({
     playerId: formData.get("playerId"),
     name: formData.get("name"),
     points: formData.get("points"),
@@ -345,7 +349,9 @@ export async function updatePlayerAction(formData: FormData) {
     addressZipCode: formData.get("addressZipCode"), addressStreet: formData.get("addressStreet"), addressNumber: formData.get("addressNumber"), addressNeighborhood: formData.get("addressNeighborhood"), addressCity: formData.get("addressCity"), addressState: formData.get("addressState"),
     birthDate: formData.get("birthDate"),
     leagueTier: formData.get("leagueTier"),
-    isTeacher: formData.get("isTeacher")
+    isTeacher: formData.get("isTeacher"),
+    personType: formData.get("personType"), cnpj: formData.has("cnpj") ? String(formData.get("cnpj")??"").replace(/[.\/\-\s]/g, "").toUpperCase() : undefined,
+    allowOverdueComandas: formData.has("allowOverdueComandas") ? formData.get("allowOverdueComandas") === "on" : undefined,
   });
 
   if (!parsed.success) {
@@ -361,7 +367,7 @@ export async function updatePlayerAction(formData: FormData) {
       const guardianChange = formData.has("guardianId") ? { guardianId: await validateGuardian(tx, auth.arenaId, String(formData.get("guardianId") ?? ""), parsed.data.playerId) } : {};
       const updated = await tx.player.updateMany({
         where: { id: parsed.data.playerId, arenaId: auth.arenaId },
-        data: { ...guardianChange, name: parsed.data.name, points: parsed.data.points, class: parsed.data.class, gender: parsed.data.gender, phone, ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}), cpf: parsed.data.cpf, birthDate: parsed.data.birthDate, ...(parsed.data.addressZipCode !== undefined ? { addressZipCode: parsed.data.addressZipCode.replace(/\D/g, ""), addressStreet: parsed.data.addressStreet ?? "", addressNumber: parsed.data.addressNumber ?? "", addressNeighborhood: parsed.data.addressNeighborhood ?? "", addressCity: parsed.data.addressCity ?? "", addressState: (parsed.data.addressState ?? "").toUpperCase() } : {}), ...(photoUrl ? { photoUrl } : {}) }
+        data: { ...guardianChange, ...(parsed.data.personType ? { personType: parsed.data.personType } : {}), ...(parsed.data.cnpj !== undefined ? { cnpj: parsed.data.cnpj } : {}), ...(parsed.data.allowOverdueComandas !== undefined ? { allowOverdueComandas: parsed.data.allowOverdueComandas } : {}), name: parsed.data.name, points: parsed.data.points, class: parsed.data.class, gender: parsed.data.gender, phone, ...(parsed.data.email !== undefined ? { email: parsed.data.email } : {}), cpf: parsed.data.cpf, birthDate: parsed.data.birthDate, ...(parsed.data.addressZipCode !== undefined ? { addressZipCode: parsed.data.addressZipCode.replace(/\D/g, ""), addressStreet: parsed.data.addressStreet ?? "", addressNumber: parsed.data.addressNumber ?? "", addressNeighborhood: parsed.data.addressNeighborhood ?? "", addressCity: parsed.data.addressCity ?? "", addressState: (parsed.data.addressState ?? "").toUpperCase() } : {}), ...(photoUrl ? { photoUrl } : {}) }
       });
       if (!updated.count) throw new Error("Jogador não encontrado.");
       const player = await tx.player.findFirst({ where: { id: parsed.data.playerId, arenaId: auth.arenaId }, select: { name: true, phone: true, email: true } });

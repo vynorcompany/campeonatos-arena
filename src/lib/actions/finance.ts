@@ -1,4 +1,5 @@
 "use server";
+import { boletoPayerDocument } from "@/lib/payments/boleto-payer";
 import { entryAdjustedAmount, entryAdjustmentNotes } from "@/lib/finance/entry-adjustments";
 import { splitCardEntry } from "@/lib/finance/split-card-entry";
 import { readCardInstallmentCount, readCardInstallmentRows } from "@/lib/finance/card-installments";
@@ -548,7 +549,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
   if (parsed.data.onlinePaymentMethod === "BOLETO") {
     if (amountCents < 500) return { error: "Boleto recorrente exige valor mínimo de R$ 5,00. Ajuste o valor antes de continuar." };
     if (parsed.data.type !== "REVENUE" || !clientId) return { error: "Dados incompletos do cliente: selecione um cliente cadastrado para gerar o boleto recorrente." };
-    const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }));
+    const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { email: true, cpf: true, personType: true, cnpj: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }));
     const missing = getMissingBoletoPayerFields(player ?? {});
     if (missing.length) return { error: `Dados incompletos do cliente: informe ${missing.join(" e ")} no cadastro de ${parsed.data.counterpartyName} antes de gerar o boleto recorrente.` };
   }
@@ -614,7 +615,7 @@ export async function generateFinancialEntryOnlineChargeAction(formData: FormDat
   if (hasExistingOnlineCharge(entry)) return { error: "Este lançamento já possui uma cobrança online. Use ‘Ver cobrança’ no lançamento para consultá-la antes de emitir outra." };
   const playerId = entry.billingPlayerId ?? entry.playerId;
   if (!playerId) return { error: "Associe este lançamento a um cliente cadastrado antes de gerar a cobrança online." };
-  const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: playerId, arenaId: auth.arenaId, active: true }, select: { name: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }));
+  const player = await withArenaTransaction(auth.arenaId, (tx) => tx.player.findFirst({ where: { id: playerId, arenaId: auth.arenaId, active: true }, select: { name: true, email: true, cpf: true, personType: true, cnpj: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }));
   if (!player?.email) return { error: "Informe o e-mail do atleta antes de gerar a cobrança." };
   if (parsed.data.method === "BOLETO") { const missing = getMissingBoletoPayerFields(player); if (missing.length) return { error: `Dados incompletos do cliente: informe ${missing.join(", ")} no cadastro de ${player.name} antes de emitir o boleto.` }; }
   const outstandingCents = getFinancialEntryBalance(entry.amountCents, entry.settlements).outstandingCents;
@@ -632,7 +633,7 @@ export async function generateFinancialEntryOnlineChargeAction(formData: FormDat
   const input = { arenaId: auth.arenaId, amountCents, description: entry.description, payerEmail: player.email, externalReference: entry.id };
   let charge;
   try {
-    charge = parsed.data.method === "BOLETO" ? await createBoletoPayment({ ...input, payerCpf: player.cpf, payerName: player.name, payerAddress: player, expiresAt: entry.dueDate ?? undefined }) : await createPixPayment(input);
+    charge = parsed.data.method === "BOLETO" ? await createBoletoPayment({ ...input, payerCpf: boletoPayerDocument(player), payerName: player.name, payerAddress: player, expiresAt: entry.dueDate ?? undefined }) : await createPixPayment(input);
     if (!charge.paymentId || (!charge.checkoutUrl && !charge.qrCode)) throw new Error("O provedor não retornou um meio de pagamento utilizável.");
   } catch (error) {
     console.error("Could not create online financial charge", error);
