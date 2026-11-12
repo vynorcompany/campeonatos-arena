@@ -917,6 +917,22 @@ async function main() {
         return {selector,color:style.color,contrast:Math.min(...ratios),threshold};
       });
     };
+    // Admin panels stay light even when the browser prefers dark. Shared footers must
+    // follow the surface they are on, rather than inheriting the OS foreground.
+    for (const viewport of viewports) {
+      for (const theme of ["light", "dark"]) {
+        await visit("/jogadores", viewport, arenaA.id, `clients-pagination-${viewport.name}-${theme}`);
+        await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: theme }] });
+        await pause(100);
+        const rendered = await send("Runtime.evaluate", {
+          expression: `(${measurePortalContrast.toString()})(['nav[aria-label="Paginação de clientes"] > span','nav[aria-label="Paginação de clientes"] label','nav[aria-label="Paginação de clientes"] select'])`,
+          returnByValue: true,
+        });
+        for (const check of rendered.result.value ?? []) {
+          if (check.missing || check.contrast < check.threshold) throw new Error(`Paginação ilegível em ${viewport.name}/${theme}: ${JSON.stringify(check)}`);
+        }
+      }
+    }
     for (const viewport of viewports) {
       for (const theme of viewport.name === "mobile" ? ["light", "dark"] : ["light"]) {
         await send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.name === "mobile" });

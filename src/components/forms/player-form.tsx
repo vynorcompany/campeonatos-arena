@@ -23,10 +23,7 @@ export function PlayerForm({ guardians = [] }: { guardians?: { id:string; name:s
       {guardians.length ? <label className={viewStyles.field}>Responsável financeiro (opcional)<SmartEntitySelect createKind="client" label="Cliente" name="guardianId" defaultValue=""><option value="">Cadastro independente</option>{guardians.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SmartEntitySelect></label> : null}
       <ClientIdentityFields fieldClassName={viewStyles.field}/>
 
-      <div className={viewStyles.field}>
-        <label htmlFor="points">Pontuação inicial</label>
-        <input id="points" name="points" type="number" min="0" defaultValue="1000" required />
-      </div>
+      <input name="points" type="hidden" value="1000" />
 
       <div className={viewStyles.field}>
         <label htmlFor="class">Classe</label>
