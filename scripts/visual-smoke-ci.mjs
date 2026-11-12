@@ -1491,8 +1491,8 @@ async function main() {
       ]) {
         await visit(path, viewport, arenaA.id, `${viewport.name}-torneio-${section}`);
         if (section === "detalhe") {
-          const controls = await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('.event-operation-actions .button')].map(button => ({text:button.textContent?.trim(),height:button.getBoundingClientRect().height,right:button.getBoundingClientRect().right,scrollWidth:button.scrollWidth,clientWidth:button.clientWidth}))", returnByValue: true });
-          if (controls.result.value.length < 4 || controls.result.value.some(button => button.height > 48 || button.right > viewport.width + 1 || button.scrollWidth > button.clientWidth + 1)) {
+          const controls = await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('.event-operation-actions a, .event-operation-actions button')].map(button => ({text:button.getAttribute('aria-label') || button.textContent?.trim(),height:button.getBoundingClientRect().height,right:button.getBoundingClientRect().right,scrollWidth:button.scrollWidth,clientWidth:button.clientWidth}))", returnByValue: true });
+          if (controls.result.value.length < 5 || !controls.result.value.some(button => button.text === "Abrir inscrição pública") || !controls.result.value.some(button => button.text === "Copiar link") || controls.result.value.some(button => button.height > 48 || button.right > viewport.width + 1 || button.scrollWidth > button.clientWidth + 1)) {
             throw new Error(`${viewport.name}: ações do torneio estão quebradas ou comprimidas: ${JSON.stringify(controls.result.value)}`);
           }
           if (viewport.name === "desktop") {
