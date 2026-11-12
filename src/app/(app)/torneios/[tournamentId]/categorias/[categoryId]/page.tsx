@@ -400,7 +400,6 @@ export default async function CategoryPage(props: CategoryPageProps) {
             <article id={`category-${category.id}`} className={viewStyles.league_overview_hero}>
               <header className={viewStyles.league_overview_header}>
                 <div>
-                  <p className={viewStyles.eyebrow}>{category.tournament.name}</p>
                   <div className={viewStyles.league_overview_title_row}>
                     <h1>{category.name}</h1>
                     <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} />
@@ -417,15 +416,12 @@ export default async function CategoryPage(props: CategoryPageProps) {
 
               <div className={viewStyles.league_overview_summary_row}>
                 <article className={viewStyles.league_overview_metric}>
-                  <span className={viewStyles.league_overview_metric_icon_league_overview_metric_icon_blue}><LeagueIcon name="users" /></span>
                   <div><span>Duplas</span><strong>{competition.pairs.length}</strong></div>
                 </article>
                 <article className={viewStyles.league_overview_metric}>
-                  <span className={viewStyles.league_overview_metric_icon_league_overview_metric_icon_green}><LeagueIcon name="calendar" /></span>
                   <div><span>Jogos</span><strong>{completedMatchCount}/{competition.matches.length}</strong></div>
                 </article>
                 <article className={viewStyles.league_overview_metric}>
-                  <span className={viewStyles.league_overview_metric_icon_league_overview_metric_icon_purple}><LeagueIcon name="ranking" /></span>
                   <div><span>Ranking geral</span><strong>{competition.feedsGeneralRanking ? "Ativo" : "Inativo"}</strong></div>
                 </article>
                 <div className={viewStyles.league_overview_primary_action}>
@@ -484,7 +480,6 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 <article id={`category-${category.id}`} className={viewStyles.category_overview_category_detail_hero}>
               <div className={viewStyles.category_overview_head}>
                 <div className={viewStyles.stack_xs}>
-                  <p className={viewStyles.eyebrow}>{category.tournament.name}</p>
                   <div className={viewStyles.category_overview_title_row}><h1>{category.name}</h1>{competition ? <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} /> : null}</div>
                 </div>
                 <StatusBadge status={competition?.status ?? "DRAFT"} />

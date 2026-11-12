@@ -402,7 +402,7 @@ test("league tabs use dedicated responsive layouts for registrations, groups and
   assert.match(games, /league-calendar-card/);
   assert.ok(utilityClasses("league-registration-card").length, "league-registration-card has component Tailwind utilities");
   assert.ok(utilityClasses("league-group-card").length, "league-group-card has component Tailwind utilities");
-  assert.ok(utilityClasses("league-calendar-card").length, "league-calendar-card has component Tailwind utilities");
+  assert.ok(utilityClasses("category-game-row").length, "League and other formats share the responsive game row");
 });
 
 test("league category workspaces follow the compact visual density standard", async () => {
@@ -412,8 +412,8 @@ test("league category workspaces follow the compact visual density standard", as
   ]);
 
   assert.doesNotMatch(styleRules("league-overview-metric"), /min-height: 96px/);
-  assert.match(styleRules("league-overview-primary-action", {"context":".button"}), /min-height: 38px/);
-  assert.match(styleRules("league-registration-panel"), /padding-top: 22px/);
+  assert.match(styleRules("league-overview-primary-action"), /margin-left: auto/);
+  assert.match(styleRules("category-operation-panel"), /min-width: 0px/);
   assert.match(rules, /Escala compacta/);
   assert.match(rules, /não devem ser grandes ou grotescos/);
 });
@@ -451,6 +451,6 @@ test("league workspace uses compact vector icons and identifies registration as 
   assert.match(tabs, /LeagueIcon/);
   assert.match(page, /LeagueIcon/);
   assert.match(portal, /por atleta/);
-  assert.match(styleRules("league-overview-primary-action", {"context":".button"}), /min-height: 38px/);
+  assert.match(styleRules("league-overview-primary-action"), /margin-left: auto/);
   assert.match(styleRules("league-overview-metric-icon"), /width: 38px/);
 });

@@ -31,7 +31,7 @@ function LeagueMatchResultForm({ match, onClose }: { match: Match; onClose: () =
         <strong>{match.awayPair?.name ?? "A definir"}</strong>{sets.map(([, away, label]) => <input key={away} name={away} type="number" min="0" defaultValue={match[away] ?? ""} aria-label={`${label} de ${match.awayPair?.name ?? "visitante"}`} />)}
       </div>
       <p className={viewStyles.muted}>Informe os dois primeiros sets. O terceiro é usado apenas no desempate.</p>
-      <div className="tw:flex tw:flex-wrap tw:justify-end tw:gap-2 tw:border-t tw:border-[var(--line)] tw:pt-3"><button type="button" className={viewStyles.button} onClick={onClose}>Cancelar</button><button className={viewStyles.button_button_primary} type="submit">Salvar resultado</button></div>
+      <div className="tw:mt-auto tw:flex tw:flex-wrap tw:justify-end tw:gap-2 tw:border-t tw:border-[var(--line)] tw:pt-3"><button type="button" className={viewStyles.button} onClick={onClose}>Cancelar</button><button className={viewStyles.button_button_primary} type="submit">Salvar resultado</button></div>
     </form>
   );
 }

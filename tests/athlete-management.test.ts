@@ -57,7 +57,7 @@ test("keeps athlete creation collapsed until the add button is pressed", () => {
   const source = readFileSync(createPanelPath, "utf8");
   assert.match(source, /useState\(false\)/);
   assert.match(source, /Adicionar novo atleta/);
-  assert.match(source, /isOpen \? <PlayerForm guardians=\{guardians\} \/> : null/);
+  assert.match(source, /isOpen \? <PlayerForm guardians=\{guardians\} onCancel=\{close\} \/> : null/);
 });
 
 test("new clients cannot take a homonymous student's existing player link", () => {

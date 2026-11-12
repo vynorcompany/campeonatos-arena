@@ -1,24 +1,15 @@
-import { sharedUtilities } from "@/components/ui/shared.utilities";
-/** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
+import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 export const viewStyles = {
-  "grid_form_client_create_form": [
-    "grid-form", "client-create-form", "tw:grid", "tw:gap-y-[10px]",
-    "tw:gap-x-[10px]", "tw:grid-cols-[repeat(3,_minmax(0,_1fr))]", "tw:viewport-700:grid-cols-[1fr]", "tw:[&_textarea]:w-[100%]",
-    "tw:[&_textarea]:pt-[12px]", "tw:[&_textarea]:pr-[14px]", "tw:[&_textarea]:pb-[12px]", "tw:[&_textarea]:pl-[14px]",
-    "tw:[&_textarea]:border-t-[length:1px]", "tw:[&_textarea]:[border-top-style:solid]", "tw:[&_textarea]:border-t-[color:var(--line)]", "tw:[&_textarea]:border-r-[length:1px]",
-    "tw:[&_textarea]:[border-right-style:solid]", "tw:[&_textarea]:border-r-[color:var(--line)]", "tw:[&_textarea]:border-b-[length:1px]", "tw:[&_textarea]:[border-bottom-style:solid]",
-    "tw:[&_textarea]:border-b-[color:var(--line)]", "tw:[&_textarea]:border-l-[length:1px]", "tw:[&_textarea]:[border-left-style:solid]", "tw:[&_textarea]:border-l-[color:var(--line)]",
-    "tw:[&_textarea]:rounded-[var(--radius-md)]", "tw:[&_textarea]:bg-[color:var(--panel)]", "tw:[&_textarea]:[background-image:none]", "tw:[&_textarea]:text-[color:var(--text)]",
-    "tw:[&_.field]:min-w-[0]", "tw:[&_:is(input,_select)]:min-h-[34px]", "tw:[&_:is(input,_select)]:pt-[7px]", "tw:[&_:is(input,_select)]:pr-[9px]",
-    "tw:[&_:is(input,_select)]:pb-[7px]", "tw:[&_:is(input,_select)]:pl-[9px]", "tw:[&_:is(input,_select)]:rounded-[6px]", "tw:[&_:is(input,_select)]:text-[.78rem]",
-    "tw:[&_.field-submit]:[align-self:end]", "tw:[&_.control-toggle]:[align-self:end]", "tw:[&_.control-toggle]:min-h-[34px]",
-  ].join(" "),
-  "field": sharedUtilities.field,
-  "field_form_full": sharedUtilities.fieldFormFull,
-  "control_toggle": sharedUtilities.controlToggle,
-  "field_field_submit": sharedUtilities.fieldFieldSubmit,
-  "sr_only": sharedUtilities.srOnly,
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
-  "form_error_form_full": sharedUtilities.formErrorFormFull,
-  "form_success_form_full": sharedUtilities.formSuccessFormFull,
+  form: "tw:grid tw:h-full tw:min-h-0 tw:min-w-0 tw:grid-rows-[minmax(0,1fr)_auto] tw:text-[#172d4c]",
+  body: "tw:min-h-0 tw:min-w-0 tw:overflow-y-auto tw:overscroll-contain tw:pr-2 tw:pb-4 tw:[scrollbar-gutter:stable]",
+  fields: "tw:grid tw:min-w-0 tw:grid-cols-3 tw:gap-x-4 tw:gap-y-3 tw:viewport-700:grid-cols-1",
+  field: "tw:grid tw:min-w-0 tw:content-start tw:gap-1.5 tw:text-[13px] tw:font-normal tw:text-[#294b76] tw:[&_:is(input,select)]:box-border tw:[&_:is(input,select)]:w-full tw:[&_:is(input,select)]:min-w-0 tw:[&_:is(input,select)]:min-h-10 tw:[&_:is(input,select)]:rounded-md tw:[&_:is(input,select)]:border tw:[&_:is(input,select)]:border-[#718bac] tw:[&_:is(input,select)]:bg-white tw:[&_:is(input,select)]:px-3 tw:[&_:is(input,select)]:py-2 tw:[&_:is(input,select)]:text-[13px] tw:[&_:is(input,select)]:font-normal tw:[&_:is(input,select)]:text-[#172d4c] tw:[&_input::placeholder]:text-[#526781] tw:[&_:is(input,select):focus-visible]:outline-2 tw:[&_:is(input,select):focus-visible]:outline-offset-1 tw:[&_:is(input,select):focus-visible]:outline-[#1e5ea8]",
+  group: "tw:m-0 tw:mt-5 tw:min-w-0 tw:border-0 tw:border-t tw:border-[#d5e1ef] tw:p-0 tw:pt-4",
+  legend: "tw:mb-2 tw:px-0 tw:pr-3 tw:text-sm tw:font-semibold tw:text-[#172d4c]",
+  permissions: "tw:mt-5 tw:grid tw:min-w-0 tw:gap-3 tw:border-t tw:border-[#d5e1ef] tw:pt-4",
+  footer: "tw:flex tw:min-w-0 tw:shrink-0 tw:items-center tw:justify-end tw:gap-2 tw:border-t tw:border-[#d5e1ef] tw:bg-[#f3f7fc] tw:p-3",
+  primary: ui.primary+" tw:min-h-9! tw:text-[13px]!",
+  secondary: ui.secondary+" tw:min-h-9! tw:text-[13px]!",
+  error: "tw:m-0 tw:mt-3 tw:rounded tw:bg-red-50 tw:p-3 tw:text-sm tw:text-red-800",
+  success: "tw:m-0 tw:mt-3 tw:rounded tw:bg-green-50 tw:p-3 tw:text-sm tw:text-green-800",
 } as const;

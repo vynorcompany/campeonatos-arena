@@ -422,7 +422,7 @@ export function CategoryResultsPanel({
                   competition.sportsResults.leagueStandings.length ? (
                     <div className={viewStyles.group_standings}>
                       <h4>Classificação da Liga</h4>
-                      <div className="tw:min-w-0 tw:max-w-full tw:overflow-x-auto tw:focus-visible:outline-2 tw:focus-visible:outline-[#1e5ea8]" role="region" aria-label="Classificação da Liga: deslize para ver as colunas" tabIndex={0}><table className={`${viewStyles.group_standings_table} tw:min-w-[560px]`}>
+                      <div className="tw:min-w-0 tw:max-w-full tw:overflow-x-auto tw:focus-visible:outline-2 tw:focus-visible:outline-[#1e5ea8]" role="region" aria-label="Classificação da Liga" tabIndex={0}><table className={`${viewStyles.group_standings_table} tw:min-w-[560px] tw:max-[620px]:min-w-0! tw:max-[620px]:[&_thead]:sr-only tw:max-[620px]:[&_tbody]:block tw:max-[620px]:[&_tbody_tr]:grid tw:max-[620px]:[&_tbody_tr]:grid-cols-4 tw:max-[620px]:[&_tbody_tr]:gap-y-1 tw:max-[620px]:[&_tbody_tr]:border-b tw:max-[620px]:[&_tbody_tr]:border-[#d5dfeb] tw:max-[620px]:[&_tbody_tr]:py-3 tw:max-[620px]:[&_td]:border-0 tw:max-[620px]:[&_td]:min-w-0 tw:max-[620px]:[&_td:nth-child(2)]:col-span-3 tw:max-[620px]:[&_td:nth-child(n+3)::before]:content-[attr(data-label)] tw:max-[620px]:[&_td:nth-child(n+3)::before]:block tw:max-[620px]:[&_td:nth-child(n+3)::before]:text-[11px] tw:max-[620px]:[&_td:nth-child(n+3)::before]:text-[#465c75]`}>
                         <thead>
                           <tr>
                             <th>Posição</th>
@@ -437,12 +437,12 @@ export function CategoryResultsPanel({
                           {competition.sportsResults.leagueStandings.map(
                             (standing) => (
                               <tr key={standing.pairName}>
-                                <td>{standing.position}</td>
-                                <td>{standing.pairName}</td>
-                                <td>{standing.matches}</td>
-                                <td>{standing.victories}</td>
-                                <td>{standing.losses}</td>
-                                <td>{standing.differential}</td>
+                                <td data-label="Posição">{standing.position}</td>
+                                <td data-label="Dupla">{standing.pairName}</td>
+                                <td data-label="Jogos">{standing.matches}</td>
+                                <td data-label="Vitórias">{standing.victories}</td>
+                                <td data-label="Derrotas">{standing.losses}</td>
+                                <td data-label="Saldo">{standing.differential}</td>
                               </tr>
                             ),
                           )}

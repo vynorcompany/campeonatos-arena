@@ -928,7 +928,9 @@ async function main() {
           expression: `(${measurePortalContrast.toString()})(['nav[aria-label="Paginação de clientes"] > span','nav[aria-label="Paginação de clientes"] label','nav[aria-label="Paginação de clientes"] select'])`,
           returnByValue: true,
         });
-        for (const check of rendered.result.value ?? []) {
+        const checks = rendered.result.value;
+        if (!Array.isArray(checks) || checks.length !== 3) throw new Error(`Não foi possível medir a paginação em ${viewport.name}/${theme}.`);
+        for (const check of checks) {
           if (check.missing || check.contrast < check.threshold) throw new Error(`Paginação ilegível em ${viewport.name}/${theme}: ${JSON.stringify(check)}`);
         }
       }

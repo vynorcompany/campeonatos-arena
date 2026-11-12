@@ -1,3 +1,5 @@
+"use client";
+import { useEffect, useRef } from "react";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./tournament-tabs.utilities";
 import Link from "next/link";
@@ -25,8 +27,16 @@ export function TournamentTabs({
   activeTab: TournamentTabKey;
   availableTabs?: readonly TournamentTabKey[];
 }) {
+  const navigation = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const container = navigation.current;
+    const active = container?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!container || !active) return;
+    const viewport = container.getBoundingClientRect(), item = active.getBoundingClientRect();
+    if (item.left < viewport.left || item.right > viewport.right) container.scrollLeft += item.left - viewport.left - (viewport.width - item.width) / 2;
+  }, [activeTab]);
   return (
-    <nav className={viewStyles.t_tabs} aria-label="Etapas da categoria">
+    <nav ref={navigation} className={viewStyles.t_tabs} aria-label="Etapas da categoria">
       {tabs.filter((tab) => !availableTabs || availableTabs.includes(tab.key)).map((tab) => (
         <Link
           key={tab.key}
