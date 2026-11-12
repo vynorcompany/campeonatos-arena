@@ -48,7 +48,7 @@ export function LeagueHistoryPanel({ cycles, successHref }: { successHref: strin
         <span className={styles.view}>Ver mês <span aria-hidden="true">→</span></span>
       </button>
     )}</></div>
-    {selected ? <Modal title={`Histórico · ${monthLabel(selected.referenceMonth)}`} open onClose={closeHistory} width="tw:max-w-[800px]">
+    {selected ? <Modal title={`Histórico · ${monthLabel(selected.referenceMonth)}`} open onClose={closeHistory} width="tw:max-w-[800px]" tone="management">
           <div className={styles.dialogBody}>
             <div className={styles.highlights}>
               <div><span>Campeã</span><strong>{selected.championName ?? "Não definida"}</strong></div>

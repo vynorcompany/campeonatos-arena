@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -33,7 +34,7 @@ export const viewStyles = {
     "tw:[&_label]:text-[color:#50657f]", "tw:[&_label]:text-[.7rem]", "tw:[&_label]:font-[700]", "tw:[&_small]:[flex:1_1_260px]",
     "tw:[&_small]:text-[color:#65788d]", "tw:[&_small]:text-[.72rem]", "tw:[&_small]:leading-[1.35]",
   ].join(" "),
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
   "teacher_report_list": [
     "teacher-report-list", "tw:grid", "tw:[&_article]:grid", "tw:[&_article]:grid-cols-[1.3fr_.7fr_.55fr_auto]",
     "tw:viewport-600:[&_article]:grid-cols-[1fr]", "tw:[&_article]:items-center", "tw:[&_article]:gap-y-[12px]", "tw:viewport-600:[&_article]:gap-y-[5px]",
@@ -43,6 +44,6 @@ export const viewStyles = {
     "tw:[&_article_>_div]:gap-x-[2px]", "tw:[&_article_span]:text-[color:#687b91]", "tw:[&_article_span]:text-[.7rem]", "tw:[&_article_strong]:font-medium", "tw:[&_article.is-excluded]:opacity-[.52]",
     "tw:[&_article.is-excluded_strong]:[text-decoration:line-through]",
   ].join(" "),
-  "button_button_small": sharedUtilities.buttonButtonSmall,
+  "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
   "muted": sharedUtilities.muted,
 } as const;

@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -11,8 +12,8 @@ export const viewStyles = {
   "simple_list": sharedUtilities.simpleList,
   "simple_item": sharedUtilities.simpleItem,
   "section_actions": sharedUtilities.sectionActions,
-  "button": sharedUtilities.button,
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button": (sharedUtilities.button) + " " + managementControls.secondary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
   "stack_xs_2": [
     "stack-xs", "tw:[width:100%]", "tw:grid", "tw:gap-y-[6px]",
     "tw:gap-x-[6px]",

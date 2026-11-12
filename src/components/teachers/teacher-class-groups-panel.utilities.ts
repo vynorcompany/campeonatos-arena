@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -45,8 +46,8 @@ export const viewStyles = {
     "tw:[border-top-style:solid]", "tw:border-t-[color:#e5edf5]", "tw:[&.has-remove]:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:[&_input]:min-w-[0]",
     "tw:[&_select]:min-w-[0]", "tw:viewport-440:grid-cols-[minmax(0,_1fr)]", "tw:viewport-440:[&.has-remove]:grid-cols-[minmax(0,_1fr)]", "tw:viewport-600:[&_>_.button]:[grid-column:1_/_-1]", "tw:viewport-600:[&_>_.button]:[justify-self:start]",
   ].join(" "),
-  "button_button_small": sharedUtilities.buttonButtonSmall,
-  "button_button_secondary_button_small": sharedUtilities.buttonButtonSecondaryButtonSmall,
+  "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
+  "button_button_secondary_button_small": (sharedUtilities.buttonButtonSecondaryButtonSmall) + " " + managementControls.secondary,
   "teacher_group_generated_name": [
     "teacher-group-generated-name", "tw:mt-[0]", "tw:mr-[0]", "tw:mb-[0]",
     "tw:ml-[0]", "tw:text-[color:#5a7189]", "tw:text-[.74rem]", "tw:[&_strong]:text-[color:#173f6d]",
@@ -54,10 +55,10 @@ export const viewStyles = {
   "teacher_group_notes": [
     "teacher-group-notes", "tw:[grid-column:1_/_-1]",
   ].join(" "),
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
-  "button": sharedUtilities.button,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
+  "button": (sharedUtilities.button) + " " + managementControls.secondary,
   "section_card_teacher_detail_section_teacher_class_list_panel": "tw:grid tw:min-w-0 tw:gap-3 tw:[&>header]:flex tw:[&>header]:flex-wrap tw:[&>header]:justify-end tw:[&>header]:gap-2",
-  "button_button_primary_button_small": [
+  "button_button_primary_button_small": ([
     "button", "button-primary", "button-small", "teacher-class-create-trigger",
     "tw:inline-flex", "tw:items-center", "tw:justify-center", "tw:gap-y-[6px]",
     "tw:gap-x-[6px]", "tw:min-h-[30px]", "tw:pt-[5px]", "tw:pr-[8px]",
@@ -69,7 +70,7 @@ export const viewStyles = {
     "tw:hover:border-t-[color:var(--brand-strong)]", "tw:hover:border-r-[color:var(--brand-strong)]", "tw:hover:border-b-[color:var(--brand-strong)]", "tw:hover:border-l-[color:var(--brand-strong)]",
     "tw:hover:[transform:translateY(-1px)]", "tw:hover:[box-shadow:0_10px_20px_rgba(28,_54,_89,_0.08)]", "tw:disabled:opacity-[0.72]", "tw:disabled:cursor-wait",
     "tw:[&:active]:[transform:translateY(0)]", "tw:[&:active]:[box-shadow:none]", "tw:hover:bg-[color:var(--brand-strong)]", "tw:hover:[background-image:none]",
-  ].join(" "),
+  ].join(" ")) + " " + managementControls.primary,
   "teacher_class_row_list": [
     "teacher-class-row-list", "tw:grid", "tw:gap-y-[0]", "tw:gap-x-[0]",
     "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:#e0e8f1]",
@@ -107,7 +108,7 @@ export const viewStyles = {
     "tw:[&_.teacher-group-capacity_.button]:[align-self:end]", "tw:[&_.teacher-group-students]:max-h-[210px]", "tw:[&_.teacher-group-students]:[overflow-x:auto]", "tw:[&_.teacher-group-students]:[overflow-y:auto]",
     "tw:[&_.teacher-group-students]:pt-[3px]", "tw:viewport-580:[grid-column:2]", "tw:viewport-580:[grid-row:1]",
   ].join(" "),
-  "button_button_secondary_button_small_2": [
+  "button_button_secondary_button_small_2": ([
     "button", "button-secondary", "button-small", "teacher-class-edit-trigger",
     "tw:inline-flex", "tw:items-center", "tw:justify-center", "tw:gap-y-[6px]",
     "tw:gap-x-[6px]", "tw:min-h-[30px]", "tw:pt-[5px]", "tw:pr-[8px]",
@@ -119,7 +120,7 @@ export const viewStyles = {
     "tw:hover:border-t-[color:var(--line-strong)]", "tw:hover:border-r-[color:var(--line-strong)]", "tw:hover:border-b-[color:var(--line-strong)]", "tw:hover:border-l-[color:var(--line-strong)]",
     "tw:hover:[transform:translateY(-1px)]", "tw:hover:[box-shadow:0_10px_20px_rgba(28,_54,_89,_0.08)]", "tw:disabled:opacity-[0.72]", "tw:disabled:cursor-wait",
     "tw:[&:active]:[transform:translateY(0)]", "tw:[&:active]:[box-shadow:none]",
-  ].join(" "),
+  ].join(" ")) + " " + managementControls.secondary,
   "teacher_group_capacity": [
     "teacher-group-capacity", "tw:grid", "tw:grid-cols-[minmax(130px,_1fr)_78px_auto]", "tw:viewport-600:grid-cols-[1fr_1fr]",
     "tw:[align-items:end]", "tw:gap-y-[7px]", "tw:gap-x-[7px]", "tw:pt-[8px]",

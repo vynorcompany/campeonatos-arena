@@ -1,9 +1,10 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
   "product_management_stack_md": sharedUtilities.productManagementStackMd,
   "product_management_header": sharedUtilities.productManagementHeader,
-  "button": sharedUtilities.button,
+  "button": (sharedUtilities.button) + " " + managementControls.secondary,
   "grid_form": [
     "grid-form", "product-editor-form", "tw:grid", "tw:gap-y-[14px]",
     "tw:gap-x-[14px]", "tw:grid-cols-[repeat(3,_minmax(0,_1fr))]", "tw:viewport-1120:grid-cols-[1fr]", "tw:[&_textarea]:w-[100%]",
@@ -15,5 +16,5 @@ export const viewStyles = {
   ].join(" "),
   "field": sharedUtilities.field,
   "field_field_submit": sharedUtilities.fieldFieldSubmit,
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
 } as const;

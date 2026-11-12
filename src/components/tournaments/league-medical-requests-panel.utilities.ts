@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
@@ -13,6 +14,6 @@ export const viewStyles = {
     "tw:[&_p]:mr-[0]", "tw:[&_p]:mb-[0]", "tw:[&_p]:ml-[0]", "tw:[&_p]:text-[color:var(--muted)]",
     "tw:[&_p]:text-[.82rem]",
   ].join(" "),
-  "button_button_primary": ui.primary,
-  "button_button_danger": sharedUtilities.buttonButtonDanger,
+  "button_button_primary": (ui.primary) + " " + managementControls.primary,
+  "button_button_danger": (sharedUtilities.buttonButtonDanger) + " " + managementControls.danger,
 } as const;

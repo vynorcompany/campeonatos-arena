@@ -35,7 +35,7 @@ export function TeacherPlanCopyDialog({
       >
         <EventIcon name="clipboard" size={15} />
       </button>
-      <Modal title="Copiar planos" open={open} onClose={closeDialog} width="tw:max-w-[520px]">
+      <Modal title="Copiar planos" open={open} onClose={closeDialog} width="tw:max-w-[520px]" tone="management">
             <SafeActionForm
               action={copyTeacherPlansAction}
               className={viewStyles.teacher_plan_edit_form}

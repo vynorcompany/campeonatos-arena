@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -7,7 +8,7 @@ export const viewStyles = {
     "client-workspace", "tw:grid", "tw:gap-y-[12px]", "tw:gap-x-[12px]",
     "tw:pt-[16px]",
   ].join(" "),
-  "client_filter_bar": [
+  "client_filter_bar": ([
     "client-filter-bar", "tw:grid", "tw:grid-cols-[repeat(6,_minmax(130px,_1fr))]", "tw:max-[1180px]:grid-cols-[repeat(3,_minmax(0,_1fr))]",
     "tw:viewport-620:grid-cols-[1fr]", "tw:gap-y-[9px]", "tw:gap-x-[9px]", "tw:pt-[13px]",
     "tw:pr-[13px]", "tw:pb-[13px]", "tw:pl-[13px]", "tw:border-t-[length:1px]",
@@ -29,14 +30,14 @@ export const viewStyles = {
     "tw:[&_select]:[border-left-style:solid]", "tw:[&_select]:border-l-[color:#c9d8e9]", "tw:[&_select]:rounded-[6px]", "tw:[&_select]:bg-white",
     "tw:[&_select]:[background-image:none]", "tw:[&_select]:text-[color:#203650]", "tw:[&_select]:[font:inherit]", "tw:[&_select]:text-[.76rem]",
     "tw:min-w-0 tw:[&>*]:min-w-0 tw:[&_input]:min-w-0 tw:[&_select]:min-w-0",
-  ].join(" "),
-  "client_filter_actions": [
+  ].join(" ")) + " " + managementControls.filters,
+  "client_filter_actions": ([
     "client-filter-actions", "tw:[grid-column:1_/_-1]", "tw:flex", "tw:flex-wrap",
     "tw:gap-y-[7px]", "tw:gap-x-[7px]", "tw:pt-[2px]",
-  ].join(" "),
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
-  "button": sharedUtilities.button,
-  "button_client_import_control": [
+  ].join(" ")) + " " + managementControls.filters,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
+  "button": (sharedUtilities.button) + " " + managementControls.secondary,
+  "button_client_import_control": ([
     "button", "client-import-control", "tw:inline-flex!", "tw:items-center",
     "tw:justify-center", "tw:gap-y-[6px]", "tw:gap-x-[6px]", "tw:min-h-[36px]",
     "tw:pt-[0]", "tw:pr-[12px]", "tw:pb-[0]", "tw:pl-[12px]",
@@ -48,7 +49,7 @@ export const viewStyles = {
     "tw:hover:border-b-[color:var(--line-strong)]", "tw:hover:border-l-[color:var(--line-strong)]", "tw:hover:[transform:translateY(-1px)]", "tw:hover:[box-shadow:0_10px_20px_rgba(28,_54,_89,_0.08)]",
     "tw:disabled:opacity-[0.72]", "tw:disabled:cursor-wait", "tw:[&:active]:[transform:translateY(0)]", "tw:[&:active]:[box-shadow:none]",
     "tw:cursor-pointer", "tw:[&_input]:hidden",
-  ].join(" "),
+  ].join(" ")) + " " + managementControls.secondary,
   "client_workspace_message": [
     "client-workspace-message", "tw:mt-[0]", "tw:mr-[0]", "tw:mb-[0]",
     "tw:ml-[0]", "tw:pt-[8px]", "tw:pr-[10px]", "tw:pb-[8px]",
@@ -68,7 +69,7 @@ export const viewStyles = {
     "tw:[&_input]:h-[16px]", "tw:[&_input]:[accent-color:#1769c2]", "tw:[&_input]:cursor-pointer", "tw:viewport-620:flex-col",
     "tw:viewport-620:[&_.button]:w-[100%]", "tw:viewport-620:[&_.button]:justify-center",
   ].join(" "),
-  "button_button_danger_button_small": sharedUtilities.buttonButtonDangerButtonSmall,
+  "button_button_danger_button_small": (sharedUtilities.buttonButtonDangerButtonSmall) + " " + managementControls.danger,
   "client_list_head": [
     "client-list-head", "tw:bg-[#174983]", "tw:min-h-9", "tw:grid", "tw:max-[1220px]:hidden", "tw:grid-cols-[28px_minmax(150px,_1.3fr)_minmax(100px,_.8fr)_minmax(125px,_.9fr)_minmax(130px,_1fr)_minmax(110px,_.9fr)_minmax(100px,_.7fr)]",
     "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:items-center", "tw:pt-[0]",
@@ -132,7 +133,7 @@ export const viewStyles = {
     "tw:gap-x-[5px]",
     "tw:flex-wrap tw:viewport-620:[&_button]:min-h-10",
   ].join(" "),
-  "button_button_small": sharedUtilities.buttonButtonSmall,
+  "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
   "client_empty": sharedUtilities.clientEmpty,
   "eyebrow": sharedUtilities.eyebrow,
   "client_plan_history": [
@@ -176,7 +177,7 @@ export const viewStyles = {
     "form-full", "tw:[grid-column:1_/_-1]",
   ].join(" "),
   "control_toggle": sharedUtilities.controlToggle,
-  "button_button_danger": sharedUtilities.buttonButtonDanger,
+  "button_button_danger": (sharedUtilities.buttonButtonDanger) + " " + managementControls.danger,
   "client_balance_summary": [
     "client-balance-summary", "tw:grid", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:viewport-620:grid-cols-[1fr]",
     "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:pt-[15px]", "tw:pr-[0]",

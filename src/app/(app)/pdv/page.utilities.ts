@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -8,7 +9,7 @@ export const viewStyles = {
     "tw:viewport-620:justify-start", "tw:gap-y-[8px]", "tw:gap-x-[8px]", "tw:[&_.button]:min-h-[36px]",
     "tw:[&_.button:disabled]:cursor-not-allowed", "tw:[&_.button:disabled]:opacity-[.55]",
   ].join(" "),
-  "button_button_small_button_import": [
+  "button_button_small_button_import": ([
     "button", "button-small", "button-import", "tw:inline-flex",
     "tw:items-center", "tw:justify-center", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
     "tw:min-h-[30px]", "tw:pt-[5px]", "tw:pr-[8px]", "tw:pb-[5px]",
@@ -20,8 +21,8 @@ export const viewStyles = {
     "tw:hover:border-r-[color:var(--line-strong)]", "tw:hover:border-b-[color:var(--line-strong)]", "tw:hover:border-l-[color:var(--line-strong)]", "tw:hover:[transform:translateY(-1px)]",
     "tw:hover:[box-shadow:0_10px_20px_rgba(28,_54,_89,_0.08)]", "tw:disabled:opacity-[0.72]", "tw:disabled:cursor-wait", "tw:[&:active]:[transform:translateY(0)]",
     "tw:[&:active]:[box-shadow:none]",
-  ].join(" "),
-  "button_button_small_button_import_csv": [
+  ].join(" ")) + " " + managementControls.secondary,
+  "button_button_small_button_import_csv": ([
     "button", "button-small", "button-import-csv", "tw:inline-flex",
     "tw:items-center", "tw:justify-center", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
     "tw:min-h-[30px]", "tw:pt-[5px]", "tw:pr-[8px]", "tw:pb-[5px]",
@@ -33,9 +34,9 @@ export const viewStyles = {
     "tw:hover:border-r-[color:var(--line-strong)]", "tw:hover:border-b-[color:var(--line-strong)]", "tw:hover:border-l-[color:var(--line-strong)]", "tw:hover:[transform:translateY(-1px)]",
     "tw:hover:[box-shadow:0_10px_20px_rgba(28,_54,_89,_0.08)]", "tw:disabled:opacity-[0.72]", "tw:disabled:cursor-wait", "tw:[&:active]:[transform:translateY(0)]",
     "tw:[&:active]:[box-shadow:none]",
-  ].join(" "),
-  "button_button_small_button_primary": sharedUtilities.buttonButtonSmallButtonPrimary,
-  "product_management_filters": [
+  ].join(" ")) + " " + managementControls.secondary,
+  "button_button_small_button_primary": (sharedUtilities.buttonButtonSmallButtonPrimary) + " " + managementControls.primary,
+  "product_management_filters": ([
     "product-management-filters", "tw:pt-[14px]", "tw:pr-[14px]", "tw:pb-[14px]",
     "tw:pl-[14px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]",
     "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]",
@@ -48,8 +49,8 @@ export const viewStyles = {
     "tw:[&_>_div]:gap-x-[10px]", "tw:[&_>_div]:[align-items:end]", "tw:[&_label]:grid", "tw:[&_label]:gap-y-[5px]",
     "tw:[&_label]:gap-x-[5px]", "tw:[&_label]:text-[color:var(--muted)]", "tw:[&_label]:text-[.73rem]", "tw:[&_label]:font-[750]",
     "tw:[&_.control-toggle]:flex", "tw:[&_.control-toggle]:[align-self:end]", "tw:[&_.control-toggle]:min-h-[var(--control-height)]", "tw:viewport-620:[&_>_header]:flex-col",
-  ].join(" "),
-  "button_button_small": sharedUtilities.buttonButtonSmall,
+  ].join(" ")) + " " + managementControls.filters,
+  "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
   "product_list_head": [
     "product-list-head", "tw:grid", "tw:grid-cols-[minmax(210px,_1.4fr)_minmax(130px,_.8fr)_minmax(100px,_.6fr)_minmax(100px,_.6fr)_auto]", "tw:gap-y-[12px]",
     "tw:gap-x-[12px]", "tw:items-center", "tw:pt-[0]", "tw:pr-[13px]",

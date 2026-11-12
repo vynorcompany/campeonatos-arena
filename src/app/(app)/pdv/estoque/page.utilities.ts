@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -40,7 +41,7 @@ export const viewStyles = {
   "grid_form": sharedUtilities.gridForm,
   "field": sharedUtilities.field,
   "field_field_submit": sharedUtilities.fieldFieldSubmit,
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
   "stock_operational_list": [
     "stock-operational-list", "tw:[overflow-x:hidden]", "tw:[overflow-y:hidden]", "tw:border-t-[length:1px]",
     "tw:[border-top-style:solid]", "tw:border-t-[color:#d8e3ef]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]",
@@ -84,6 +85,6 @@ export const viewStyles = {
     "tw:[&_input]:pl-[7px]", "tw:[&_input]:text-[.72rem]", "tw:[&_.button]:min-h-[32px]", "tw:viewport-900:[grid-column:1_/_-1]",
     "tw:viewport-560:[&_input]:[grid-column:1_/_-1]", "tw:viewport-560:[&_select]:[grid-column:1]", "tw:viewport-560:[&_.button]:[grid-column:2]",
   ].join(" "),
-  "button_button_small": sharedUtilities.buttonButtonSmall,
+  "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
   "client_empty": sharedUtilities.clientEmpty,
 } as const;

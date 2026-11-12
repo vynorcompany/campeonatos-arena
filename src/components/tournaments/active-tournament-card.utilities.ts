@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -13,7 +14,7 @@ export const viewStyles = {
     "stack-xs", "tw:grid", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
   ].join(" "),
   "muted": sharedUtilities.muted,
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
   "t_active_head": [
     "t-active-head", "tw:flex", "tw:justify-between", "tw:gap-y-[14px]",
     "tw:gap-x-[14px]", "tw:items-start",
@@ -40,5 +41,5 @@ export const viewStyles = {
     "tw:[&_span]:h-[100%]", "tw:[&_span]:bg-[color:transparent]", "tw:[&_span]:[background-image:linear-gradient(90deg,_#1e5ea8,_#2f7fd4)]",
   ].join(" "),
   "section_actions": sharedUtilities.sectionActions,
-  "button": sharedUtilities.button,
+  "button": (sharedUtilities.button) + " " + managementControls.secondary,
 } as const;

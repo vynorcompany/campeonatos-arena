@@ -1,7 +1,8 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
-  "button_button_primary_public_league_schedule_trigger": [
+  "button_button_primary_public_league_schedule_trigger": ([
     "button", "button-primary", "public-league-schedule-trigger", "tw:inline-flex",
     "tw:items-center", "tw:justify-center", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
     "tw:min-h-[36px]", "tw:pt-[0]", "tw:pr-[12px]", "tw:pb-[0]",
@@ -13,7 +14,7 @@ export const viewStyles = {
     "tw:hover:border-r-[color:var(--brand-strong)]", "tw:hover:border-b-[color:var(--brand-strong)]", "tw:hover:border-l-[color:var(--brand-strong)]", "tw:hover:[transform:translateY(-1px)]",
     "tw:hover:[box-shadow:0_10px_20px_rgba(28,_54,_89,_0.08)]", "tw:disabled:opacity-[0.72]", "tw:disabled:cursor-wait", "tw:[&:active]:[transform:translateY(0)]",
     "tw:[&:active]:[box-shadow:none]", "tw:hover:bg-[color:var(--brand-strong)]", "tw:hover:[background-image:none]", "tw:w-[fit-content]",
-  ].join(" "),
+  ].join(" ")) + " " + managementControls.primary,
   "public_league_schedule_modal_backdrop": [
     "public-league-schedule-modal-backdrop", "tw:fixed", "tw:z-[80]", "tw:top-[0]",
     "tw:right-[0]", "tw:bottom-[0]", "tw:left-[0]", "tw:grid",
@@ -63,7 +64,7 @@ export const viewStyles = {
     "tw:viewport-620:[&_.public-booking-court-card]:pt-[8px]", "tw:viewport-620:[&_.public-booking-court-card]:pr-[8px]", "tw:viewport-620:[&_.public-booking-court-card]:pb-[8px]", "tw:viewport-620:[&_.public-booking-court-card]:pl-[8px]",
     "tw:viewport-620:[&_.public-booking-court-card_span]:text-[.74rem]",
   ].join(" "),
-  "button_button_small": sharedUtilities.buttonButtonSmall,
+  "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
   "field": sharedUtilities.field,
   "public_booking_court_picker": [
     "public-booking-court-picker", "tw:grid", "tw:[grid-column:1_/_-1]", "tw:gap-y-[7px]",
@@ -123,5 +124,5 @@ export const viewStyles = {
     "tw:border-l-[color:#08775f]", "tw:bg-[color:#dff7ea]", "tw:[background-image:none]", "tw:text-[color:#075d48]",
     "tw:[box-shadow:0_3px_8px_rgb(8_119_95_/_.13)]",
   ].join(" "),
-  "button_button_primary": sharedUtilities.buttonButtonPrimary,
+  "button_button_primary": (sharedUtilities.buttonButtonPrimary) + " " + managementControls.primary,
 } as const;

@@ -1,3 +1,4 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 
@@ -7,7 +8,7 @@ export const viewStyles = {
   field_form_full: ui.field,
   event_rules_editor: "event-rules-editor tw:min-h-[180px] tw:resize-y tw:leading-relaxed",
   field_field_submit_form_full: "tw:flex tw:justify-end tw:border-t tw:border-[var(--line)] tw:pt-3",
-  button_button_primary: ui.primary,
+  button_button_primary: (ui.primary) + " " + managementControls.primary,
   form_error_form_full: sharedUtilities.formErrorFormFull,
   form_success_form_full: sharedUtilities.formSuccessFormFull,
 } as const;

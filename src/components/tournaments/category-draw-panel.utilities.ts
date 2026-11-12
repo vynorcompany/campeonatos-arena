@@ -1,8 +1,9 @@
+import { managementControls } from "@/components/ui/management-controls";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
-  "button_button_primary": ui.primary,
+  "button_button_primary": (ui.primary) + " " + managementControls.primary,
   "stack_md": sharedUtilities.stackMd,
   "section_card_stack_md_category_operation_panel": sharedUtilities.sectionCardStackMdCategoryOperationPanel,
   "league_groups_panel": [
@@ -31,7 +32,7 @@ export const viewStyles = {
     "tw:[background-image:none]!", "tw:[&_.muted]:mt-[0]", "tw:[&_.muted]:mr-[0]", "tw:[&_.muted]:mb-[0]",
     "tw:[&_.muted]:ml-[0]", "tw:[&_.muted]:text-[color:#64738d]", "tw:[&_.muted]:text-[.8rem]", "tw:viewport-760:flex-col",
   ].join(" "),
-  "button": ui.secondary,
+  "button": (ui.secondary) + " " + managementControls.secondary,
   "section_actions_league_groups_actions": [
     "section-actions", "league-groups-actions", "tw:flex!", "tw:flex-wrap",
     "tw:gap-y-[12px]!", "tw:gap-x-[12px]!", "tw:items-center", "tw:viewport-760:items-start",
@@ -41,7 +42,7 @@ export const viewStyles = {
     "tw:[&_.muted]:mr-[0]", "tw:[&_.muted]:mb-[0]", "tw:[&_.muted]:ml-[0]", "tw:[&_.muted]:text-[color:#64738d]",
     "tw:[&_.muted]:text-[.8rem]", "tw:viewport-760:flex-col",
   ].join(" "),
-  "button_button_secondary": sharedUtilities.buttonButtonSecondary,
+  "button_button_secondary": (sharedUtilities.buttonButtonSecondary) + " " + managementControls.secondary,
   "league_groups_list": [
     "league-groups-list", "tw:grid-cols-[minmax(0,_1fr)]!", "tw:gap-y-[11px]", "tw:gap-x-[11px]",
   ].join(" "),

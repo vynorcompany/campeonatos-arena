@@ -36,7 +36,7 @@ export function CategoryPairForm({ competitionId, athletes }: { competitionId: s
   const [firstPlayerId, setFirstPlayerId] = useState("");
   const [secondPlayerId, setSecondPlayerId] = useState("");
 
-  return <><button type="button" className={viewStyles.button_button_primary} disabled={athletes.length < 2} onClick={() => setOpen(true)}>Adicionar dupla</button><Modal title="Adicionar dupla" open={open} onClose={close} width="tw:max-w-[720px]"><SafeActionForm action={addManualPairAction} onSuccess={close} className={viewStyles.grid_form_category_pair_form} successMessage="Dupla adicionada com sucesso." resetOnSuccess>
+  return <><button type="button" className={viewStyles.button_button_primary} disabled={athletes.length < 2} onClick={() => setOpen(true)}>Adicionar dupla</button><Modal title="Adicionar dupla" open={open} onClose={close} width="tw:max-w-[720px]" tone="management"><SafeActionForm action={addManualPairAction} onSuccess={close} className={viewStyles.grid_form_category_pair_form} successMessage="Dupla adicionada com sucesso." resetOnSuccess>
     <input type="hidden" name="competitionId" value={competitionId} />
     <AthleteSearchField id={`first-player-${competitionId}`} label="Primeiro atleta" name="firstPlayerId" athletes={athletes} excludedId={secondPlayerId} onSelect={setFirstPlayerId} />
     <AthleteSearchField id={`second-player-${competitionId}`} label="Segundo atleta" name="secondPlayerId" athletes={athletes} excludedId={firstPlayerId} onSelect={setSecondPlayerId} />

@@ -55,7 +55,7 @@ export function EventQuickActions({ tournament, publicPageUrl, categories, initi
       </button>;
     })}
 
-    <Modal title={activeCopy?.title ?? "Evento"} width="tw:max-w-[720px]" open={Boolean(activeAction && activeCopy)} onClose={close}>
+    <Modal title={activeCopy?.title ?? "Evento"} width="tw:max-w-[720px]" open={Boolean(activeAction && activeCopy)} onClose={close} tone="management">
       {activeAction === "public" ? <div className={viewStyles.event_action_public_page}><Link href={publicPageUrl} target="_blank" rel="noreferrer" className={viewStyles.button_button_primary}><EventIcon name="external" />Abrir página pública</Link></div> : null}
       {activeAction === "edit" ? <TournamentEventEditForm tournament={tournament} /> : null}
     </Modal>
