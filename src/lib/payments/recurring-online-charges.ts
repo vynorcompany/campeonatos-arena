@@ -1,3 +1,4 @@
+import { boletoPayerDocument } from "@/lib/payments/boleto-payer";
 import { reconcileSettledBoletosForArena } from "@/lib/payments/settled-boleto-reconciliation";
 import { createBoletoPayment, getMissingBoletoPayerFields } from "@/lib/payments/mercado-pago";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
@@ -48,7 +49,7 @@ async function alertIneligibleRecurringBoletos(arenaId: string, count: number) {
 export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryId: string, now = new Date(), force = false): Promise<ChargeAttempt> {
   const entry = await arenaDatabase(arenaId).financialEntry.findFirst({
     where: { id: entryId, ...recurringBoletoEntryWhere(arenaId) },
-    include: { billingPlayer: { select: { name: true, phone: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }, player: { select: { name: true, phone: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } }
+    include: { billingPlayer: { select: { name: true, phone: true, email: true, cpf: true, personType: true, cnpj: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }, player: { select: { name: true, phone: true, email: true, cpf: true, personType: true, cnpj: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } }
   });
 
   if (!entry) return { created: false, skipped: false };
@@ -83,7 +84,7 @@ export async function issueRecurringOnlineChargeForEntry(arenaId: string, entryI
       amountCents,
       description: entry.description,
       payerEmail: player.email,
-      payerCpf: player.cpf,
+      payerCpf: boletoPayerDocument(player),
       payerName: player.name,
       payerAddress: player,
       externalReference: entry.id,
@@ -148,8 +149,8 @@ export async function recurringOnlineChargeCandidates(now = new Date()) {
         where: recurringBoletoEntryWhere(arenaId, limit),
         select: {
           id: true, arenaId: true, dueDate: true, amountCents: true,
-          billingPlayer: { select: { email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } },
-          player: { select: { email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } },
+          billingPlayer: { select: { email: true, cpf: true, personType: true, cnpj: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } },
+          player: { select: { email: true, cpf: true, personType: true, cnpj: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } },
           settlements: { select: { amountCents: true, interestCents: true, discountCents: true } },
         },
         orderBy: [{ dueDate: "asc" }, { id: "asc" }],

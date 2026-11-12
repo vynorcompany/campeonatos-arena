@@ -51,7 +51,7 @@ export async function claimOnlineBookingPaymentMethod(
       occurrenceCourts: { include: { court: { select: { name: true } } } },
       participants: {
         where: { playerId: input.playerId },
-        include: { player: { select: { id: true, name: true, email: true, cpf: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } } },
+        include: { player: { select: { id: true, name: true, email: true, cpf: true, personType: true, cnpj: true, addressZipCode: true, addressStreet: true, addressNumber: true, addressNeighborhood: true, addressCity: true, addressState: true } } },
       },
     },
   });

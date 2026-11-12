@@ -20,7 +20,7 @@ test("manual category registration selects two master athletes", () => {
 
 test("master athletes retain the registration data required by categories", () => {
   const schema = read("prisma", "schema.prisma");
-  const athleteForm = read("src", "components", "forms", "player-form.tsx");
+  const athleteForm = read("src", "components", "forms", "player-form.tsx") + read("src", "components", "forms", "client-identity-fields.tsx");
 
   assert.match(schema, /phone\s+String/);
   assert.match(schema, /cpf\s+String/);

@@ -18,7 +18,7 @@ function QueryMemory({scope}:{scope:string}) {
  const path=usePathname()??"/", search=useSearchParams(), router=useRouter();
  const raw=search?.toString()??"";
  useEffect(()=>{
-   if(!scope)return;
+   if(!scope || path==="/torneios")return;
    const key=`filters:v1:${scope}:route:${path}`;
    try {if(raw){if([...new URLSearchParams(raw).keys()].some(key=>rememberedFilterKeys.has(key)))localStorage.setItem(key,rememberedFilterQuery(raw));}else{const saved=localStorage.getItem(key);if(saved&&rememberedFilterQuery(saved)===saved)router.replace(`${path}?${saved}`,{scroll:false});}}catch{}
  },[scope,path,raw,router]);
@@ -26,7 +26,7 @@ function QueryMemory({scope}:{scope:string}) {
    if(event.defaultPrevented||event.button||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
    const link=event.target instanceof Element?event.target.closest<HTMLAnchorElement>('a[href]'):null;
    if(!link||link.download||link.target&&link.target!=="_self"||link.dataset.resetFilters!==undefined)return;
-   const url=new URL(link.href);if(url.origin!==location.origin||url.search||url.hash||!url.pathname.startsWith("/")||url.pathname===path)return;
+   const url=new URL(link.href);if(url.origin!==location.origin||url.search||url.hash||!url.pathname.startsWith("/")||url.pathname===path||url.pathname==="/torneios")return;
    try{const saved=localStorage.getItem(`filters:v1:${scope}:route:${url.pathname}`);if(saved&&rememberedFilterQuery(saved)===saved){event.preventDefault();router.push(`${url.pathname}?${saved}`);}}catch{}
  };document.addEventListener("click",click,true);return()=>document.removeEventListener("click",click,true);},[scope,path,router]);
  return null;

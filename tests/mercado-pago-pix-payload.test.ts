@@ -24,7 +24,7 @@ function loadPaymentRequests(requests: Array<{ headers: Record<string, string>; 
       if (name === "@/lib/payments/portal-checkout-policy") return { portalExcludedPaymentTypes };
       if (name === "@/lib/env") return { env: {} };
       if (name === "@/lib/payments/connection-secrets") return { decryptConnectionSecrets: () => ({ accessToken: "synthetic-token" }) };
-      if (name === "@/lib/rls") return { withArenaTransaction: async (_arenaId: string, operation: (tx: unknown) => Promise<unknown>) => operation({ paymentConnection: { findUnique: async () => ({ status: "CONNECTED", encryptedSecrets: "synthetic" }) } }) };
+      if (name === "@/lib/rls") return { withArenaTransaction: async (_arenaId: string, operation: (tx: unknown) => Promise<unknown>) => operation({ arena:{findFirst:async()=>({name:"Arena QA"})},paymentConnection: { findUnique: async () => ({ status: "CONNECTED", encryptedSecrets: "synthetic" }) } }) };
       if (name === "@/lib/payments/boleto-cancellation") return {};
       if (name === "@/lib/payments/pix-expiration") return { pixPaymentExpiration };
       if (name === "@/lib/payments/mercado-pago-idempotency") return { mercadoPagoIdempotencyKey };
@@ -78,4 +78,12 @@ test("Checkout do Portal envia Pix, crédito e vencimento como configurados", as
   await action({ ...input, paymentTypes: { pix: false, creditCard: true } });
   assert.deepEqual((requests[1].body.payment_methods as any).excluded_payment_types.map((type: any) => type.id), ["ticket", "atm", "debit_card", "prepaid_card", "bank_transfer"]);
   assert.equal("expiration_date_to" in requests[1].body, false);
+});
+
+test("boleto envia CPF ou CNPJ numérico sem trocar a identificação do pagador",async()=>{
+ const requests:Array<{headers:Record<string,string>;body:Record<string,unknown>}>=[];
+ const create=loadPaymentRequests(requests).createBoletoPayment;
+ const input={arenaId:"arena-a",amountCents:5000,description:"Mensalidade",payerEmail:"cliente@example.test",externalReference:"boleto-a",payerName:"Empresa QA",payerAddress:{addressZipCode:"84000000",addressStreet:"Rua QA",addressNumber:"10",addressNeighborhood:"Centro",addressCity:"Cidade",addressState:"PR"}};
+ for(const document of ["52998224725","12345678000190"]){await create({...input,payerCpf:document} as PaymentInput);const payer=requests.at(-1)!.body.payer as {identification:{type:string;number:string}};assert.equal(payer.identification.number,document);assert.equal(payer.identification.type,document.length===14?"CNPJ":"CPF");}
+ await assert.rejects(create({...input,payerCpf:"00000000E08G12"} as PaymentInput),/alfanumérico/);assert.equal(requests.length,2,"documento alfanumérico não deve ser truncado ou enviado como CPF");
 });

@@ -1,4 +1,7 @@
 "use client";
+import { ClientIdentityFields } from "./client-identity-fields";
+import { PhoneInput } from "./phone-input";
+import { ClientComandaPermission } from "./client-comanda-permission";
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 
 import { viewStyles } from "./player-form.utilities";
@@ -18,10 +21,7 @@ export function PlayerForm({ guardians = [] }: { guardians?: { id:string; name:s
   return (
     <form action={formAction} className={viewStyles.grid_form_client_create_form}>
       {guardians.length ? <label className={viewStyles.field}>Responsável financeiro (opcional)<SmartEntitySelect createKind="client" label="Cliente" name="guardianId" defaultValue=""><option value="">Cadastro independente</option>{guardians.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</SmartEntitySelect></label> : null}
-      <div className={viewStyles.field}>
-        <label htmlFor="name">Nome e sobrenome do atleta</label>
-        <input id="name" name="name" type="text" placeholder="Ex.: Pedro Martins" required />
-      </div>
+      <ClientIdentityFields fieldClassName={viewStyles.field}/>
 
       <div className={viewStyles.field}>
         <label htmlFor="points">Pontuação inicial</label>
@@ -45,7 +45,7 @@ export function PlayerForm({ guardians = [] }: { guardians?: { id:string; name:s
 
       <div className={viewStyles.field}>
         <label htmlFor="phone">Telefone</label>
-        <input id="phone" name="phone" type="tel" required />
+        <PhoneInput id="phone" name="phone" required />
       </div>
 
       <div className={viewStyles.field}>
@@ -53,10 +53,7 @@ export function PlayerForm({ guardians = [] }: { guardians?: { id:string; name:s
         <input id="email" name="email" type="email" />
       </div>
 
-      <div className={viewStyles.field}>
-        <label htmlFor="cpf">CPF</label>
-        <input id="cpf" name="cpf" inputMode="numeric" />
-      </div>
+
 
       <div className={viewStyles.field}>
         <label htmlFor="birthDate">Nascimento</label>
@@ -81,6 +78,7 @@ export function PlayerForm({ guardians = [] }: { guardians?: { id:string; name:s
         <em>É professor</em>
       </label>
 
+      <ClientComandaPermission/>
       <div className={viewStyles.field_field_submit}>
         <label className={viewStyles.sr_only} htmlFor="submit-player">
           Cadastrar atleta

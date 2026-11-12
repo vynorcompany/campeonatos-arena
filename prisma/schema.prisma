@@ -341,6 +341,9 @@ model Player {
   phone                     String                         @default("")
   email                     String                         @default("")
   cpf                       String                         @default("")
+  personType                String                         @default("PF")
+  cnpj                      String                         @default("")
+  allowOverdueComandas      Boolean?
   addressZipCode            String                         @default("")
   addressStreet             String                         @default("")
   addressNumber             String                         @default("")
