@@ -64,12 +64,12 @@ export default async function ProductDetailPage(props: {
   ]);
   if (!product) notFound();
   return (
-    <div className={viewStyles.product_management_stack_md}>
+    <div className={`${viewStyles.product_management_stack_md} tw:mx-auto tw:w-full tw:max-w-[1320px]`}>
       <header className={ui.toolbar}>
         <h1 className="tw:sr-only">Editar produto</h1>
-        <span className="tw:min-w-0 tw:break-words tw:text-sm tw:font-medium tw:text-[#174983]">
+        <div className="tw:grid tw:min-w-0 tw:gap-1"><span className="tw:min-w-0 tw:break-words tw:text-base tw:font-medium tw:text-[#174983]">
           {product.name}
-        </span>
+        </span><span className="tw:text-xs tw:text-[#526781]">Estoque: {product.stockQuantity} · <span className="tw:text-[#087443]">{new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(product.priceCents/100)}</span></span></div>
         <Link href="/pdv/estoque" className={ui.secondary}>
           Voltar ao estoque
         </Link>
@@ -95,7 +95,7 @@ export default async function ProductDetailPage(props: {
                       name="stockQuantity"
                       value={product.stockQuantity}
                     />
-                    <div className={viewStyles.grid_form}>
+                    <fieldset className="tw:m-0 tw:grid tw:min-w-0 tw:gap-3 tw:border-0 tw:border-b tw:border-[#d8e3ef] tw:p-0 tw:pb-4 tw:lg:grid-cols-3"><legend className="tw:mb-3 tw:text-xs tw:font-medium tw:text-[#174983]">Identificação</legend>
                       <label className={viewStyles.field}>
                         Produto
                         <input
@@ -122,8 +122,8 @@ export default async function ProductDetailPage(props: {
                         Código/SKU
                         <input name="sku" defaultValue={product.sku} />
                       </label>
-                    </div>
-                    <div className={viewStyles.grid_form}>
+                    </fieldset>
+                    <fieldset className="tw:m-0 tw:grid tw:min-w-0 tw:gap-3 tw:border-0 tw:border-b tw:border-[#d8e3ef] tw:p-0 tw:pb-4 tw:sm:grid-cols-2 tw:lg:grid-cols-4"><legend className="tw:mb-3 tw:text-xs tw:font-medium tw:text-[#174983]">Preços e controle</legend>
                       <ProductPricingFields
                         priceCents={product.priceCents}
                         costCents={product.costCents}
@@ -137,7 +137,7 @@ export default async function ProductDetailPage(props: {
                           defaultValue={product.minStock}
                         />
                       </label>
-                    </div>
+                    </fieldset>
                     <label className={viewStyles.field}>
                       Observações
                       <textarea
@@ -145,7 +145,7 @@ export default async function ProductDetailPage(props: {
                         defaultValue={product.notes}
                         maxLength={2000}
                         rows={3}
-                        className="tw:min-h-24 tw:w-full tw:resize-y"
+                        className="tw:min-h-24 tw:w-full tw:max-w-[680px] tw:resize-y"
                       />
                     </label>
                     <footer className="tw:col-span-full tw:flex tw:justify-end tw:border-t tw:border-[var(--line)] tw:pt-3">

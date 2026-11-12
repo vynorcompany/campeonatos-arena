@@ -76,7 +76,7 @@ test("category list links each row to its dedicated workspace", async () => {
     source,
     /href=\{`\/torneios\/\$\{tournamentId\}\/categorias\/\$\{category\.id\}`\}/,
   );
-  assert.match(source, />\s*Entrar\s+<span/);
+  assert.match(source, /Abrir <EventIcon name="chevron"/);
 });
 
 test("category tabs stay inside the selected category", async () => {
@@ -185,13 +185,10 @@ test("dedicated category route renders operational panels for the selected categ
   );
 });
 
-test("event category rows use the operational dashboard grid", async () => {
-  const source = await readSource("src", "app", "globals.css");
-
-  assert.match(
-    styleRules("t-category-row"),
-    /grid-template-columns:\s*40px\s+minmax\(0,\s*1fr\)\s+6\.5rem\s+8\.5rem\s+6rem\s+7rem;/,
-  );
-  assert.match(styleRules("t-category-row"), /padding-top: 15px[\s\S]*padding-right: 0/);
-  assert.match(styleRules("t-category-enter"), /text-align: center/);
+test("compact category rows retain the format, pair totals, state and category destination", async () => {
+  const source = await readSource("src", "components", "tournaments", "category-list.tsx");
+  assert.match(source, /formatLabels\[category\.competition\.format\]/);
+  assert.match(source, /category\.competition\.pairCount/);
+  assert.match(source, /category\.competition \? "Ativa" : "Pendente"/);
+  assert.match(source, /\/categorias\/\$\{category\.id\}/);
 });

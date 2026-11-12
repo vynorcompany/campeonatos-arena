@@ -9,20 +9,33 @@ import { MoneyInput } from "@/components/forms/money-input";
 import { formatMoneyInput } from "@/lib/format-money-input";
 import { updateStandardServicePriceAction } from "@/lib/actions/standard-service-prices";
 import { STANDARD_SERVICES, type StandardServicePrices } from "@/lib/calendar/standard-services";
-import { sharedUtilities } from "@/components/ui/shared.utilities";
-
+const columns = "tw:grid-cols-[minmax(160px,1fr)_minmax(150px,1fr)_160px_110px] tw:viewport-760:grid-cols-[minmax(0,1fr)_auto]";
+const currency = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
 export function StandardServicePriceSettings({ prices, canEdit, children, services = [], courts = [], query = "" }: { query?: string; courts?: { id: string; name: string }[]; services?: Service[]; prices: StandardServicePrices; canEdit: boolean; children?: ReactNode }) {
-  return <div className={ui.page}><WorkspaceHeading eyebrow="SERVIÇOS · TABELA DE VALORES" title="Serviços" description="Valores por atleta e disponibilidade na grade e nas comandas.">{children}</WorkspaceHeading>
-    <div className={ui.list}><div className={`${ui.head} ${canEdit ? "tw:grid-cols-[minmax(0,1fr)_150px_120px]" : "tw:grid-cols-[minmax(0,1fr)_180px]"}`}><span>Serviço</span><span>Valor por atleta</span>{canEdit ? <span>Ações</span> : null}</div>
-      {STANDARD_SERVICES.filter(service => serviceMatchesSearch(service.name, query)).map((service) => {
-        const configured = services.find(item => item.sku === `ARENA-SERVICE:${service.code}`);
-        if (configured) return <div key={service.code} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_150px_120px] tw:viewport-620:grid-cols-1`}><div><strong>{service.name}</strong><small>{configured.showOnAgenda ? "Grade" : "Fora da grade"} · {configured.showOnComandas ? "Comandas" : "Fora das comandas"}</small></div><span className="tw:text-sm">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(configured.priceCents / 100)}</span>{canEdit ? <ServiceDialog service={configured} courts={courts} /> : null}</div>;
-        return canEdit ? <SafeActionForm key={service.code} action={updateStandardServicePriceAction} successMessage={`Valor de ${service.name} atualizado.`} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_150px_120px] tw:items-center tw:viewport-1120:grid-cols-[minmax(0,1fr)_180px] tw:viewport-1120:[&>button]:col-start-2 tw:viewport-620:grid-cols-1 tw:viewport-620:[&>button]:col-start-1`}>
-        <input type="hidden" name="serviceCode" value={service.code} />
-        <div className="tw:min-w-0 tw:self-center"><strong className="tw:text-sm">{service.name}</strong><p className="tw:mt-1 tw:text-xs tw:text-[color:var(--muted)]">{prices[service.code] === undefined ? "Valor ainda não configurado" : "Serviço fixo · por atleta"}</p></div>
-        <label className={`${ui.field} tw:min-w-0`}>Valor por atleta (R$)<MoneyInput name="price" required aria-label={`Valor de ${service.name}`} defaultValue={prices[service.code] === undefined ? "" : formatMoneyInput(prices[service.code]!)} className="tw:h-9! tw:min-h-9! tw:w-full tw:min-w-0 tw:text-[13px]!" /></label>
-        <SubmitButton label="Salvar valor" pendingLabel="Salvando..." className={`${ui.primary} tw:self-end tw:h-9!`} />
-      </SafeActionForm> : <div key={service.code} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_180px] tw:viewport-620:grid-cols-1`}><div className="tw:min-w-0"><strong className="tw:text-sm">{service.name}</strong></div><span className="tw:text-sm">{prices[service.code] === undefined ? "Não configurado" : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(prices[service.code]! / 100)}</span></div>; })}
-    </div>
+  const rows = [
+    ...STANDARD_SERVICES.map(standard => ({ name: standard.name, standard, product: services.find(item => item.sku === `ARENA-SERVICE:${standard.code}`) })),
+    ...services.filter(service => !service.sku?.startsWith("ARENA-SERVICE:")).map(product => ({ name: product.name, standard: undefined, product })),
+  ].filter(row => serviceMatchesSearch(row.name, query)).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  return <div className={ui.page}>
+    <WorkspaceHeading title="Serviços">{children}</WorkspaceHeading>
+    <section className={ui.list} aria-label="Lista de serviços">
+      <div className={`${ui.head} ${columns}`}><span>Serviço</span><span>Disponibilidade</span><span>Valor / cobrança</span><span className="tw:text-right">Ações</span></div>
+      {rows.map(({ name, standard, product }) => {
+        if (!product && standard) return canEdit ? <SafeActionForm key={standard.code} action={updateStandardServicePriceAction} successMessage={`Valor de ${name} atualizado.`} className={`${ui.row} ${columns}`}>
+          <input type="hidden" name="serviceCode" value={standard.code}/>
+          <div><strong>{name}</strong><small>Competição · por atleta</small></div>
+          <span className="tw:text-xs tw:text-[#526781]">{prices[standard.code] === undefined ? "Valor não configurado" : "Grade · Comandas"}</span>
+          {canEdit ? <><label className={`${ui.field} tw:viewport-760:col-span-full`}>Valor por atleta (R$)<MoneyInput name="price" required aria-label={`Valor de ${name}`} defaultValue={prices[standard.code] === undefined ? "" : formatMoneyInput(prices[standard.code]!)} /></label><div className="tw:flex tw:justify-end tw:viewport-760:col-span-full"><SubmitButton label="Salvar valor" pendingLabel="Salvando..." className={ui.primary}/></div></> : <span className="tw:text-sm">{prices[standard.code] === undefined ? "Não configurado" : currency(prices[standard.code]!)}</span>}
+        </SafeActionForm> : <article key={standard.code} className={`${ui.row} ${columns}`}><div><strong>{name}</strong><small>Competição · por atleta</small></div><span className="tw:text-xs">Grade · Comandas</span><span className="tw:text-sm">{prices[standard.code] === undefined ? "Não configurado" : currency(prices[standard.code]!)}</span></article>;
+        if (!product) return null;
+        return <article key={product.id} className={`${ui.row} ${columns}`}>
+          <div><strong>{name}</strong><small>{!product.active ? "Inativo" : standard ? "Competição" : "Serviço"}</small></div>
+          <div className="tw:flex tw:flex-wrap tw:gap-1.5 tw:viewport-760:col-span-full tw:viewport-760:row-start-2">{[product.showOnAgenda && "Grade",product.showOnComandas && "Comandas",product.showOnPortalBooking && "Portal"].filter(Boolean).map(label => <span key={String(label)} className="tw:rounded tw:bg-[#eef3f9] tw:px-1.5 tw:py-0.5 tw:text-[11px] tw:text-[#344b65]">{label}</span>)}</div>
+          <span className="tw:text-[13px] tw:font-medium tw:tabular-nums tw:viewport-760:col-start-1"><span className="tw:text-[#087443]">{currency(product.priceCents)}</span><small>{standard ? "por atleta" : product.serviceHourly ? "por hora" : "por serviço"}</small></span>
+          <div className="tw:flex tw:justify-end tw:viewport-760:col-start-2">{canEdit ? <ServiceDialog service={product} courts={courts}/> : null}</div>
+        </article>;
+      })}
+      {!rows.length ? <p className={ui.empty}>Nenhum serviço encontrado.</p> : null}
+    </section>
   </div>;
 }

@@ -263,11 +263,11 @@ async function main() {
         }
         if (route === "/jogadores") {
           if (viewport.name !== "desktop") {
-            await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Filtros e ferramentas')?.click()" });
+            await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find((item) => item.getAttribute('aria-label') === 'Filtros e ferramentas')?.click()" });
             await pause(200);
           }
           const opened = await send("Runtime.evaluate", {
-            expression: "(() => { const button = [...document.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Mesclar contatos' && item.getBoundingClientRect().width > 0); button?.click(); return Boolean(button); })()",
+            expression: "(() => { const button = [...document.querySelectorAll('button')].find((item) => item.getAttribute('aria-label') === 'Mesclar contatos' && item.getBoundingClientRect().width > 0); button?.click(); return Boolean(button); })()",
             returnByValue: true,
           });
           if (!opened.result.value) throw new Error(`${label}: botão de mesclagem ausente.`);
@@ -300,7 +300,7 @@ async function main() {
       for (const viewport of [viewports[0], adminViewports[2]]) {
         const label = `${viewport.name}-fidelidade`;
         await visit("/jogadores", viewport, arenaA.id, label);
-        const settingsButton = await send("Runtime.evaluate", { expression: "(() => { const button=[...document.querySelectorAll('button')].find(item=>item.textContent?.trim()==='Configurar fidelidade'); button?.click(); return Boolean(button); })()", returnByValue: true });
+        const settingsButton = await send("Runtime.evaluate", { expression: "(() => { const button=[...document.querySelectorAll('button')].find(item=>item.getAttribute('aria-label')==='Configurar fidelidade'); button?.click(); return Boolean(button); })()", returnByValue: true });
         if (!settingsButton.result.value) throw new Error(`${label}: configuração de fidelidade indisponível.`);
         await pause(200);
         const settings = await send("Runtime.evaluate", { expression: "(() => { const dialog=window.__arenaSmokeDialog('Configurar fidelidade'); if (!dialog) return null; const rect=dialog.getBoundingClientRect(), fields=[...dialog.querySelectorAll('input[name=visitsRequired],input[name=rewardLabel]')].map(item=>item.getBoundingClientRect()); return {left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:innerWidth,height:innerHeight,overflow:dialog.scrollWidth>dialog.clientWidth+1||document.documentElement.scrollWidth>innerWidth+1,fields:fields.map(item=>({top:item.top,bottom:item.bottom}))}; })()", returnByValue: true });
@@ -314,7 +314,7 @@ async function main() {
         await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
         await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
         await pause(200);
-        const clientButton = await send("Runtime.evaluate", { expression: "(() => { if (document.querySelector('[role=dialog]')) return false; const button=[...document.querySelectorAll('button')].find(item=>item.textContent?.trim()==='Fidelidade'); button?.click(); return Boolean(button); })()", returnByValue: true });
+        const clientButton = await send("Runtime.evaluate", { expression: "(() => { if (document.querySelector('[role=dialog]')) return false; const button=[...document.querySelectorAll('button')].find(item=>item.getAttribute('aria-label')?.startsWith('Fidelidade de ')); button?.click(); return Boolean(button); })()", returnByValue: true });
         if (!clientButton.result.value) throw new Error(`${label}: fidelidade do cliente indisponível ou modal anterior não fechou com Esc.`);
         let clientDialog;
         for (let attempt = 0; attempt < 25; attempt += 1) {
@@ -1491,8 +1491,8 @@ async function main() {
       ]) {
         await visit(path, viewport, arenaA.id, `${viewport.name}-torneio-${section}`);
         if (section === "detalhe") {
-          const controls = await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('.event-operation-actions .button')].map(button => ({text:button.textContent?.trim(),height:button.getBoundingClientRect().height,right:button.getBoundingClientRect().right,scrollWidth:button.scrollWidth,clientWidth:button.clientWidth}))", returnByValue: true });
-          if (controls.result.value.length < 4 || controls.result.value.some(button => button.height > 48 || button.right > viewport.width + 1 || button.scrollWidth > button.clientWidth + 1)) {
+          const controls = await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('.event-operation-actions a, .event-operation-actions button')].map(button => ({text:button.getAttribute('aria-label') || button.textContent?.trim(),height:button.getBoundingClientRect().height,right:button.getBoundingClientRect().right,scrollWidth:button.scrollWidth,clientWidth:button.clientWidth}))", returnByValue: true });
+          if (controls.result.value.length < 5 || !controls.result.value.some(button => button.text === "Abrir inscrição pública") || !controls.result.value.some(button => button.text === "Copiar link") || controls.result.value.some(button => button.height > 48 || button.right > viewport.width + 1 || button.scrollWidth > button.clientWidth + 1)) {
             throw new Error(`${viewport.name}: ações do torneio estão quebradas ou comprimidas: ${JSON.stringify(controls.result.value)}`);
           }
           if (viewport.name === "desktop") {

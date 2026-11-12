@@ -71,7 +71,7 @@ export const viewStyles = {
   ].join(" "),
   "button_button_danger_button_small": (sharedUtilities.buttonButtonDangerButtonSmall) + " " + managementControls.danger,
   "client_list_head": [
-    "client-list-head", "tw:bg-[#174983]", "tw:min-h-9", "tw:grid", "tw:max-[1220px]:hidden", "tw:grid-cols-[28px_minmax(150px,_1.3fr)_minmax(100px,_.8fr)_minmax(125px,_.9fr)_minmax(130px,_1fr)_minmax(110px,_.9fr)_minmax(100px,_.7fr)]",
+    "client-list-head", "tw:bg-[#174983]", "tw:min-h-9", "tw:grid", "tw:max-[1220px]:hidden", "tw:grid-cols-[28px_minmax(150px,_1.3fr)_minmax(100px,_.8fr)_minmax(125px,_.9fr)_minmax(130px,_1fr)_minmax(110px,_.9fr)_148px]",
     "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:items-center", "tw:pt-[0]",
     "tw:pr-[13px]", "tw:pb-[0]", "tw:pl-[13px]", "tw:text-white",
     "tw:text-[.62rem]", "tw:font-[800]", "tw:tracking-[.04em]", "tw:uppercase",
@@ -85,7 +85,7 @@ export const viewStyles = {
     "tw:bg-[color:#fff]", "tw:[background-image:none]",
   ].join(" "),
   "client_row_client_row_clickable": [
-    "client-row", "client-row-clickable", "tw:grid", "tw:grid-cols-[28px_minmax(150px,_1.3fr)_minmax(100px,_.8fr)_minmax(125px,_.9fr)_minmax(130px,_1fr)_minmax(110px,_.9fr)_minmax(100px,_.7fr)]",
+    "client-row", "client-row-clickable", "tw:grid", "tw:grid-cols-[28px_minmax(150px,_1.3fr)_minmax(100px,_.8fr)_minmax(125px,_.9fr)_minmax(130px,_1fr)_minmax(110px,_.9fr)_148px]",
     "tw:max-[1220px]:grid-cols-[28px_1fr_1fr]", "tw:viewport-620:grid-cols-[28px_1fr]", "tw:gap-y-[12px]", "tw:viewport-620:gap-y-[5px]",
     "tw:gap-x-[12px]", "tw:viewport-620:gap-x-[5px]", "tw:items-center", "tw:min-h-[46px]",
     "tw:pt-[5px]", "tw:pr-[13px]", "tw:pb-[5px]", "tw:pl-[13px]",
@@ -124,14 +124,14 @@ export const viewStyles = {
   "client_financial_status": [
     "client-financial-status", "tw:w-[fit-content]", "tw:pt-[3px]", "tw:pr-[6px]",
     "tw:pb-[3px]", "tw:pl-[6px]", "tw:rounded-[4px]", "tw:text-[.65rem]",
-    "tw:font-[750]", "tw:[&.client-financial-status-current]:bg-[color:#e7f8ed]", "tw:[&.client-financial-status-current]:[background-image:none]", "tw:[&.client-financial-status-current]:text-[color:#167845]",
+    "tw:font-medium", "tw:[&.client-financial-status-current]:bg-[color:#e7f8ed]", "tw:[&.client-financial-status-current]:[background-image:none]", "tw:[&.client-financial-status-current]:text-[color:#167845]",
     "tw:[&.client-financial-status-open]:bg-[color:#fff4dc]", "tw:[&.client-financial-status-open]:[background-image:none]", "tw:[&.client-financial-status-open]:text-[color:#996100]", "tw:[&.client-financial-status-overdue]:bg-[color:#fff0ef]",
     "tw:[&.client-financial-status-overdue]:[background-image:none]", "tw:[&.client-financial-status-overdue]:text-[color:#b42318]",
   ].join(" "),
   "client_row_actions": [
-    "client-row-actions", "tw:flex", "tw:flex-wrap", "tw:gap-y-[5px]",
+    "client-row-actions", "tw:flex", "tw:flex-nowrap", "tw:items-center", "tw:gap-y-[5px]",
     "tw:gap-x-[5px]",
-    "tw:flex-wrap tw:viewport-620:[&_button]:min-h-10",
+    "tw:viewport-620:[&_button]:min-h-10",
   ].join(" "),
   "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
   "client_empty": sharedUtilities.clientEmpty,
