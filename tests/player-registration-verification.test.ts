@@ -10,7 +10,7 @@ import ts from "typescript";
 const require = createRequire(import.meta.url);
 const source = readFileSync(new URL("../src/lib/actions/player-auth.ts", import.meta.url), "utf8");
 
-function fixture(options: { existingAccount?: boolean } = {}) {
+function fixture(options: { existingAccount?: boolean; deliveryError?: string } = {}) {
   const codes: Array<{ id: string; arenaId: string; phone: string; purpose: string; codeHash: string; attempts: number; usedAt: Date | null; expiresAt: Date; createdAt: Date }> = [];
   const accounts: Array<{ id: string; arenaId: string; phone: string; playerId: string; identityId: string; passwordHash: string; termsVersion?: string; privacyNoticeVersion?: string; termsAcceptedAt?: Date }> = [];
   if (options.existingAccount) accounts.push({ id: "existing-account", arenaId: "arena-a", phone: "11999990000", playerId: "player-a", identityId: "identity-a", passwordHash: "old-hash" });
@@ -52,11 +52,11 @@ function fixture(options: { existingAccount?: boolean } = {}) {
     "@/lib/rls": { withArenaTransaction: async (_arenaId: string, callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma) },
     "@/lib/services/public-client-registration": { resolvePublicClientPlayer: () => null },
     "@/lib/env": { env: { playerPhoneVerificationRequired: true } },
-    "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: async (_phone: string, message: string) => { sent.push(message); } },
+    "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: async (_phone: string, message: string) => { if (options.deliveryError) throw new Error(options.deliveryError); sent.push(message); } },
     "@/lib/phone": { normalizeBrazilianPhone: (value: string) => value.replace(/\D/g, "") },
     "@/lib/auth/login-attempts": { activeLoginLock: async () => null, recordFailedLogin: async () => null, clearLoginFailures: async () => {} },
   };
-  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, { exports, require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)), FormData, Date, URL, Buffer, console });
+  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, { exports, require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)), FormData, Date, URL, Buffer, console, Error });
   const form = (code?: string) => { const data = new FormData(); data.set("termsAccepted", "on"); data.set("legalVersion", legalVersion); data.set("arenaSlug", "arena-teste"); data.set("returnTo", ""); data.set("name", "Atleta de Teste"); data.set("phone", "11999990000"); data.set("password", "SenhaSegura123!"); data.set("confirmPassword", "SenhaSegura123!"); if (code) data.set("code", code); return data; };
   const request = () => exports.registerPublicClientAction({ error: null }, form());
   const confirm = (code: string) => exports.confirmPublicClientRegistrationAction({ error: null }, form(code));
@@ -121,4 +121,15 @@ test("cadastro exige termos atuais antes de enviar códigos e grava o aceite no 
  await assert.rejects(app.confirmCustom(code, { termsAcceptedAt: "2000-01-01", privacyNoticeVersion: "forged" }), /redirect:/);
  assert.equal(app.accounts[0].termsVersion, legalVersion); assert.equal(app.accounts[0].privacyNoticeVersion, legalVersion);
  assert.ok(app.accounts[0].termsAcceptedAt!.getTime() >= since);
+});
+
+
+test("WhatsApp desconectado não cria conta nem mantém código que não foi entregue", async () => {
+  const app = fixture({ deliveryError: "O WhatsApp desta arena ainda não está conectado." });
+  const result = await app.request();
+  assert.match(result.error, /WhatsApp da arena está desconectado/);
+  assert.equal(result.requested, undefined);
+  assert.equal(app.codes.length, 0);
+  assert.equal(app.accounts.length, 0);
+  assert.equal(app.sessions.length, 0);
 });

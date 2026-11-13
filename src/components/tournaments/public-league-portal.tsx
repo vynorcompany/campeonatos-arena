@@ -8,9 +8,7 @@ import { viewStyles } from "./public-league-portal.utilities";
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  recordOwnLeagueMatchResultAction,
-} from "@/lib/actions/league-challenges";
+import { PublicLeagueResultForm } from "./public-league-result-form";
 import { requestLeagueMedicalSubstitutionAction } from "@/lib/actions/league-medical-substitutions";
 import Link from "next/link";
 import { arenaBookingPath } from "@/lib/arena-booking-path";
@@ -37,6 +35,7 @@ export function PublicLeaguePortal({
 }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
+  const [resultNotice, setResultNotice] = useState("");
   const [pending, startTransition] = useTransition();
   const mutedText = cx(viewStyles.muted, "tw:text-[#606874]! tw:dark:text-[#a4b3c8]!");
   const submit = (
@@ -321,6 +320,7 @@ export function PublicLeaguePortal({
               <p className={mutedText}>{portal.leagueCategories.length ? "Ainda não há jogos para esta categoria." : "Nenhuma categoria de liga ativa."}</p>
             )}
           </section>
+          {resultNotice ? <p role="status" className="tw:m-0 tw:rounded-md tw:border tw:border-[#99cfb3] tw:bg-[#edf9f2] tw:px-3 tw:py-2 tw:text-sm tw:text-[#14532d]">{resultNotice}</p> : null}
           {ownPairs.length ? (
             <section className={viewStyles.public_portal_pairs}>
               <>{ownPairs.map((pair) => (
@@ -337,66 +337,7 @@ export function PublicLeaguePortal({
                         Registrar resultado · Semana {opponent.block ?? "—"} ·{" "}
                         {opponent.name}
                       </summary>
-                      <form
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          submit(
-                            event.currentTarget,
-                            recordOwnLeagueMatchResultAction,
-                            "Resultado registrado e enviado à dupla visitante.",
-                          );
-                        }}
-                        className={viewStyles.public_league_result_form}
-                      >
-                        <input
-                          type="hidden"
-                          name="arenaSlug"
-                          value={arenaSlug}
-                        />
-                        <input
-                          type="hidden"
-                          name="matchId"
-                          value={opponent.matchId}
-                        />
-                        <span>Set</span>
-                        <strong>{pair.name}</strong>
-                        <strong>{opponent.name}</strong>
-                        {[
-                          ["homeSet1", "awaySet1", "1"],
-                          ["homeSet2", "awaySet2", "2"],
-                          ["homeSet3", "awaySet3", "3"],
-                        ].map(([home, away, set]) => (
-                          <span
-                            className={viewStyles.public_league_result_score}
-                            key={set}
-                          >
-                            <i>{set}</i>
-                            <input
-                              name={home}
-                              type="number"
-                              min="0"
-                              aria-label={`Set ${set} de ${pair.name}`}
-                            />
-                            <input
-                              name={away}
-                              type="number"
-                              min="0"
-                              aria-label={`Set ${set} de ${opponent.name}`}
-                            />
-                          </span>
-                        ))}
-                        <small>
-                          Informe os dois primeiros sets; o terceiro é apenas
-                          para desempate.
-                        </small>
-                        <button
-                          type="submit"
-                          className={viewStyles.button_button_primary}
-                          disabled={pending}
-                        >
-                          {pending ? "Salvando..." : "Salvar resultado"}
-                        </button>
-                      </form>
+                      <PublicLeagueResultForm arenaSlug={arenaSlug} matchId={opponent.matchId} homeName={pair.name} awayName={opponent.name} onSaved={setResultNotice} />
                     </details>
                   ))}
                   <details className={viewStyles.public_medical_request}>
