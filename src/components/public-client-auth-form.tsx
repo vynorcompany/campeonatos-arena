@@ -17,6 +17,7 @@ export function PublicClientAuthForm({ arenaSlug, returnTo, initialMode = "LOGIN
   const [mode, setMode] = useState<"LOGIN" | "REGISTER" | "REGISTER_CONFIRM" | "RESET_REQUEST" | "RESET_CONFIRM">(initialMode);
   const [loginState, loginAction] = useFormState(loginPublicClientAction, initialState);
   const [registerState, registerAction] = useFormState(registerPublicClientAction, initialState);
+  const [registrationAction, setRegistrationAction] = useState<"REQUEST" | "CONFIRM">("REQUEST");
   const [registerConfirmState, registerConfirmAction] = useFormState(confirmPublicClientRegistrationAction, initialState);
   const [resetRequestState, resetRequestAction] = useFormState(requestPublicPasswordResetAction, initialState);
   const [resetConfirmState, resetConfirmAction] = useFormState(confirmPublicPasswordResetAction, initialState);
@@ -28,7 +29,7 @@ export function PublicClientAuthForm({ arenaSlug, returnTo, initialMode = "LOGIN
   useEffect(() => { if (registerState.requested) setMode("REGISTER_CONFIRM"); }, [registerState]);
   useEffect(() => { if (resetRequestState.requested) setMode("RESET_CONFIRM"); }, [resetRequestState]);
   useEffect(() => { if (resetConfirmState.notice) { setSuccessNotice(resetConfirmState.notice); setMode("LOGIN"); } }, [resetConfirmState]);
-  const state = mode === "LOGIN" ? loginState : mode === "REGISTER" ? registerState : mode === "REGISTER_CONFIRM" ? registerConfirmState : mode === "RESET_REQUEST" ? resetRequestState : resetConfirmState;
+  const state = mode === "LOGIN" ? loginState : mode === "REGISTER" ? registerState : mode === "REGISTER_CONFIRM" ? (registrationAction === "REQUEST" ? registerState : registerConfirmState) : mode === "RESET_REQUEST" ? resetRequestState : resetConfirmState;
   const notice = mode === "REGISTER_CONFIRM" ? registerState.notice : mode === "RESET_CONFIRM" ? resetRequestState.notice : mode === "LOGIN" ? successNotice : null;
 
   return <section className={viewStyles.public_client_auth}>
@@ -40,7 +41,7 @@ export function PublicClientAuthForm({ arenaSlug, returnTo, initialMode = "LOGIN
       <label className={viewStyles.field}>Senha<input name="password" type="password" autoComplete="current-password" required /></label>
       <button type="button" className={viewStyles.public_client_auth_forgot} onClick={() => { setSuccessNotice(null); setMode("RESET_REQUEST"); }}>Perdi minha senha</button>
       <SubmitButton label="Entrar" pendingLabel="Entrando..." className={viewStyles.button_button_primary} />
-    </form> : mode === "REGISTER" ? <form action={registerAction}><BotTrap/><input type="hidden" name="legalVersion" value={legalVersion}/>
+    </form> : mode === "REGISTER" ? <form action={registerAction} onSubmit={() => setRegistrationAction("REQUEST")}><BotTrap/><input type="hidden" name="legalVersion" value={legalVersion}/>
       <input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="returnTo" value={returnTo ?? ""} />
       <label className={viewStyles.field}>Nome e sobrenome<input name="name" autoComplete="name" placeholder="Ex.: Maria Silva" value={registration.name} onChange={(event) => updateRegistration("name", event.currentTarget.value)} required /></label>
       <label className={viewStyles.field}>Telefone<input name="phone" inputMode="tel" autoComplete="tel" value={registration.phone} onChange={(event) => updateRegistration("phone", event.currentTarget.value)} required /></label>
@@ -49,12 +50,12 @@ export function PublicClientAuthForm({ arenaSlug, returnTo, initialMode = "LOGIN
       <p className="tw:m-0 tw:text-xs tw:leading-relaxed tw:text-[var(--muted)]">Nome, telefone e senha são necessários para seu acesso. As informações de perfil são opcionais. Não informe dados de terceiros sem autorização.</p>
       <label className="tw:flex tw:items-start tw:gap-3 tw:text-xs tw:leading-relaxed"><input name="termsAccepted" type="checkbox" required checked={termsAccepted} onChange={event => setTermsAccepted(event.currentTarget.checked)} className="tw:mt-0.5 tw:size-5 tw:shrink-0 tw:accent-[#175a40]"/><span>Concordo com os <Link href={`/classificacao/${encodeURIComponent(arenaSlug)}/legal/termos`} target="_blank" rel="noopener noreferrer" className="tw:font-semibold tw:underline">Termos de Uso</Link> e estou ciente da <Link href={`/classificacao/${encodeURIComponent(arenaSlug)}/legal/privacidade`} target="_blank" rel="noopener noreferrer" className="tw:font-semibold tw:underline">Política de Privacidade</Link>.</span></label>
       <SubmitButton label="Criar conta" pendingLabel="Criando conta..." className={viewStyles.button_button_primary} />
-    </form> : mode === "REGISTER_CONFIRM" ? <form action={registerConfirmAction}><BotTrap/><input type="hidden" name="legalVersion" value={legalVersion}/><input type="hidden" name="termsAccepted" value={termsAccepted ? "on" : ""}/>
+    </form> : mode === "REGISTER_CONFIRM" ? <form action={registerConfirmAction} onSubmit={(event) => setRegistrationAction((event.nativeEvent as SubmitEvent).submitter?.getAttribute("data-registration-action") === "REQUEST" ? "REQUEST" : "CONFIRM")}><BotTrap/><input type="hidden" name="legalVersion" value={legalVersion}/><input type="hidden" name="termsAccepted" value={termsAccepted ? "on" : ""}/>
       <input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="returnTo" value={returnTo ?? ""} />
       <input type="hidden" name="name" value={registration.name} /><input type="hidden" name="phone" value={registration.phone} />
       <input type="hidden" name="password" value={registration.password} /><input type="hidden" name="confirmPassword" value={registration.confirmPassword} />
       <label className={viewStyles.field}>Código de 6 dígitos<input name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" required /></label>
-      <div className={viewStyles.public_client_auth_actions}><button type="button" className={viewStyles.button_button_small} onClick={() => setMode("REGISTER")}>Voltar</button><SubmitButton label="Confirmar cadastro" pendingLabel="Confirmando..." className={viewStyles.button_button_primary} /></div>
+      <div className={`${viewStyles.public_client_auth_actions} tw:flex-wrap tw:items-center tw:[&>button]:shrink-0 tw:max-[420px]:[&>button:nth-child(2)]:w-full tw:max-[420px]:[&>button:nth-child(2)]:justify-center`}><button type="button" className={viewStyles.button_button_small} onClick={() => setMode("REGISTER")}>Voltar</button><SubmitButton label="Confirmar cadastro" pendingLabel="Confirmando..." className={`${viewStyles.button_button_primary} tw:order-2`} /><button type="submit" data-registration-action="REQUEST" formAction={registerAction} formNoValidate className={`${viewStyles.button_button_small} tw:order-1`}>Reenviar código</button></div>
     </form> : mode === "RESET_REQUEST" ? <form action={resetRequestAction}><BotTrap/>
       <input type="hidden" name="arenaSlug" value={arenaSlug} />
       <label className={viewStyles.field}>Telefone cadastrado<input name="phone" inputMode="tel" autoComplete="tel" value={requestPhone} onChange={(event) => setRequestPhone(event.currentTarget.value)} required /></label>

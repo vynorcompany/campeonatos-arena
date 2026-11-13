@@ -117,8 +117,15 @@ export async function registerPublicClientAction(_: PublicClientAuthState, formD
   if (env.playerPhoneVerificationRequired) {
     try {
       await sendVerificationCode(arena.id, phone, "REGISTER");
-    } catch {
-      return { error: "Não foi possível enviar o código. Verifique o WhatsApp da arena e tente novamente." };
+    } catch (error) {
+      console.error("[portal:registration-code] Envio não concluído", {
+        arenaId: arena.id,
+        failure: error instanceof Error ? error.name : "UnknownError",
+      });
+      if (error instanceof Error && error.message === "O WhatsApp desta arena ainda não está conectado.") {
+        return { error: "O WhatsApp da arena está desconectado. Avise a recepção para reconectar e tente novamente." };
+      }
+      return { error: "Não foi possível enviar o código pelo WhatsApp. Tente novamente em instantes ou avise a recepção." };
     }
     return { error: null, notice: "Enviamos um código de 6 dígitos ao seu WhatsApp.", requested: true, phone };
   }

@@ -1335,6 +1335,7 @@ export async function recordCategoryLeagueMatchResult(
     homeSet2: number | null; awaySet2: number | null;
     homeSet3: number | null; awaySet3: number | null;
   },
+  notification?: { playerIds: string[]; href: string },
 ) {
   return runSerializableTransaction(arenaId, async (tx) => {
     const { matchId, ...setScores } = input;
@@ -1347,13 +1348,20 @@ export async function recordCategoryLeagueMatchResult(
     const homeWins = sets.filter(([home, away]) => home != null && away != null && home > away).length;
     const awayWins = sets.filter(([home, away]) => home != null && away != null && away > home).length;
     if (homeWins !== 2 && awayWins !== 2) throw new Error("Uma dupla deve vencer dois sets.");
-    return tx.categoryMatch.update({ where: { id: match.id }, data: {
+    const saved = await tx.categoryMatch.update({ where: { id: match.id }, data: {
       ...setScores,
       homeScore: homeWins,
       awayScore: awayWins,
       winnerPairId: homeWins === 2 ? match.homePairId : match.awayPairId,
       manualStatus: "FINISHED",
     }});
+    if (notification?.playerIds.length) {
+      await tx.playerNotification.createMany({ data: notification.playerIds.map((playerId) => ({
+        playerId, type: "LEAGUE_MATCH", title: "Resultado lançado pela dupla mandante",
+        message: "Confira o placar informado para o seu jogo de Liga.", href: notification.href,
+      })) });
+    }
+    return saved;
   });
 }
 
