@@ -20,7 +20,7 @@ export const viewStyles = {
   form_error: sharedUtilities.formError,
   stack_md: ui.page,
   section_card: "tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:border-t tw:border-[var(--line)] tw:pt-3 tw:[&_p]:m-0 tw:[&_p]:text-xs",
-  button_button_danger: (sharedUtilities.buttonButtonDangerButtonSmall) + " " + managementControls.danger,
+  button_button_danger: managementControls.danger,
   simple_list: "tw:grid tw:min-w-0",
   simple_item: "tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:border-b tw:border-[var(--line)] tw:bg-white tw:px-3 tw:py-3 tw:last:border-0 tw:[&>div]:grid tw:[&>div]:min-w-0 tw:[&>div]:gap-1 tw:[&_strong]:break-words tw:[&_span]:text-xs tw:[&_span]:text-[var(--muted)]",
 } as const;

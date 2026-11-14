@@ -15,5 +15,5 @@ export const viewStyles = {
     "tw:[&_p]:text-[.82rem]",
   ].join(" "),
   "button_button_primary": (ui.primary) + " " + managementControls.primary,
-  "button_button_danger": (sharedUtilities.buttonButtonDanger) + " " + managementControls.danger,
+  "button_button_danger": managementControls.danger,
 } as const;

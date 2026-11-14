@@ -35,7 +35,7 @@ export const viewStyles = {
     "tw:[&_.safe-action-confirmation-actions]:gap-y-[7px]", "tw:[&_.safe-action-confirmation-actions]:gap-x-[7px]", "tw:[&_.safe-action-confirmation-actions_input]:min-w-[118px]", "tw:[&_.safe-action-confirmation-actions_input]:min-h-[34px]",
     "tw:viewport-600:[&_.safe-action-confirmation]:left-[0]",
   ].join(" "),
-  "button_button_danger": (sharedUtilities.buttonButtonDanger) + " " + managementControls.danger,
+  "button_button_danger": managementControls.danger,
   "event_metrics_grid": "event-metrics-grid tw:flex tw:min-w-0 tw:flex-wrap tw:gap-x-8 tw:gap-y-3 tw:rounded-md tw:border tw:border-[#d4e0ee] tw:bg-[#ffffff] tw:px-4 tw:py-3 tw:[&>span]:grid tw:[&>span]:gap-1 tw:[&_span_span]:text-[11px] tw:[&_span_span]:text-[#526781] tw:[&_strong]:text-sm tw:[&_strong]:font-medium tw:[&_strong]:text-[#173d66]",
   "event_metric_card": [
     "event-metric-card", "tw:flex", "tw:min-h-[142px]", "tw:gap-y-[14px]",
