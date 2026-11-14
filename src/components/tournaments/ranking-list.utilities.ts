@@ -1,5 +1,5 @@
-import { managementControls } from "@/components/ui/management-controls";
-import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { tournamentWorkspace as managementControls } from "@/components/tournaments/tournament-workspace";
+import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 export const viewStyles = {
   muted: sharedUtilities.muted,

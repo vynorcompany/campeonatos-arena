@@ -1,6 +1,6 @@
 
 import Link from "next/link";
-import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
 import { PhoneInput } from "@/components/forms/phone-input";
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { viewStyles } from "./page.utilities";
@@ -128,7 +128,7 @@ export default async function TournamentRegistrationsPage({searchParams}:{search
     <div className={viewStyles.stack_md}>
       <h1 className="tw:sr-only">Inscrições</h1><form className={ui.filters} action="/torneios/inscricoes"><label className={`${ui.field} tw:w-full tw:max-w-[320px]`}>Evento<select name="tournamentId" defaultValue={tournament.id}>{events.map(event=><option key={event.id} value={event.id}>{event.name}</option>)}</select></label><label className={`${ui.field} tw:w-full tw:max-w-[300px]`}>Pesquisar dupla<input name="q" defaultValue={filters.q} placeholder="Nome de um dos atletas" type="search"/></label><button type="submit" className={ui.primary}>Aplicar filtros</button></form>
 
-      {tournament.registrationPhase === "REGISTRATIONS" && tournament.categories.some((category:any)=>!category.competition) ? <p className="tw:m-0 tw:rounded tw:bg-[#f2f6fb] tw:px-3 tw:py-2 tw:text-xs">Encerre as inscrições para montar o chaveamento.</p>:null}
+      {tournament.registrationPhase === "REGISTRATIONS" && tournament.categories.some((category:any)=>!category.competition) ? <p className="tw:m-0 tw:rounded tw:bg-[#174983] tw:text-white tw:px-3 tw:py-2 tw:text-xs">Encerre as inscrições para montar o chaveamento.</p>:null}
 
       {conflicts.length ? <details className={ui.panel}><summary className="tw:cursor-pointer tw:text-xs tw:font-medium tw:text-red-700">{conflicts.length} conflitos de agenda</summary><ul className={viewStyles.simple_list}>{conflicts.map(conflict=><li key={`${conflict.playerId}-${conflict.scheduledTime}`} className={viewStyles.simple_item}><strong>{conflict.scheduledTime}</strong><span>{conflict.labels.join(" | ")}</span></li>)}</ul></details>:null}
 
@@ -138,7 +138,7 @@ export default async function TournamentRegistrationsPage({searchParams}:{search
         const represented=(registration:any)=>pairs.some((pair:any)=>{const ids=pair.players.map((p:any)=>p.player.id);return ids.includes(registration.leadPlayerId)&&ids.includes(registration.partnerPlayerId);});
         const confirmedCount = category.registrations.filter((reg: any) => reg.status === "CONFIRMED").length;
         return (
-          <details key={category.id} className={ui.list} open><summary className="tw:flex tw:cursor-pointer tw:flex-col tw:items-start tw:justify-between tw:gap-1 tw:sm:flex-row tw:sm:items-center tw:border-b tw:border-[var(--line)] tw:bg-[#f2f6fb] tw:px-3 tw:py-2 tw:text-sm tw:font-medium"><span>{category.name}</span><span className="tw:text-xs tw:font-normal">{category.competition ? `${pairs.length} duplas ativas` : `${confirmedCount} confirmadas · ${category.registrations.length} inscrições`}</span></summary><div className="tw:p-3 tw:grid tw:min-w-0 tw:gap-3">
+          <details key={category.id} className={ui.list} open><summary className="tw:flex tw:cursor-pointer tw:flex-col tw:items-start tw:justify-between tw:gap-1 tw:sm:flex-row tw:sm:items-center tw:border-b tw:border-[var(--line)] tw:bg-[#174983] tw:text-white tw:px-3 tw:py-2 tw:text-sm tw:font-medium"><span>{category.name}</span><span className="tw:text-xs tw:font-normal">{category.competition ? `${pairs.length} duplas ativas` : `${confirmedCount} confirmadas · ${category.registrations.length} inscrições`}</span></summary><div className="tw:p-3 tw:grid tw:min-w-0 tw:gap-3">
             {!category.competition ? <div className="stack-sm tw:[margin-bottom:0.75rem]">
               <form action={updateTournamentCategoryFormatAction} className={viewStyles.section_actions}>
                 <input type="hidden" name="tournamentId" value={tournament.id} />

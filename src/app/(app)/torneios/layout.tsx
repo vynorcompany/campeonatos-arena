@@ -6,5 +6,5 @@ export default async function TournamentsLayout({children}:{children:React.React
  const canView=canViewModule("tournaments",auth.arenaRole,auth.systemRole,auth.viewPermissions);
  const canReadMatches=canViewModule("matches",auth.arenaRole,auth.systemRole,auth.viewPermissions);
  const canManage=canView&&canPerformPermission("tournaments:manage",auth.arenaRole,auth.systemRole,auth.editPermissions);
- return <div className="tw:grid tw:min-w-0 tw:gap-3">{canView||canReadMatches?<TournamentSectionNav canManage={canManage} canViewTournaments={canView}/>:null}{children}</div>;
+ return <div className="tw:grid tw:w-full tw:min-w-0 tw:max-w-none! tw:gap-3 tw:[&>_*]:min-w-0 tw:[&>_*]:max-w-none!">{canView||canReadMatches?<TournamentSectionNav canManage={canManage} canViewTournaments={canView}/>:null}{children}</div>;
 }

@@ -1,4 +1,4 @@
-import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
 export const viewStyles = {
  muted:"tw:text-xs tw:text-[#526781]",stack_md:ui.page,stack_xs_2:"tw:grid tw:min-w-0 tw:w-full tw:gap-2",simple_list:"tw:grid tw:min-w-0 tw:gap-0",simple_item:"tw:grid tw:min-w-0 tw:gap-2 tw:border-b tw:border-[var(--line)] tw:py-2 tw:last:border-b-0 tw:text-xs",section_actions:"tw:flex tw:min-w-0 tw:flex-wrap tw:items-end tw:gap-2 tw:[&_select]:h-8! tw:[&_input]:h-8! tw:[&_input]:min-w-0 tw:[&_input]:w-32",button:ui.secondary,button_button_primary:ui.primary,grid_form:"tw:mt-3 tw:grid tw:min-w-0 tw:gap-3 tw:sm:grid-cols-2 tw:lg:grid-cols-3 tw:[&_label]:grid tw:[&_label]:min-w-0 tw:[&_label]:gap-1 tw:[&_input]:min-w-0 tw:[&_select]:min-w-0 tw:[&_input]:w-full tw:[&_select]:w-full tw:[&_input]:h-9! tw:[&_select]:h-9!",field:ui.field,field_field_submit:"tw:col-span-full tw:flex tw:justify-end"
 } as const;

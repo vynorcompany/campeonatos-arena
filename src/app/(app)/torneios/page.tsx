@@ -1,6 +1,6 @@
 import { TournamentDirectory } from "@/components/tournaments/tournament-directory";
 
-import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import Link from "next/link";
 import { notFound } from "next/navigation";

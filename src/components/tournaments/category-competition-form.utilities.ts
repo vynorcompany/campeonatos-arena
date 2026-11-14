@@ -1,3 +1,4 @@
+import { tournamentWorkspace as tws } from "@/components/tournaments/tournament-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -31,7 +32,7 @@ export const viewStyles = {
     "tw:[grid-column:1_/_-1]",
   ].join(" "),
   "field_field_submit_form_full": sharedUtilities.fieldFieldSubmitFormFull,
-  "button_button_primary": "button button-primary tw:inline-flex tw:min-h-9 tw:w-fit tw:max-w-full tw:items-center tw:justify-center tw:gap-2 tw:rounded-[5px] tw:border tw:px-3 tw:py-2 tw:text-[13px] tw:font-normal tw:leading-tight tw:no-underline tw:cursor-pointer tw:disabled:cursor-default tw:disabled:opacity-60 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:[&_svg]:size-4 tw:border-[#205da8] tw:bg-[#205da8] tw:text-white tw:hover:bg-[#174983]",
+  "button_button_primary": tws.success,
   "public_visibility_switch": [
     "public-visibility-switch", "tw:inline-flex", "tw:items-center", "tw:[&_label]:inline-flex",
     "tw:[&_label]:items-center", "tw:[&_label]:gap-y-[7px]", "tw:[&_label]:gap-x-[7px]", "tw:[&_label]:text-[color:#536982]",

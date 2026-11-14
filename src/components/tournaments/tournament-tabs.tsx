@@ -21,11 +21,13 @@ export function TournamentTabs({
   categoryId,
   activeTab,
   availableTabs,
+  counts,
 }: {
   tournamentId: string;
   categoryId: string;
   activeTab: TournamentTabKey;
   availableTabs?: readonly TournamentTabKey[];
+  counts?: Partial<Record<TournamentTabKey, string | number>>;
 }) {
   const navigation = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -45,7 +47,7 @@ export function TournamentTabs({
           className={cx(`${viewStyles.t_tab} ${activeTab === tab.key ? viewStyles.t_tab_active : ""}`)}
         >
           <span className="t-tab-icon"><LeagueIcon name={tab.icon} /></span>
-          {tab.label}
+          {tab.label}{counts?.[tab.key] != null ? <span className="tw:text-[11px] tw:font-normal">{counts[tab.key]}</span> : null}
         </Link>
       ))}
     </nav>

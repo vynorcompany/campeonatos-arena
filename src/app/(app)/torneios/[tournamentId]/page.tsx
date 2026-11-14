@@ -125,13 +125,14 @@ export default async function TournamentDetailPage(props: TournamentDetailPagePr
         </div>
       </header>
 
-      <section className={viewStyles.event_metrics_grid} aria-label="Resumo do evento">
+      <details className="tw:min-w-0 tw:border-b tw:border-[var(--line)] tw:pb-2"><summary className="tw:cursor-pointer tw:text-xs tw:text-[var(--muted)]">Informações do evento</summary><section className={viewStyles.event_metrics_grid} aria-label="Resumo do evento">
         <span><span>Categorias</span><strong>{tournament.categories.length}</strong></span>
         <span><span>Duplas inscritas</span><strong>{pairCount}</strong></span>
         <span><span>Categorias concluídas</span><strong>{finishedCategoryCount}</strong></span>
         <span><span>Criado em</span><strong>{createdAt}</strong></span>
       </section>
 
+      </details>
       <div className={viewStyles.event_detail_grid}>
         <div className={viewStyles.event_main_column}>
           <CategoryList

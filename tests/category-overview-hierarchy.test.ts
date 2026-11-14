@@ -6,7 +6,7 @@ import path from "node:path";
 
 const workspaceRoot = process.cwd();
 
-test("category workspace overview is a single compact summary", async () => {
+test("category overview keeps the roster visible and puts configuration behind disclosure", async () => {
   const source = await readFile(
     path.join(
       workspaceRoot,
@@ -27,8 +27,9 @@ test("category workspace overview is a single compact summary", async () => {
     1,
     "the overview must render one category-overview summary",
   );
-  for (const label of ["Duplas", "Jogos", "Ranking geral"]) {
-    assert.ok(source.includes(label), `missing overview metric: ${label}`);
-  }
+  assert.match(source, /<CategoryOverviewRoster/);
+  assert.match(source, /counts=\{\{ registrations: competition\?\.pairs\.length/);
+  assert.match(source, /<details[^>]*>[\s\S]*?<summary[^>]*>Configurações da categoria<\/summary>/);
+  assert.doesNotMatch(source, /className=\{viewStyles\.league_overview_metric\}/);
   assert.doesNotMatch(source, /<CategoryCompetitionCard/);
 });
