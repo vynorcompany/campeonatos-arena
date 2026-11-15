@@ -2,6 +2,7 @@ import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./status-badge.utilities";
 type StatusBadgeProps = {
   status: string;
+  compact?: boolean;
 };
 
 const labels: Record<string, string> = {
@@ -20,7 +21,7 @@ const labels: Record<string, string> = {
   SCHEDULED: "Agendado"
 };
 
-export function StatusBadge({ status }: StatusBadgeProps) {
+export function StatusBadge({ status, compact = false }: StatusBadgeProps) {
   const normalized = status.toLowerCase().replace(/\s+/g, "-");
-  return <span className={cx(`${viewStyles.pill} status-badge-${normalized}`)}>{labels[status] ?? status}</span>;
+  return <span className={cx(`${compact ? viewStyles.compact : viewStyles.pill} ${compact ? (viewStyles.states[status as keyof typeof viewStyles.states] ?? viewStyles.states.SCHEDULED) : ""} status-badge-${normalized}`)}>{labels[status] ?? status}</span>;
 }
