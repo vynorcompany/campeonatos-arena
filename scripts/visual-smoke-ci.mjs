@@ -1560,10 +1560,10 @@ async function main() {
       let detail;
       for(let attempt=0;attempt<80;attempt++) {
         detail = await send("Runtime.evaluate", { expression: "({dialog:document.querySelector('[role=dialog]')?.innerText ?? '',width:innerWidth,scrollWidth:document.documentElement.scrollWidth})", returnByValue: true });
-        if(detail.result.value.dialog.includes("Campeã") && detail.result.value.dialog.includes("Parceira de Nome Comprido GOAL") && detail.result.value.dialog.includes("Saldo")) break;
+        if(detail.result.value.dialog.includes("Campeã") && detail.result.value.dialog.includes("Parceira de Nome Comprido GOAL") && /\bSaldo\b/i.test(detail.result.value.dialog)) break;
         await pause(100);
       }
-      if (!detail.result.value.dialog.includes("Campeã") || !detail.result.value.dialog.includes("Parceira de Nome Comprido GOAL") || !detail.result.value.dialog.includes("Saldo") || detail.result.value.scrollWidth > detail.result.value.width + 1) {
+      if (!detail.result.value.dialog.includes("Campeã") || !detail.result.value.dialog.includes("Parceira de Nome Comprido GOAL") || !/\bSaldo\b/i.test(detail.result.value.dialog) || detail.result.value.scrollWidth > detail.result.value.width + 1) {
         throw new Error(`${viewport.name}: modal do histórico não mostrou campeã e classificação sem overflow: ${JSON.stringify(detail.result.value)}`);
       }
       await waitForPageFade();
