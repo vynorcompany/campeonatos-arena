@@ -1,18 +1,19 @@
+import { tournamentWorkspace as tws } from "@/components/tournaments/tournament-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
-  "stack_md_t_category_workspace_category_detail_workspace": "stack-md t-category-workspace category-detail-workspace tw:grid tw:min-w-0 tw:gap-4 tw:w-full tw:max-w-[1320px] tw:text-[#172b45]",
+  "stack_md_t_category_workspace_category_detail_workspace": "stack-md t-category-workspace category-detail-workspace tw:grid tw:w-full tw:min-w-0 tw:max-w-none! tw:gap-3",
   "t_category_back": "t-category-back tw:inline-flex tw:w-fit tw:items-center tw:gap-2 tw:text-[13px] tw:font-normal tw:text-[#254f80] tw:hover:underline",
-  "league_overview_dashboard": "league-overview-dashboard tw:grid tw:min-w-0 tw:gap-5 tw:rounded-lg tw:border tw:border-[#b8c9dc] tw:bg-white tw:p-5 tw:max-[700px]:p-4",
+  "league_overview_dashboard": "league-overview-dashboard tw:grid tw:w-full tw:min-w-0 tw:gap-3",
   "league_reopened_notice": [
     "tw:m-0", "tw:rounded-[10px]", "tw:border", "tw:border-[color:#a7e3bd]",
     "tw:bg-[color:#eaf9ef]", "tw:px-[16px]", "tw:py-[12px]", "tw:text-[.88rem]",
     "tw:font-[700]", "tw:text-[color:#17643a]",
   ].join(" "),
-  "league_overview_hero": "league-overview-hero tw:grid tw:min-w-0 tw:gap-4 tw:text-[#172b45]",
+  "league_overview_hero": "league-overview-hero tw:grid tw:min-w-0 tw:gap-3 tw:border-b tw:border-[var(--line)] tw:pb-3",
   "league_overview_header": "league-overview-header tw:flex tw:min-w-0 tw:flex-wrap tw:items-start tw:justify-between tw:gap-3",
   "eyebrow": sharedUtilities.eyebrow,
-  "league_overview_title_row": "league-overview-title-row tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:gap-3 tw:[&_h1]:m-0 tw:[&_h1]:text-[22px] tw:[&_h1]:font-semibold tw:[&_h1]:break-words",
+  "league_overview_title_row": "league-overview-title-row tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:gap-3 tw:[&_h1]:m-0 tw:[&_h1]:text-lg tw:[&_h1]:font-medium",
   "league_overview_status": "league-overview-status tw:self-start",
   "league_overview_context": "league-overview-context tw:m-0 tw:text-[13px] tw:leading-relaxed tw:text-[#465c75]",
   "league_overview_summary_row": "league-overview-summary-row tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:gap-x-7 tw:gap-y-3 tw:border-y tw:border-[#d5dfeb] tw:py-3",
@@ -36,10 +37,10 @@ export const viewStyles = {
     "tw:[&_.league-icon]:h-[19px]", "tw:text-[color:#654ce1]", "tw:bg-white", "tw:[background-image:none]",
   ].join(" "),
   "league_overview_primary_action": "league-overview-primary-action tw:ml-auto tw:max-[700px]:ml-0",
-  "button_button_primary": "button button-primary tw:inline-flex tw:min-h-9 tw:w-fit tw:max-w-full tw:items-center tw:justify-center tw:gap-2 tw:rounded-[5px] tw:border tw:px-3 tw:py-2 tw:text-[13px] tw:font-normal tw:leading-tight tw:no-underline tw:cursor-pointer tw:disabled:cursor-default tw:disabled:opacity-60 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:[&_svg]:size-4 tw:border-[#205da8] tw:bg-[#205da8] tw:text-white tw:hover:bg-[#174983]",
+  "button_button_primary": tws.primary,
   "pill": sharedUtilities.pill,
   "league_overview_bottom": "league-overview-bottom tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] tw:gap-5 tw:max-[850px]:grid-cols-1",
-  "league_prize_card": "league-prize-card tw:grid tw:min-w-0 tw:gap-4 tw:text-[#172b45]",
+  "league_prize_card": "league-prize-card tw:grid tw:min-w-0 tw:gap-3",
   "league_prize_form": "league-prize-form tw:grid tw:min-w-0 tw:gap-4",
   "league_prize_card_heading": "league-prize-card-heading tw:flex tw:items-center tw:gap-2 tw:[&_h2]:m-0 tw:[&_h2]:text-base tw:[&_h2]:font-medium tw:[&_p]:m-0 tw:[&_p]:text-[13px] tw:[&_p]:text-[#465c75]",
   "league_overview_section_icon": "league-overview-section-icon tw:inline-flex tw:shrink-0 tw:text-[#205da8] tw:[&_svg]:size-4",
@@ -47,10 +48,10 @@ export const viewStyles = {
   "league_prize_editor": "league-prize-editor tw:grid tw:min-w-0 tw:gap-4",
   "league_prize_textarea": "league-prize-textarea tw:min-h-24 tw:w-full tw:resize-y tw:rounded-[5px] tw:border tw:border-[#718bac] tw:bg-white tw:p-3 tw:text-sm tw:text-[#172b45] tw:placeholder:text-[#50637a]",
   "league_prize_actions": "league-prize-actions tw:flex tw:justify-end",
-  "league_cycle_card": "league-cycle-card tw:grid tw:min-w-0 tw:gap-4 tw:rounded-lg tw:border tw:border-[#b8c9dc] tw:bg-white tw:p-5 tw:text-[#172b45] tw:shadow-none tw:max-[700px]:p-4 tw:bg-[#f3f6fa] tw:[&_p]:m-0 tw:[&_p]:text-[13px] tw:[&_p]:leading-relaxed tw:[&_p]:text-[#3c516b]",
+  "league_cycle_card": "league-cycle-card tw:grid tw:min-w-0 tw:content-start tw:gap-3 tw:[&_p]:m-0 tw:[&_p]:text-xs tw:[&_p]:text-[var(--muted)]",
   "league_cycle_card_heading": "league-cycle-card-heading tw:flex tw:items-center tw:gap-2 tw:[&_h2]:m-0 tw:[&_h2]:text-base tw:[&_h2]:font-medium",
-  "button_button_secondary": "button button-secondary tw:inline-flex tw:min-h-9 tw:w-fit tw:max-w-full tw:items-center tw:justify-center tw:gap-2 tw:rounded-[5px] tw:border tw:px-3 tw:py-2 tw:text-[13px] tw:font-normal tw:leading-tight tw:no-underline tw:cursor-pointer tw:disabled:cursor-default tw:disabled:opacity-60 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:[&_svg]:size-4 tw:border-[#718bac] tw:bg-[#edf3fb] tw:text-[#174983] tw:hover:bg-[#dce9f8]",
-  "category_overview_category_detail_hero": "category-overview category-detail-hero tw:grid tw:min-w-0 tw:gap-4 tw:rounded-lg tw:border tw:border-[#b8c9dc] tw:bg-white tw:p-5 tw:text-[#172b45] tw:shadow-none tw:max-[700px]:p-4",
+  "button_button_secondary": tws.secondary,
+  "category_overview_category_detail_hero": "category-overview category-detail-hero tw:grid tw:min-w-0 tw:gap-3 tw:border-b tw:border-[var(--line)] tw:pb-3",
   "category_overview_head": "tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:border-b tw:border-[#d5dfeb] tw:pb-3 tw:[&_h2]:m-0 tw:[&_h2]:text-base tw:[&_h3]:m-0 tw:[&_h3]:text-base tw:[&_h3]:font-medium",
   "stack_xs": [
     "stack-xs", "tw:grid", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
@@ -59,5 +60,5 @@ export const viewStyles = {
   "category_overview_context_muted": "tw:m-0 tw:text-[13px] tw:leading-relaxed tw:text-[#465c75]",
   "category_overview_metrics": "category-overview-metrics tw:m-0 tw:flex tw:flex-wrap tw:gap-x-8 tw:gap-y-3 tw:border-y tw:border-[#d5dfeb] tw:py-3 tw:[&_div]:flex tw:[&_div]:items-baseline tw:[&_div]:gap-2 tw:[&_dt]:text-[13px] tw:[&_dd]:m-0 tw:[&_dd]:text-lg tw:[&_dd]:font-semibold",
   "category_overview_action": "category-overview-action tw:flex tw:justify-end",
-  "section_card": "section-card tw:grid tw:min-w-0 tw:gap-4 tw:rounded-lg tw:border tw:border-[#b8c9dc] tw:bg-white tw:p-5 tw:text-[#172b45] tw:shadow-none tw:max-[700px]:p-4",
+  "section_card": tws.panel,
 } as const;

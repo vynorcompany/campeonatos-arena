@@ -1,18 +1,19 @@
+import { tournamentWorkspace as tws } from "@/components/tournaments/tournament-workspace";
 /** Tailwind utilities for the archived League month list and its responsive dialog. */
 export const viewStyles = {
-  "panel": "league-history-panel tw:grid tw:min-w-0 tw:gap-4 tw:rounded-lg tw:border tw:border-[#b8c9dc] tw:bg-white tw:p-5 tw:text-[#172b45] tw:shadow-none tw:max-[700px]:p-4",
+  "panel": tws.page,
   "empty": "league-history-empty tw:grid tw:gap-2 tw:rounded-lg tw:border tw:border-[#b8c9dc] tw:bg-white tw:p-5 tw:text-[#172b45] tw:[&_strong]:text-sm tw:[&_strong]:font-medium tw:[&_span]:text-[13px] tw:[&_span]:text-[#465c75]",
   "panelHeader": "tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:border-b tw:border-[#d5dfeb] tw:pb-3 tw:[&_h2]:m-0 tw:[&_h2]:text-base tw:[&_h3]:m-0 tw:[&_h3]:text-base tw:[&_h3]:font-medium",
-  "list": "tw:grid tw:min-w-0 tw:gap-0",
-  "month": "tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)_auto] tw:items-center tw:gap-3 tw:border-0 tw:border-b tw:border-[#d5dfeb] tw:bg-white tw:px-2 tw:py-3 tw:text-left tw:text-[13px] tw:text-[#172b45] tw:cursor-pointer tw:hover:bg-[#edf3fb] tw:focus-visible:outline-2 tw:focus-visible:outline-[#205da8] tw:[&_strong]:font-medium tw:[&_small]:text-[13px] tw:[&_small]:break-words tw:max-[700px]:grid-cols-1",
+  "list": "tw:grid tw:min-w-0 tw:gap-0 tw:rounded-lg tw:border tw:border-[var(--line)]",
+  "month": "tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)_auto] tw:items-center tw:gap-3 tw:border-0 tw:border-b tw:border-[var(--line)] tw:bg-white tw:px-3 tw:py-2 tw:text-left tw:text-[13px] tw:text-[var(--text)] tw:cursor-pointer tw:[&_strong]:font-medium tw:[&_small]:text-xs tw:[&_small]:text-[var(--muted)] tw:max-[760px]:grid-cols-1",
   "view": "tw:text-[13px] tw:font-normal tw:text-[#174983]",
   dialogBody: "tw:grid tw:min-w-0 tw:gap-4",
-  "highlights": "tw:flex tw:min-w-0 tw:flex-wrap tw:gap-4 tw:rounded-md tw:border tw:border-[#d0dce9] tw:bg-[#f3f6fa] tw:p-4 tw:[&>div]:grid tw:[&>div]:min-w-0 tw:[&>div]:gap-1 tw:[&_span]:text-xs tw:[&_span]:text-[#465c75] tw:[&_strong]:text-sm tw:[&_strong]:font-medium tw:[&_strong]:break-words",
+  "highlights": "tw:flex tw:min-w-0 tw:flex-wrap tw:gap-4 tw:rounded-md tw:border tw:border-[#d0dce9] tw:bg-[#ffffff] tw:p-4 tw:[&>div]:grid tw:[&>div]:min-w-0 tw:[&>div]:gap-1 tw:[&_span]:text-xs tw:[&_span]:text-[#465c75] tw:[&_strong]:text-sm tw:[&_strong]:font-medium tw:[&_strong]:break-words",
   tableHeader: "tw:mt-[24px] tw:mb-[10px] tw:flex tw:items-center tw:justify-between tw:gap-[16px] tw:[&_h3]:m-0 tw:[&_h3]:text-[1rem] tw:[&_span]:text-[.82rem] tw:[&_span]:text-[color:var(--muted)] tw:max-[560px]:flex-col tw:max-[560px]:items-start tw:max-[560px]:gap-[3px]",
   tableWrap: "tw:w-full tw:overflow-x-auto tw:rounded-[11px] tw:border tw:border-[color:var(--line)]",
-  table: "tw:w-full tw:border-collapse tw:text-[.86rem] tw:[&_th]:border-b tw:[&_th]:border-[color:var(--line)] tw:[&_td]:border-b tw:[&_td]:border-[color:var(--line)] tw:[&_th]:px-[12px] tw:[&_th]:py-[11px] tw:[&_td]:px-[12px] tw:[&_td]:py-[11px] tw:[&_th]:text-left tw:[&_td:not(:first-child)]:text-center tw:[&_thead]:bg-[#174983] tw:[&_thead]:text-white tw:[&_thead_th:not(:nth-child(2))]:text-center tw:[&_tbody_th]:min-w-[160px] tw:[&_tbody_th]:[overflow-wrap:anywhere] tw:[&_tbody_tr:last-child_th]:border-b-0 tw:[&_tbody_tr:last-child_td]:border-b-0 tw:max-[560px]:[&_th]:px-[7px] tw:max-[560px]:[&_th]:py-[9px] tw:max-[560px]:[&_td]:px-[7px] tw:max-[560px]:[&_td]:py-[9px] tw:max-[560px]:[&_tbody_th]:min-w-[130px]",
+  "table": tws.table,
   badge: "tw:ml-[7px] tw:inline-block tw:rounded-[5px] tw:bg-[#e8f8ee] tw:px-[6px] tw:py-[2px] tw:text-[.67rem] tw:text-[#137245] tw:whitespace-nowrap tw:max-[560px]:mt-[4px] tw:max-[560px]:mr-[4px] tw:max-[560px]:ml-0",
   relegated: "tw:ml-[7px] tw:inline-block tw:rounded-[5px] tw:bg-[#fff0ec] tw:px-[6px] tw:py-[2px] tw:text-[.67rem] tw:text-[#ae3829] tw:whitespace-nowrap tw:max-[560px]:mt-[4px] tw:max-[560px]:mr-[4px] tw:max-[560px]:ml-0",
   "missing": "tw:m-0 tw:text-[13px] tw:leading-relaxed tw:text-[#465c75]",
-  "reopen": "tw:mt-4 tw:inline-flex tw:min-h-9 tw:w-fit tw:max-w-full tw:items-center tw:justify-center tw:gap-2 tw:rounded-[5px] tw:border tw:px-3 tw:py-2 tw:text-[13px] tw:font-normal tw:leading-tight tw:no-underline tw:cursor-pointer tw:disabled:cursor-default tw:disabled:opacity-60 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:[&_svg]:size-4 tw:border-[#718bac] tw:bg-[#edf3fb] tw:text-[#174983] tw:hover:bg-[#dce9f8]",
+  "reopen": tws.warning,
 } as const;

@@ -21,13 +21,17 @@ export function TournamentTabs({
   categoryId,
   activeTab,
   availableTabs,
+  counts,
 }: {
   tournamentId: string;
   categoryId: string;
   activeTab: TournamentTabKey;
   availableTabs?: readonly TournamentTabKey[];
+  counts?: Partial<Record<TournamentTabKey, string | number>>;
 }) {
   const navigation = useRef<HTMLElement>(null);
+  const visibleTabs = tabs.filter((tab) => !availableTabs || availableTabs.includes(tab.key));
+  const compactTabs = visibleTabs.length <= 3;
   useEffect(() => {
     const container = navigation.current;
     const active = container?.querySelector<HTMLElement>('[aria-current="page"]');
@@ -36,16 +40,16 @@ export function TournamentTabs({
     if (item.left < viewport.left || item.right > viewport.right) container.scrollLeft += item.left - viewport.left - (viewport.width - item.width) / 2;
   }, [activeTab]);
   return (
-    <nav ref={navigation} className={viewStyles.t_tabs} aria-label="Etapas da categoria">
-      {tabs.filter((tab) => !availableTabs || availableTabs.includes(tab.key)).map((tab) => (
+    <nav ref={navigation} className={cx(viewStyles.t_tabs, compactTabs && viewStyles.t_tabs_compact)} aria-label="Etapas da categoria">
+      {visibleTabs.map((tab) => (
         <Link
           key={tab.key}
           aria-current={activeTab === tab.key ? "page" : undefined}
           href={`/torneios/${tournamentId}/categorias/${categoryId}?tab=${tab.key}`}
-          className={cx(`${viewStyles.t_tab} ${activeTab === tab.key ? viewStyles.t_tab_active : ""}`)}
+          className={cx(viewStyles.t_tab, compactTabs && viewStyles.t_tab_compact, activeTab === tab.key && viewStyles.t_tab_active)}
         >
           <span className="t-tab-icon"><LeagueIcon name={tab.icon} /></span>
-          {tab.label}
+          {tab.label}{counts?.[tab.key] != null ? <span className="tw:text-[11px] tw:font-normal">{counts[tab.key]}</span> : null}
         </Link>
       ))}
     </nav>

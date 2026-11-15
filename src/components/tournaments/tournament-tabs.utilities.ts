@@ -1,6 +1,8 @@
-/** Shared category navigation follows the Arena contrast and wraps on narrow screens. */
+import { tournamentWorkspace as ui } from "./tournament-workspace";
 export const viewStyles = {
-  t_tabs: "t-tabs tw:flex tw:flex-wrap tw:gap-2 tw:border-b tw:border-[var(--line)] tw:pb-3",
-  t_tab: "t-tab tw:inline-flex tw:min-h-10 tw:items-center tw:gap-2 tw:rounded-md tw:border tw:border-[var(--line)] tw:bg-white tw:px-3 tw:py-2 tw:text-sm tw:font-semibold tw:text-[#151515] tw:[&_.t-tab-icon]:size-4 tw:[&_.t-tab-icon_svg]:size-4 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#1e5ea8] tw:hover:border-[#1e5ea8]",
-  t_tab_active: "t-tab-active tw:border-[#1e5ea8]! tw:bg-[#1e5ea8]! tw:text-white!",
+ t_tabs: "t-tabs tw:flex tw:w-full tw:min-w-0 tw:gap-2 tw:overflow-x-auto tw:pb-1",
+ t_tab: "t-tab " + ui.secondary + " tw:shrink-0 tw:whitespace-nowrap",
+ t_tabs_compact: "tw:viewport-560:flex-wrap tw:viewport-560:gap-1",
+ t_tab_compact: "tw:viewport-560:px-1.5! tw:viewport-560:gap-1! tw:viewport-560:text-[11px]! tw:viewport-560:[&_svg]:size-3.5! tw:viewport-560:[&>span:last-child]:text-[10px]",
+ t_tab_active: "t-tab-active tw:border-[#215da5]! tw:bg-[#215da5]! tw:text-white!"
 } as const;

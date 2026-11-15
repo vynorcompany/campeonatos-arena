@@ -1,7 +1,7 @@
 "use client";
 import { useFilterMemory } from "@/components/filters/filter-memory";
 import Link from "next/link";
-import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
 import { ActionIcon, actionIconButton } from "@/components/ui/action-icon";
 type Event = {id:string;name:string;registrationPhase:string;categories:{id:string;name:string}[]};
 export function TournamentDirectory({events,path,canManage}:{events:Event[];path:string;canManage:boolean}) {
@@ -14,9 +14,9 @@ export function TournamentDirectory({events,path,canManage}:{events:Event[];path
     </div>
     <div className={ui.list}><div className={`${ui.head} tw:grid-cols-[minmax(0,1fr)_130px_130px_190px]`}><span>Evento</span><span>Categorias</span><span>Situação</span><span className="tw:text-right">Ações</span></div>
       {visible.map(event=><article key={event.id} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_130px_130px_190px] tw:viewport-760:grid-cols-[minmax(0,1fr)_auto]`}>
-        <div><strong>{event.name}</strong><small>{event.categories.map(c=>c.name).join(" · ")||"Sem categorias"}</small></div>
+        <div className="tw:grid tw:min-w-0 tw:gap-1"><strong>{event.name}</strong><small>{event.categories.map(c=>c.name).join(" · ")||"Sem categorias"}</small></div>
         <span className="tw:text-xs tw:viewport-760:row-start-2">{event.categories.length} {event.categories.length===1?"categoria ativa":"categorias ativas"}</span>
-        <span className="tw:w-fit tw:rounded tw:bg-[#edf3fa] tw:px-2 tw:py-1 tw:text-[11px] tw:text-[#174983]">{{REGISTRATIONS:"Inscrições abertas",LIVE:"Em andamento",FINISHED:"Finalizado",EDITING:"Em configuração"}[event.registrationPhase]??"Em configuração"}</span>
+        <span className="tw:w-fit tw:text-xs tw:text-[var(--muted)]">{{REGISTRATIONS:"Inscrições abertas",LIVE:"Em andamento",FINISHED:"Finalizado",EDITING:"Em configuração"}[event.registrationPhase]??"Em configuração"}</span>
         <div className="tw:flex tw:flex-wrap tw:justify-end tw:gap-2 tw:viewport-760:col-span-full"><Link href={`${path}${path.includes("?")?"&":"?"}tournamentId=${encodeURIComponent(event.id)}`} className={ui.secondary}>{canManage?"Categorias":"Ver jogos"}</Link>{canManage?<Link href={`/torneios/${event.id}`} className={ui.primary}>Abrir evento</Link>:null}</div>
       </article>)}
       {!visible.length?<p className={ui.empty}>Nenhum evento encontrado.</p>:null}

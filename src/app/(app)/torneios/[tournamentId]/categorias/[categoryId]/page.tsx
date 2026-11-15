@@ -1,3 +1,5 @@
+import { CategoryOverviewRoster } from "@/components/tournaments/category-overview-roster";
+import { tournamentWorkspace as categoryUi } from "@/components/tournaments/tournament-workspace";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -389,6 +391,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
         categoryId={category.id}
         activeTab={tab}
         availableTabs={availableTabs}
+        counts={{ registrations: competition?.pairs.length ?? 0, games: `${completedMatchCount}/${competition?.matches.length ?? 0}` }}
       >
         {tab === "overview" ? (
           competition?.format === "LEAGUE" ? (
@@ -414,27 +417,15 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 {" · "}{formatLabels[competition.format]} · Ranking: {competition.ranking?.name ?? "Sem ranking"}
               </p>
 
-              <div className={viewStyles.league_overview_summary_row}>
-                <article className={viewStyles.league_overview_metric}>
-                  <div><span>Duplas</span><strong>{competition.pairs.length}</strong></div>
-                </article>
-                <article className={viewStyles.league_overview_metric}>
-                  <div><span>Jogos</span><strong>{completedMatchCount}/{competition.matches.length}</strong></div>
-                </article>
-                <article className={viewStyles.league_overview_metric}>
-                  <div><span>Ranking geral</span><strong>{competition.feedsGeneralRanking ? "Ativo" : "Inativo"}</strong></div>
-                </article>
-                <div className={viewStyles.league_overview_primary_action}>
-                  {nextStep ? (
-                    <Link href={nextStep.href} className={viewStyles.button_button_primary}>
-                      <LeagueIcon name="trophy" /> {nextStep.label}
-                    </Link>
-                  ) : <span className={viewStyles.pill}>Categoria concluída</span>}
-                </div>
+              <div className="tw:flex tw:flex-wrap tw:items-center tw:justify-end tw:gap-2">
+                {nextStep ? <Link href={nextStep.href} className={nextStep.label === "Registrar resultados" ? categoryUi.success : nextStep.label === "Encerrar categoria" ? categoryUi.warning : categoryUi.primary}>{nextStep.label}</Link> : <span className={viewStyles.pill}>Categoria concluída</span>}
               </div>
             </article>
-
-            <div className={viewStyles.league_overview_bottom}>
+            <CategoryOverviewRoster pairs={competition.pairs} groups={competition.groups} registrationsHref={`/torneios/${params.tournamentId}/categorias/${category.id}?tab=registrations`} />
+            <details className={categoryUi.panel}>
+             <summary className="tw:cursor-pointer tw:text-xs tw:text-[var(--muted)]">Configurações da categoria</summary>
+             <p className="tw:m-0 tw:text-xs tw:text-[var(--muted)]">Ranking geral: {competition.feedsGeneralRanking ? "Ativo" : "Inativo"}</p>
+             <div className={viewStyles.league_overview_bottom}>
               <section className={viewStyles.league_prize_card} aria-labelledby="league-prize-title">
                 <form action={updateLeaguePrizeAction} className={viewStyles.league_prize_form}>
                   <div className={viewStyles.league_prize_card_heading}>
@@ -451,7 +442,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
                       defaultValue={competition.leagueCycles.find((cycle) => cycle.status === "OPEN")?.prizeDescription ?? ""}
                       placeholder="Descreva a premiação da Liga. Ex.: campeãs recebem troféu, voucher e premiação em dinheiro."
                     />
-                    <div className={viewStyles.league_prize_actions}><button className={viewStyles.button_button_primary} type="submit"><LeagueIcon name="save" /> Salvar premiação</button></div>
+                    <div className={viewStyles.league_prize_actions}><button className={categoryUi.success} type="submit"><LeagueIcon name="save" /> Salvar premiação</button></div>
                   </div>
                 </form>
               </section>
@@ -461,11 +452,12 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 <p>Fecha o mês vigente, registra campeã e executa acesso ou rebaixamento.</p>
                 <SafeActionForm action={runLeagueLifecycleAction} successMessage="Ciclo da Liga processado com sucesso. Confira o histórico mensal." confirmKeyword="PROCESSAR" confirmPrompt="O ciclo será encerrado e as duplas poderão mudar de divisão. Digite PROCESSAR para confirmar.">
                   <input type="hidden" name="competitionId" value={competition.id} />
-                  <button className={viewStyles.button_button_secondary} type="submit"><LeagueIcon name="refresh" /> Processar ciclo da Liga</button>
+                  <button className={categoryUi.warning} type="submit"><LeagueIcon name="refresh" /> Processar ciclo da Liga</button>
                 </SafeActionForm>
               </aside>
             </div>
 
+            </details>
             {medicalRequests.length > 0 ? <LeagueMedicalRequestsPanel requests={medicalRequests.map((request) => ({
               id: request.id,
               reason: request.reason,
@@ -495,23 +487,6 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 ) : null}
               </p>
 
-              <dl className={viewStyles.category_overview_metrics}>
-                <div>
-                  <dt>Duplas</dt>
-                  <dd>{competition?.pairs.length ?? 0}</dd>
-                </div>
-                <div>
-                  <dt>Jogos</dt>
-                  <dd>
-                    {completedMatchCount}/{competition?.matches.length ?? 0}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Ranking Geral</dt>
-                  <dd>{competition?.feedsGeneralRanking ? "Ativo" : "Inativo"}</dd>
-                </div>
-              </dl>
-
               <div className={viewStyles.category_overview_action}>
                 {nextStep ? (
                   <Link href={nextStep.href} className={viewStyles.button_button_primary}>
@@ -522,6 +497,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 )}
               </div>
             </article>
+            {competition ? <><CategoryOverviewRoster pairs={competition.pairs} groups={competition.groups} registrationsHref={`/torneios/${params.tournamentId}/categorias/${category.id}?tab=registrations`} /><p className="tw:m-0 tw:text-xs tw:text-[var(--muted)]">Ranking geral: {competition.feedsGeneralRanking ? "Ativo" : "Inativo"}</p></> : null}
             {!competition && isPublicTournament ? (
               <article className={viewStyles.section_card}>
                 <TournamentCategorySettingsForm

@@ -1,6 +1,6 @@
 
 import Link from "next/link";
-import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
 const formats: Record<string, string> = { LEAGUE: "Liga", THREE_GROUPS: "3 grupos", FOUR_GROUPS: "4 grupos", SIMPLE: "Simples" };
 export function CategoryDirectory({ tournamentId, categories }: { tournamentId: string; categories: { id: string; name: string; competition: { format: string; pairCount: number } | null }[] }) {
   return <div className="tw:grid tw:min-w-0 tw:gap-3">

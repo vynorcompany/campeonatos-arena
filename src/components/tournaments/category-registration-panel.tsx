@@ -1,3 +1,5 @@
+import { tournamentWorkspace as rosterUi } from "./tournament-workspace";
+import { ClientAvatar } from "@/components/players/client-avatar";
 
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./category-registration-panel.utilities";
@@ -136,13 +138,13 @@ export function CategoryRegistrationPanel({
                 )}
 
                 <div className={cx(`stack-sm ${category.competition.format === "LEAGUE" ? viewStyles.league_registration_list_section : ""}`)}>
-                  <h4>Duplas confirmadas</h4>
+                  <div className={`${rosterUi.head} tw:grid-cols-[minmax(0,1fr)_auto]`}><span>Dupla</span><span>Ações</span></div>
                   {category.competition.pairs.length ? (
                     <div className={cx(`${viewStyles.simple_list} ${category.competition.format === "LEAGUE" ? viewStyles.league_registration_list : ""}`)}>
                       {category.competition.pairs.map((pair) => (
-                        <div className={cx(`${viewStyles.simple_item} ${category.competition?.format === "LEAGUE" ? viewStyles.league_registration_card : ""}`)} key={pair.id}>
+                        <div className={cx(`${viewStyles.simple_item} ${category.competition?.format === "LEAGUE" ? viewStyles.league_registration_card : ""}`)} key={pair.id} id={`pair-${pair.id}`}>
                           <div className={cx(`${viewStyles.match_copy} ${category.competition?.format === "LEAGUE" ? viewStyles.league_registration_pair_name : ""}`)}>
-                            <strong>{pair.playerNames.length ? pair.playerNames.join(" / ") : pair.name}</strong>
+                            {pair.playerNames.length ? pair.playerNames.map((name,index)=><span className="tw:flex tw:min-w-0 tw:items-center tw:gap-2" key={`${pair.id}-${index}`}><ClientAvatar name={name}/><span className="tw:min-w-0 tw:break-words">{name}</span></span>) : <span>{pair.name}</span>}
                           </div>
                           {canRemovePair ? (
                             <SafeActionForm action={removeCategoryPairAction} successMessage="Dupla removida." confirmKeyword="REMOVER" confirmPrompt={`Remover a dupla ${pair.playerNames.length ? pair.playerNames.join(" / ") : pair.name} desta categoria? Digite REMOVER para confirmar.`}>
@@ -159,7 +161,7 @@ export function CategoryRegistrationPanel({
                             </SafeActionForm>
                           ) : null}
                           {canReplacePairPlayer && availableAthletes.length ? (
-                            <div className={viewStyles.stack_xs_league_registration_replacements}>
+                            <details className="tw:min-w-0"><summary className="tw:cursor-pointer tw:text-xs tw:text-[#174983]">Substituir atleta</summary><div className={viewStyles.stack_xs_league_registration_replacements}>
                               {pair.playerIds.map((playerId, index) => (
                                 <SafeActionForm action={replaceCategoryPairPlayerAction} className={viewStyles.inline_pair_edit} successMessage="Atleta substituído." key={`${pair.id}-${playerId}`}>
                                   <input type="hidden" name="pairId" value={pair.id} />
@@ -168,7 +170,7 @@ export function CategoryRegistrationPanel({
                                   <SubmitButton label="Trocar" pendingLabel="Trocando..." className={viewStyles.button_button_small} />
                                 </SafeActionForm>
                               ))}
-                            </div>
+                            </div></details>
                           ) : null}
                         </div>
                       ))}

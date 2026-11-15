@@ -1,5 +1,7 @@
+import { ClientAvatar } from "@/components/players/client-avatar";
+import { LeagueIcon } from "./league-icon";
 
-import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./category-results-panel.utilities";
 import Link from "next/link";
@@ -35,8 +37,8 @@ type CompetitionMatch = {
   manualStatus: string | null;
   leagueBlock: number | null;
   woReason: string | null;
-  homePair: { name: string } | null;
-  awayPair: { name: string } | null;
+  homePair: { id?: string; name: string } | null;
+  awayPair: { id?: string; name: string } | null;
   winnerPair: { name: string } | null;
 };
 
@@ -93,6 +95,7 @@ type ResultCategory = {
     pairs: Array<{
       id: string;
       name: string;
+      playerNames?: string[];
     }>;
     matches: CompetitionMatch[];
     sportsResults: {
@@ -111,6 +114,10 @@ type ResultCategory = {
     };
   } | null;
 };
+
+function MatchPairIdentity({ names, fallback }: { names?: string[]; fallback: string }) {
+ return <span className="tw:grid tw:min-w-0 tw:gap-1">{names?.length ? names.map((name,index)=><span key={`${name}-${index}`} className="tw:flex tw:min-w-0 tw:items-center tw:gap-2"><ClientAvatar name={name}/><span className="tw:break-words">{name}</span></span>) : <span>{fallback}</span>}</span>;
+}
 
 export function CategoryResultsPanel({
   tournamentId,
@@ -230,7 +237,7 @@ export function CategoryResultsPanel({
                         Aplicar filtros
                       </button>
                     </form>
-                  <div className={cx(`${viewStyles.category_game_list} ${competition.format === "LEAGUE" ? viewStyles.league_calendar_list : ""}`)}>
+                  <div className="tw:grid tw:min-w-0 tw:gap-0"><div className="tw:grid tw:grid-cols-[minmax(90px,.7fr)_minmax(90px,.7fr)_minmax(0,2fr)_minmax(100px,.8fr)_32px] tw:gap-3 tw:bg-[#174983] tw:px-3 tw:py-2 tw:text-[11px] tw:font-semibold tw:uppercase tw:text-white tw:viewport-760:hidden"><span>Data / horário</span><span>Fase / grupo</span><span>Duplas</span><span>Placar / status</span><span className="tw:sr-only">Ações</span></div><div className={cx(`${viewStyles.category_game_list} ${competition.format === "LEAGUE" ? viewStyles.league_calendar_list : ""}`)}>
                     {orderedMatches.map((match, index) => {
                       const canRecord =
                         competition.status === "PUBLISHED" &&
@@ -269,7 +276,7 @@ export function CategoryResultsPanel({
                           </div>
                           <div className={viewStyles.category_game_pairs}>
                             <span className={viewStyles.category_game_label}>Duplas</span>
-                            {competition.format === "LEAGUE" ? <span className={viewStyles.league_match_sides}><span><small>Mandante</small>{match.homePair?.name ?? "A definir"}</span><b>×</b><span><small>Visitante</small>{match.awayPair?.name ?? "A definir"}</span></span> : <span>{match.homePair?.name ?? "A definir"} × {match.awayPair?.name ?? "A definir"}</span>}
+                            {competition.format === "LEAGUE" ? <span className={viewStyles.league_match_sides}><span><small className="tw:sr-only">Mandante</small><MatchPairIdentity names={competition.pairs.find(pair=>pair.id===match.homePair?.id)?.playerNames} fallback={match.homePair?.name ?? "A definir"}/></span><b>×</b><span><small className="tw:sr-only">Visitante</small><MatchPairIdentity names={competition.pairs.find(pair=>pair.id===match.awayPair?.id)?.playerNames} fallback={match.awayPair?.name ?? "A definir"}/></span></span> : <span>{match.homePair?.name ?? "A definir"} × {match.awayPair?.name ?? "A definir"}</span>}
                           </div>
                           <div className={viewStyles.category_game_result}>
                             <span className={viewStyles.category_game_label}>Placar / status</span>
@@ -280,7 +287,7 @@ export function CategoryResultsPanel({
                             {match.woReason ? <small className={viewStyles.league_wo_badge}>W.O.</small> : null}
                             {canRecordResults && competition.format === "LEAGUE" && canRecord ? <LeagueMatchResultDialog match={match} /> : null}
                           </div>
-                          <div className={viewStyles.category_game_actions}>
+                          {canManage || canRecordResults ? <details className="tw:min-w-0 tw:open:col-span-full tw:viewport-760:col-span-full"><summary className={`${ui.icon} tw:list-none tw:[&::-webkit-details-marker]:hidden`} aria-label={`Editar agendamento e status de ${match.label}`} title="Editar agendamento e status"><LeagueIcon name="edit"/></summary><div className={viewStyles.category_game_actions}>
                           {canRecordResults && competition.status === "PUBLISHED" ? (
                             <form
                               action={updateCategoryMatchStatusAction}
@@ -335,7 +342,7 @@ export function CategoryResultsPanel({
                             </label><SubmitButton
                               label="Salvar horário"
                               pendingLabel="..."
-                              className={`${ui.primary} tw:bg-[#1e5ea8]! tw:text-white!`}
+                              className={ui.success}
                             />
                           </form> : null}
                           {canManage ? <form
@@ -402,12 +409,12 @@ export function CategoryResultsPanel({
                               <SubmitButton label="Resetar resultado" pendingLabel="Resetando..." className={viewStyles.button} />
                             </form>
                           ) : null}
-                          </div>
+                          </div></details> : null}
                         </div>
                         </Fragment>
                       );
                     })}
-                  </div>
+                  </div></div>
                   </>
                 ) : (
                   <p className={viewStyles.muted}>Nenhum jogo publicado.</p>

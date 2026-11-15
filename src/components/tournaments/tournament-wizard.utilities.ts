@@ -1,4 +1,4 @@
-import { managementControls } from "@/components/ui/management-controls";
+import { tournamentWorkspace as managementControls } from "@/components/tournaments/tournament-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -9,7 +9,7 @@ export const viewStyles = {
     "t-progress-meta", "tw:flex", "tw:justify-between", "tw:text-[color:var(--muted)]",
   ].join(" "),
   "t_progress_bar": [
-    "t-progress-bar", "tw:h-[10px]", "tw:rounded-[999px]", "tw:bg-[color:#eef3f9]",
+    "t-progress-bar", "tw:h-[10px]", "tw:rounded-[999px]", "tw:bg-[color:#ffffff]",
     "tw:[background-image:none]", "tw:[overflow-x:hidden]", "tw:[overflow-y:hidden]", "tw:[&_span]:block",
     "tw:[&_span]:h-[100%]", "tw:[&_span]:bg-[color:transparent]", "tw:[&_span]:[background-image:linear-gradient(90deg,_#1e5ea8,_#2f7fd4)]",
   ].join(" "),

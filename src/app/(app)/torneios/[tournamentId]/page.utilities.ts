@@ -1,4 +1,4 @@
-import { managementControls } from "@/components/ui/management-controls";
+import { tournamentWorkspace as managementControls } from "@/components/tournaments/tournament-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -17,7 +17,7 @@ export const viewStyles = {
     "event-editing-badge", "tw:inline-flex", "tw:items-center", "tw:justify-center",
     "tw:gap-y-[5px]", "tw:gap-x-[5px]", "tw:min-h-[32px]", "tw:pt-[0]",
     "tw:pr-[12px]", "tw:pb-[0]", "tw:pl-[12px]", "tw:rounded-[8px]",
-    "tw:bg-[color:#e8f1ff]", "tw:[background-image:none]", "tw:text-[color:#075bcc]", "tw:text-[.78rem]",
+    "tw:bg-[color:#ffffff]", "tw:[background-image:none]", "tw:text-[color:#075bcc]", "tw:text-[.78rem]",
     "tw:font-[750]", "tw:[&_.event-icon]:text-[color:#1b72da]",
   ].join(" "),
   "button": (sharedUtilities.button) + " " + managementControls.secondary,
@@ -35,8 +35,8 @@ export const viewStyles = {
     "tw:[&_.safe-action-confirmation-actions]:gap-y-[7px]", "tw:[&_.safe-action-confirmation-actions]:gap-x-[7px]", "tw:[&_.safe-action-confirmation-actions_input]:min-w-[118px]", "tw:[&_.safe-action-confirmation-actions_input]:min-h-[34px]",
     "tw:viewport-600:[&_.safe-action-confirmation]:left-[0]",
   ].join(" "),
-  "button_button_danger": (sharedUtilities.buttonButtonDanger) + " " + managementControls.danger,
-  "event_metrics_grid": "event-metrics-grid tw:flex tw:min-w-0 tw:flex-wrap tw:gap-x-8 tw:gap-y-3 tw:rounded-md tw:border tw:border-[#d4e0ee] tw:bg-[#f5f8fc] tw:px-4 tw:py-3 tw:[&>span]:grid tw:[&>span]:gap-1 tw:[&_span_span]:text-[11px] tw:[&_span_span]:text-[#526781] tw:[&_strong]:text-sm tw:[&_strong]:font-medium tw:[&_strong]:text-[#173d66]",
+  "button_button_danger": managementControls.danger,
+  "event_metrics_grid": "event-metrics-grid tw:flex tw:min-w-0 tw:flex-wrap tw:gap-x-8 tw:gap-y-3 tw:rounded-md tw:border tw:border-[#d4e0ee] tw:bg-[#ffffff] tw:px-4 tw:py-3 tw:[&>span]:grid tw:[&>span]:gap-1 tw:[&_span_span]:text-[11px] tw:[&_span_span]:text-[#526781] tw:[&_strong]:text-sm tw:[&_strong]:font-medium tw:[&_strong]:text-[#173d66]",
   "event_metric_card": [
     "event-metric-card", "tw:flex", "tw:min-h-[142px]", "tw:gap-y-[14px]",
     "tw:gap-x-[14px]", "tw:pt-[25px]", "tw:pr-[22px]", "tw:pb-[25px]",
@@ -81,7 +81,7 @@ export const viewStyles = {
   ].join(" "),
   "muted": sharedUtilities.muted,
   "event_side_column": "event-side-column tw:grid tw:min-w-0 tw:gap-3",
-  "event_information": "event-information tw:grid tw:min-w-0 tw:gap-3 tw:rounded-md tw:border tw:border-[#d4e0ee] tw:bg-[#f5f8fc] tw:p-3 tw:[&_h2]:m-0 tw:[&_h2]:text-sm tw:[&_h2]:font-medium tw:[&_header]:flex tw:[&_header]:items-center tw:[&_header]:gap-2 tw:[&_dl]:m-0 tw:[&_dl]:grid tw:[&_dl]:gap-2 tw:[&_dl>div]:flex tw:[&_dl>div]:justify-between tw:[&_dl>div]:gap-3 tw:[&_dt]:text-[11px] tw:[&_dt]:text-[#526781] tw:[&_dd]:m-0 tw:[&_dd]:text-xs tw:[&_dd]:text-right",
+  "event_information": "event-information tw:grid tw:min-w-0 tw:gap-3 tw:rounded-md tw:border tw:border-[#d4e0ee] tw:bg-[#ffffff] tw:p-3 tw:[&_h2]:m-0 tw:[&_h2]:text-sm tw:[&_h2]:font-medium tw:[&_header]:flex tw:[&_header]:items-center tw:[&_header]:gap-2 tw:[&_dl]:m-0 tw:[&_dl]:grid tw:[&_dl]:gap-2 tw:[&_dl>div]:flex tw:[&_dl>div]:justify-between tw:[&_dl>div]:gap-3 tw:[&_dt]:text-[11px] tw:[&_dt]:text-[#526781] tw:[&_dd]:m-0 tw:[&_dd]:text-xs tw:[&_dd]:text-right",
   "tournament_status_form": "tournament-status-form tw:grid tw:min-w-0 tw:gap-2 tw:border-b tw:border-[#d4e0ee] tw:pb-3 tw:[&_label]:grid tw:[&_label]:gap-1 tw:[&_label]:text-xs tw:[&_select]:h-9! tw:[&_select]:min-h-9! tw:[&_select]:text-xs!",
   "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
 } as const;

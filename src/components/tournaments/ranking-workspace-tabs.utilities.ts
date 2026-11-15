@@ -1,5 +1,5 @@
-import { managementControls } from "@/components/ui/management-controls";
-import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { tournamentWorkspace as managementControls } from "@/components/tournaments/tournament-workspace";
+import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
 export const viewStyles = {
   section_actions_ranking_detail_tabs: "ranking-detail-tabs tw:flex tw:min-w-0 tw:flex-wrap tw:gap-1 tw:rounded-lg tw:border tw:border-[var(--line)] tw:bg-white tw:p-1 tw:viewport-440:grid tw:viewport-440:grid-cols-2",
   button: (ui.secondary + " tw:justify-center") + " " + managementControls.secondary,

@@ -2,7 +2,7 @@ import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CategoryDirectory } from "@/components/tournaments/category-directory";
-import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
 import { requireModuleView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";

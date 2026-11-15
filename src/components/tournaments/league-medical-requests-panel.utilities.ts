@@ -1,5 +1,5 @@
-import { managementControls } from "@/components/ui/management-controls";
-import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { tournamentWorkspace as managementControls } from "@/components/tournaments/tournament-workspace";
+import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -15,5 +15,5 @@ export const viewStyles = {
     "tw:[&_p]:text-[.82rem]",
   ].join(" "),
   "button_button_primary": (ui.primary) + " " + managementControls.primary,
-  "button_button_danger": (sharedUtilities.buttonButtonDanger) + " " + managementControls.danger,
+  "button_button_danger": managementControls.danger,
 } as const;

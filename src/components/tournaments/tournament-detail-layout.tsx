@@ -6,12 +6,14 @@ export function TournamentDetailLayout({
   categoryId,
   activeTab,
   availableTabs,
+  counts,
   children
 }: {
   tournamentId: string;
   categoryId: string;
   activeTab: TournamentTabKey;
   availableTabs?: readonly TournamentTabKey[];
+  counts?: Partial<Record<TournamentTabKey, string | number>>;
   children: React.ReactNode;
 }) {
   return (
@@ -20,6 +22,7 @@ export function TournamentDetailLayout({
         tournamentId={tournamentId}
         categoryId={categoryId}
         activeTab={activeTab}
+        counts={counts}
         availableTabs={availableTabs}
       />
       {children}

@@ -971,7 +971,7 @@ async function main() {
           }
           if (view.label === "reservar") {
             const bookingLayout = await send("Runtime.evaluate", {
-              expression: `(() => { const form=document.querySelector('form:has([aria-label="Etapas da reserva"])'); if(!form)return null; const times=form.querySelector('[aria-label="Quadras e horários"]'); const services=form.querySelector('[aria-label="Serviços opcionais da reserva"]'); return {slots:times.querySelectorAll('button[aria-pressed],select option[value]:not([value=""])').length, disabled:times.querySelectorAll('button:disabled').length, servicesBelow:!services||services.getBoundingClientRect().top>=times.getBoundingClientRect().bottom, durationAbove:Boolean(form.querySelector('[aria-label="Duração da reserva"]').compareDocumentPosition(times)&Node.DOCUMENT_POSITION_FOLLOWING), dateField:Boolean(form.querySelector('input[type="date"]')), selected:times.querySelectorAll('[data-selected-minute]').length, expected:Number(form.querySelector('[data-duration-minutes][aria-pressed="true"]').dataset.durationMinutes)/Number(times.querySelector('[data-selected-court="true"]').dataset.slotMinutes), total:form.querySelector('output').textContent}; })()`, returnByValue: true,
+              expression: `(() => { const form=document.querySelector('form:has([aria-label="Etapas da reserva"])'); if(!form)return null; const times=form.querySelector('[aria-label="Quadras e horários"]'); const services=form.querySelector('[aria-label="Serviços opcionais da reserva"]'); return {slots:times.querySelectorAll('button[aria-pressed],select option[value]:not([value=""])').length, disabled:times.querySelectorAll('button[aria-pressed]:disabled').length, servicesBelow:!services||services.getBoundingClientRect().top>=times.getBoundingClientRect().bottom, durationAbove:Boolean(form.querySelector('[aria-label="Duração da reserva"]').compareDocumentPosition(times)&Node.DOCUMENT_POSITION_FOLLOWING), dateField:Boolean(form.querySelector('input[type="date"]')), selected:times.querySelectorAll('[data-selected-minute]').length, expected:Number(form.querySelector('[data-duration-minutes][aria-pressed="true"]').dataset.durationMinutes)/Number(times.querySelector('[data-selected-court="true"]').dataset.slotMinutes), total:form.querySelector('output').textContent}; })()`, returnByValue: true,
             });
             if (bookingLayout.result.value) {
               const layout=bookingLayout.result.value;
@@ -1521,7 +1521,8 @@ async function main() {
       }
     }
     await visit(categoryPath, viewports[0], arenaA.id, "liga-ciclo-antes");
-    await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find(button => button.textContent?.includes('Processar ciclo da Liga'))?.click()" });
+    await clickElement("details:has(#league-prize-title) > summary");
+    await clickElement("details[open]:has(#league-prize-title) aside form button[type=submit]");
     let confirmation;
     for (let attempt = 0; attempt < 40; attempt += 1) {
       const response = await send("Runtime.evaluate", { expression: "({dialog:document.querySelector('[role=dialog]')?.innerText ?? '',input:Boolean(document.querySelector('[role=dialog] input[name=confirmKeyword]'))})", returnByValue: true });
@@ -1559,10 +1560,10 @@ async function main() {
       let detail;
       for(let attempt=0;attempt<80;attempt++) {
         detail = await send("Runtime.evaluate", { expression: "({dialog:document.querySelector('[role=dialog]')?.innerText ?? '',width:innerWidth,scrollWidth:document.documentElement.scrollWidth})", returnByValue: true });
-        if(detail.result.value.dialog.includes("Campeã") && detail.result.value.dialog.includes("Parceira de Nome Comprido GOAL") && detail.result.value.dialog.includes("Saldo")) break;
+        if(detail.result.value.dialog.includes("Campeã") && detail.result.value.dialog.includes("Parceira de Nome Comprido GOAL") && /\bSaldo\b/i.test(detail.result.value.dialog)) break;
         await pause(100);
       }
-      if (!detail.result.value.dialog.includes("Campeã") || !detail.result.value.dialog.includes("Parceira de Nome Comprido GOAL") || !detail.result.value.dialog.includes("Saldo") || detail.result.value.scrollWidth > detail.result.value.width + 1) {
+      if (!detail.result.value.dialog.includes("Campeã") || !detail.result.value.dialog.includes("Parceira de Nome Comprido GOAL") || !/\bSaldo\b/i.test(detail.result.value.dialog) || detail.result.value.scrollWidth > detail.result.value.width + 1) {
         throw new Error(`${viewport.name}: modal do histórico não mostrou campeã e classificação sem overflow: ${JSON.stringify(detail.result.value)}`);
       }
       await waitForPageFade();
@@ -2093,6 +2094,7 @@ async function main() {
           if (!selector.includes("Liga A GOAL") || !selector.includes("Lançar resultados")) throw new Error(`${viewport.name}: perfil de resultados não alcançou a categoria.`);
           const body = await visit(`/torneios/${league.id}/categorias/${category.id}?tab=games`, viewport, arenaA.id, `${viewport.name}-categoria-permissao-resultados`, restrictedToken);
           if (!body.includes("Jogo consulta GOAL") || !body.includes("Registrar sets")) throw new Error(`${viewport.name}: jogos da categoria indisponíveis para lançar resultados.`);
+          await clickElement('summary[aria-label="Editar agendamento e status de Jogo consulta GOAL"]');
           const controls = await send("Runtime.evaluate", {
             expression: "(() => { const tabs=document.querySelector('nav[aria-label=\"Etapas da categoria\"]'); const navRect=tabs?.getBoundingClientRect(); const tabRects=[...(tabs?.querySelectorAll('a') ?? [])].map((tab)=>tab.getBoundingClientRect()); const trigger=[...document.querySelectorAll('button')].find((item)=>item.textContent?.trim()==='Registrar sets'); const rect=trigger?.getBoundingClientRect(); return {tabs:tabs?.innerText ?? '',tabsFit:Boolean(navRect && tabRects.every((tab)=>tab.left >= navRect.left-1 && tab.right <= navRect.right+1 && tab.top >= navRect.top-1 && tab.bottom <= navRect.bottom+1)),schedule:document.body.innerText.includes('Salvar horário') || document.body.innerText.includes('Limpar agendamento'),status:document.body.innerText.includes('Salvar status'),trigger:Boolean(trigger),triggerLeft:rect?.left,triggerRight:rect?.right,width:innerWidth,scrollWidth:document.documentElement.scrollWidth}; })()",
             returnByValue: true,

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
+import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
 export function TournamentSectionNav({canManage,canViewTournaments}:{canManage:boolean;canViewTournaments:boolean}) {
  const path=usePathname()??"",query=useSearchParams();
  const active=path.startsWith("/torneios/rankings")?"rankings":path==="/torneios/inscricoes"?"registrations":path==="/torneios"&&query?.get("status")==="finished"?"finished":"events";

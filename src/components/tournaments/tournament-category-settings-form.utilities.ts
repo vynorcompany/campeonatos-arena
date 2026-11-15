@@ -1,3 +1,4 @@
+import { tournamentWorkspace as tws } from "@/components/tournaments/tournament-workspace";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -50,5 +51,5 @@ export const viewStyles = {
     "tw:[border-left-style:solid]", "tw:border-l-[color:#d5e1ef]", "tw:rounded-[8px]", "tw:bg-[color:#fff]",
     "tw:[background-image:none]",
   ].join(" "),
-  "button_button_primary": "button button-primary tw:inline-flex tw:min-h-9 tw:w-fit tw:max-w-full tw:items-center tw:justify-center tw:gap-2 tw:rounded-[5px] tw:border tw:px-3 tw:py-2 tw:text-[13px] tw:font-normal tw:leading-tight tw:no-underline tw:cursor-pointer tw:disabled:cursor-default tw:disabled:opacity-60 tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:[&_svg]:size-4 tw:border-[#205da8] tw:bg-[#205da8] tw:text-white tw:hover:bg-[#174983]",
+  "button_button_primary": tws.success,
 } as const;
