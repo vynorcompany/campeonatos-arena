@@ -1521,7 +1521,8 @@ async function main() {
       }
     }
     await visit(categoryPath, viewports[0], arenaA.id, "liga-ciclo-antes");
-    await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('button')].find(button => button.textContent?.includes('Processar ciclo da Liga'))?.click()" });
+    await clickElement("details:has(#league-prize-title) > summary");
+    await clickElement("details[open]:has(#league-prize-title) aside form button[type=submit]");
     let confirmation;
     for (let attempt = 0; attempt < 40; attempt += 1) {
       const response = await send("Runtime.evaluate", { expression: "({dialog:document.querySelector('[role=dialog]')?.innerText ?? '',input:Boolean(document.querySelector('[role=dialog] input[name=confirmKeyword]'))})", returnByValue: true });
