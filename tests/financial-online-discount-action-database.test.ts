@@ -1,9 +1,10 @@
+import { readFileSync } from "./helpers/domain-source";
 import { boletoPayerDocument } from "../src/lib/payments/boleto-payer";
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
-import { readFileSync } from "node:fs";
+
 import { createRequire } from "node:module";
 import { randomUUID } from "node:crypto";
 import { PrismaClient, type Prisma } from "@prisma/client";

@@ -7,6 +7,9 @@ import { env } from "@/lib/env";
 import { SystemUpdateNotice } from "@/components/system-update-notice";
 import { releaseRevision } from "@/lib/release-version";
 
+// A fresh request nonce is required for the framework bootstrap and hydration scripts.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   metadataBase: env.appUrl ? new URL(env.appUrl) : undefined,
   title: "Arena Padel Manager",

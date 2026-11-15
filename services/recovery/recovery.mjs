@@ -1,3 +1,4 @@
+import { captureApplication } from "./application-snapshot.mjs";
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
 import { spawn, execFileSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
@@ -55,6 +56,10 @@ export async function runRecovery(config){
    client.destroy();
   }
   for(const snapshot of config.snapshots||[]){
+   if(snapshot.kind==='application'){
+    const captured=await captureApplication({config,snapshot,temporary,root,key,railway,command,consumeProcess});
+    manifest.application=captured.application;manifest.snapshots.push(captured.snapshot);continue;
+   }
    const alias='arena-recovery',configFile=join(temporary,'ssh-config');
    const sshConfig=railway(config,['ssh','config','--dry-run','-p',config.projectId,'-e',config.environmentId,'-s',snapshot.serviceId,'--alias',alias,'-i',config.identityFile]);
    await writeFile(configFile,sshConfig,{mode:0o600});

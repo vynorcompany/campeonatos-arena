@@ -1,5 +1,6 @@
+import { readFileSync } from "./helpers/domain-source";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+
 import test from "node:test";
 import { hasExistingOnlineCharge } from "../src/lib/payments/existing-online-charge";
 

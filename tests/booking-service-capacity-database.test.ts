@@ -1,3 +1,4 @@
+import { readFileSync } from "./helpers/domain-source";
 import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import { moveBookingCourt } from "../src/lib/calendar/staff-operations";
 import * as serviceBookingRules from "../src/lib/calendar/service-booking-rules";
@@ -8,7 +9,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
-import { readFileSync } from "node:fs";
+
 import { createRequire } from "node:module";
 import { randomUUID } from "node:crypto";
 import { PrismaClient, type Prisma } from "@prisma/client";

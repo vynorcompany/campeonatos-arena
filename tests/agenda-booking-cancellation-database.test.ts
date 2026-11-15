@@ -1,3 +1,4 @@
+import { readFileSync } from "./helpers/domain-source";
 import * as boletoPayer from "../src/lib/payments/boleto-payer";
 import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import * as playerValidators from "../src/lib/validators/player";
@@ -8,7 +9,7 @@ import * as bookingResources from "../src/lib/calendar/booking-services";
 import { arenaDatabaseForTest } from "./helpers/arena-database";
 import { arenaBookingPath } from "../src/lib/arena-booking-path";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+
 import { createRequire } from "node:module";
 import test from "node:test";
 import vm from "node:vm";

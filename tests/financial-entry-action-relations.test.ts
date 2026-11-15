@@ -1,7 +1,8 @@
+import { readFileSync } from "./helpers/domain-source";
 import { entryAdjustedAmount, entryAdjustmentNotes } from "../src/lib/finance/entry-adjustments";
 import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";

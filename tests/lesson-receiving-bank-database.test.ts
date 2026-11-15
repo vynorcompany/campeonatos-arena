@@ -1,6 +1,7 @@
+import { readFileSync } from "./helpers/domain-source";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";

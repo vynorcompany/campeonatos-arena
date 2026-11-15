@@ -1,9 +1,10 @@
+import { readFileSync } from "./helpers/domain-source";
 import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import { calculateBankAccountBalanceCents } from "../src/lib/finance/bank-balance";
 import { loadLedgerMovements } from "../src/lib/reports/ledger-movements";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+
 import test from "node:test";
 import vm from "node:vm";
 import { Prisma, PrismaClient } from "@prisma/client";

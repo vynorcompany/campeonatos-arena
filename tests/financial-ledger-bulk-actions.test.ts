@@ -1,5 +1,6 @@
+import { readStyledFileSync as readFileSync } from "./helpers/domain-source";
 import { styleRules, utilityClasses } from "./helpers/utility-styles";
-import { readFileSync } from "./helpers/style-source";
+
 import assert from "node:assert/strict";
 
 import { resolve } from "node:path";
@@ -43,10 +44,7 @@ test("manual expense creation keeps supplier creation inside the arena RLS trans
 
 test("financial settings are created inside the active arena RLS transaction", () => {
   const actions = read("src/lib/actions/finance.ts");
-  const createSettings = actions.slice(
-    actions.indexOf("export async function createFinancialSettingAction"),
-    actions.indexOf("export async function upsertPayrollEntryAction")
-  );
+  const createSettings = read("src/lib/actions/finance/settings.ts");
 
   assert.match(createSettings, /withArenaTransaction\(auth\.arenaId, async \(tx\) => \{/);
   assert.match(createSettings, /tx\.financialCategory\.create/);

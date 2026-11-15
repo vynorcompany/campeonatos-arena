@@ -1,6 +1,7 @@
+import { readFileSync } from "./helpers/domain-source";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+
 import vm from "node:vm";
 import { randomUUID } from "node:crypto";
 import { reservationCreditGrants } from "../src/lib/plans/reservation-credits";
