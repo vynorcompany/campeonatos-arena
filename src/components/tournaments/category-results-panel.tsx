@@ -283,7 +283,7 @@ export function CategoryResultsPanel({
                             <strong>
                               {match.homeScore ?? "–"} × {match.awayScore ?? "–"}
                             </strong>
-                            <StatusBadge status={matchStatus} />
+                            <StatusBadge status={matchStatus} compact />
                             {match.woReason ? <small className={viewStyles.league_wo_badge}>W.O.</small> : null}
                             {canRecordResults && competition.format === "LEAGUE" && canRecord ? <LeagueMatchResultDialog match={match} /> : null}
                           </div>
