@@ -1,5 +1,6 @@
+import { readStyledFileSync as readFileSync } from "./helpers/domain-source";
 import { styleRules, utilityClasses } from "./helpers/utility-styles";
-import { readFileSync } from "./helpers/style-source";
+
 import assert from "node:assert/strict";
 import test from "node:test";
 

@@ -1,4 +1,5 @@
-import { readFile } from "./helpers/style-source";
+import { readStyledFile as readFile } from "./helpers/domain-source";
+
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -147,10 +148,7 @@ test("recording a result marks the match as finished and guards downstream knock
     path.join(workspaceRoot, "src", "lib", "services", "category-competition.ts"),
     "utf8",
   );
-  const resultSource = source.slice(
-    source.indexOf("export async function recordCategoryMatchResult"),
-    source.indexOf("export async function finishCategoryCompetition"),
-  );
+  const resultSource = await readFile(path.join(workspaceRoot, "src/lib/services/category-competition/matches.ts"), "utf8");
 
   assert.match(resultSource, /manualStatus:\s*"FINISHED"/);
   assert.match(resultSource, /assertStoredMatchCanBeCorrected/);

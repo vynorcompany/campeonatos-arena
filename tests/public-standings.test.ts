@@ -1,6 +1,7 @@
+import { readStyledFile as readFile } from "./helpers/domain-source";
 import { readPortalSources } from "./helpers/portal-source";
 import { styleRules, utilityClasses } from "./helpers/utility-styles";
-import { readFile } from "./helpers/style-source";
+
 import assert from "node:assert/strict";
 import { readdir } from "node:fs/promises";
 import path from "node:path";

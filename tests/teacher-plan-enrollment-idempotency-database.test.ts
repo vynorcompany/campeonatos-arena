@@ -1,9 +1,10 @@
+import { readFileSync } from "./helpers/domain-source";
 import { lessonCreditState } from "../src/lib/academy/lesson-credits";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import { arenaDatabaseForTest } from "./helpers/arena-database";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+
 import { createRequire } from "node:module";
 import test from "node:test";
 import vm from "node:vm";

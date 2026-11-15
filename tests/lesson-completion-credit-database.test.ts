@@ -1,7 +1,8 @@
+import { readFileSync } from "./helpers/domain-source";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+
 import vm from "node:vm";
 import ts from "typescript";
 import { PrismaClient, type Prisma } from "@prisma/client";

@@ -1,8 +1,9 @@
+import { readFileSync } from "./helpers/domain-source";
 import * as reservationCredits from "../src/lib/plans/reservation-credits";
 import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";

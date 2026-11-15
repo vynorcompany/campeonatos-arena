@@ -1,5 +1,6 @@
+import { readFileSync } from "./helpers/domain-source";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+
 import test from "node:test";
 import { activeCourtOccurrenceWhere, onlineBookingHoldCutoff, onlineBookingPixExpiration, ONLINE_BOOKING_PAYMENT_HOLD_MINUTES } from "../src/lib/calendar/online-booking-hold";
 import { pixPaymentExpiration } from "../src/lib/payments/pix-expiration";

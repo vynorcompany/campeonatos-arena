@@ -1,10 +1,11 @@
+import { readFileSync } from "./helpers/domain-source";
 import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
-import { readFileSync } from "node:fs";
+
 import { randomUUID } from "node:crypto";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { settlementSchema } from "../src/lib/finance/action-schemas";

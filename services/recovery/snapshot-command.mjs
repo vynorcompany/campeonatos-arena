@@ -3,6 +3,8 @@ export const shellQuote=value=>"'"+value.replaceAll("'","'\\''")+"'";
 export function snapshotCommand(snapshot){
  if(snapshot.kind==='redis')return "umask 077; temporary=$(mktemp /tmp/arena-recovery-redis.XXXXXX); trap 'rm -f \"$temporary\"' EXIT; export REDISCLI_AUTH=\"${REDISPASSWORD:-${REDIS_PASSWORD:-}}\"; redis-cli --rdb \"$temporary\" >&2 && cat \"$temporary\"";
  if(snapshot.kind==='postgres-status')return 'psql "$DATABASE_URL" -X -q -t -A -v ON_ERROR_STOP=1 -c '+shellQuote(postgresStatusSql);
+ if(snapshot.kind==='application-status')return 'cd /app && node -e '+shellQuote("const fs=require('node:fs');process.stdout.write(JSON.stringify({revision:process.env.RAILWAY_GIT_COMMIT_SHA,buildId:fs.readFileSync('.next/BUILD_ID','utf8').trim()}))");
+ if(snapshot.kind==='application')return "set -eu; cd /app; test -f .next/BUILD_ID; set -- .next node_modules public scripts prisma package.json package-lock.json next.config.mjs; if test -d src/lib/security; then set -- \"$@\" src/lib/security; fi; tar --exclude='.next/cache' --exclude='.next/standalone/public/uploads' --exclude='public/uploads' -czf - \"$@\"";
  if(snapshot.kind==='postgres')return 'pg_dump --format=custom --no-owner "$DATABASE_URL"';
  if(snapshot.kind==='files'&&snapshot.path?.startsWith('/')&&!snapshot.path.includes('..'))return `tar -czf - -C ${shellQuote(snapshot.path)} .`;
  throw new Error('Invalid recovery snapshot.');

@@ -1,9 +1,10 @@
+import { readFileSync } from "./helpers/domain-source";
 import { entryAdjustedAmount, entryAdjustmentNotes } from "../src/lib/finance/entry-adjustments";
 import { readCardInstallmentCount } from "../src/lib/finance/card-installments";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+
 import test from "node:test";
 import vm from "node:vm";
 import { PrismaClient } from "@prisma/client";

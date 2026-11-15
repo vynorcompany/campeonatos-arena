@@ -9,7 +9,8 @@ test("production responses declare the baseline browser security headers", () =>
   for (const header of ["Content-Security-Policy", "Strict-Transport-Security", "X-Content-Type-Options", "X-Frame-Options", "Referrer-Policy", "Permissions-Policy"]) {
     assert.match(config, new RegExp(header));
   }
-  assert.match(config, /frame-ancestors 'none'/);
-  assert.match(config, /object-src 'none'/);
-  assert.match(config, /media-src 'self' blob: https:/);
+  const policy = readFileSync(resolve(process.cwd(), "src/lib/security/content-security-policy.mjs"), "utf8");
+  assert.match(policy, /frame-ancestors 'none'/);
+  assert.match(policy, /object-src 'none'/);
+  assert.match(policy, /media-src 'self' blob: https:/);
 });
