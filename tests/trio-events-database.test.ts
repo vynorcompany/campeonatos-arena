@@ -48,6 +48,11 @@ test("Trio group and knockout encounters enforce formations, aggregate results, 
       const players = await Promise.all([0, 1, 2].map(n => admin.player.create({ data: { arenaId: arenas[0], name: `Trio ${i} atleta ${n}` } })));
       await admin.categoryPair.create({ data: { competitionId: competition.id, name: "Equipe " + i, drawOrder: i + 1, players: { create: players.map((player, n) => ({ playerId: player.id, slot: n + 1 })) } } });
     }
+    const legacyCategory = await admin.tournamentCategory.create({ data: { tournamentId: tournament.id, name: "Duplas preservadas QA", level: 3 } });
+    const legacyRegistration = await admin.publicTournamentRegistration.create({ data: { tournamentId: tournament.id, categoryId: legacyCategory.id, registrationOrder: 2, leadName: "Dupla Antiga Um", leadPhone: "42999990004", leadCpf: "44444444444", partnerName: "Dupla Antiga Dois", partnerPhone: "42999990005", partnerCpf: "55555555555", amountCents: 20000, status: "CONFIRMED", paymentStatus: "PAID" } });
+    await assert.rejects(load("src/lib/services/category-competition/lifecycle.ts").createCategoryCompetition(arenas[0], { categoryId: legacyCategory.id, class: "", gender: "", format: "TRIO", rankingId: null, isPublic: true }), /já possui inscrições de duplas/);
+    assert.equal(await admin.categoryCompetition.count({ where: { categoryId: legacyCategory.id } }), 0);
+    assert.equal((await admin.publicTournamentRegistration.findUniqueOrThrow({ where: { id: legacyRegistration.id } })).amountCents, 20000);
     const draw = load("src/lib/services/category-competition/draw.ts"), service = load("src/lib/services/category-trio.ts"), matches = load("src/lib/services/category-competition/matches.ts");
     await draw.generateCategoryDraw(arenas[0], competition.id); await draw.publishCategoryDraw(arenas[0], competition.id);
     const group = await admin.categoryMatch.findMany({ where: { competitionId: competition.id, stage: "GROUP" }, orderBy: { roundOrder: "asc" }, include: { homePair: { include: { players: { orderBy: { slot: "asc" } } } }, awayPair: { include: { players: { orderBy: { slot: "asc" } } } } } });

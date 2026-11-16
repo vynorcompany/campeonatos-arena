@@ -13,6 +13,7 @@ export function validateRegistrationThird(format: string | undefined, input: { t
 export async function ensureRegistrationTrio(tx: Prisma.TransactionClient, arenaId: string, registrationId: string) {
   const registration = await tx.publicTournamentRegistration.findFirst({ where: { id: registrationId, tournament: { arenaId } }, include: { category: { include: { competition: true } } } });
   if (registration?.category?.competition?.format !== "TRIO") return false;
+  if (registration.paymentStatus !== "PAID" || registration.status !== "CONFIRMED") throw new Error("Confirme o pagamento antes de incluir o Trio na competição.");
   const competition = registration.category.competition;
   validateRegistrationThird("TRIO", registration);
   const roster: Player[] = [];
