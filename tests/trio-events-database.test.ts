@@ -38,6 +38,10 @@ test("Trio group and knockout encounters enforce formations, aggregate results, 
     const registrationCategory = await admin.tournamentCategory.create({ data: { tournamentId: tournament.id, name: "Inscrições Trio QA", level: 2 } });
     const registrationCompetition = await admin.categoryCompetition.create({ data: { categoryId: registrationCategory.id, format: "TRIO" } });
     const registration = await admin.publicTournamentRegistration.create({ data: { tournamentId: tournament.id, categoryId: registrationCategory.id, competitionId: registrationCompetition.id, registrationOrder: 1, leadName: "Primeiro Atleta", leadPhone: "42999990001", leadCpf: "11111111111", partnerName: "Segundo Atleta", partnerPhone: "42999990002", partnerCpf: "22222222222", thirdName: "Terceiro Atleta", thirdPhone: "42999990003", thirdCpf: "33333333333", amountCents: 30000, paymentStatus: "PAID", status: "CONFIRMED" } });
+    await admin.publicTournamentRegistration.update({ where: { id: registration.id }, data: { status: "PENDING_PAYMENT", paymentStatus: "PENDING" } });
+    await assert.rejects(scope(arenas[0], (tx: any) => ensureRegistrationTrio(tx, arenas[0], registration.id)), /Confirme o pagamento/);
+    assert.equal(await admin.categoryPair.count({ where: { competitionId: registrationCompetition.id } }), 0);
+    await admin.publicTournamentRegistration.update({ where: { id: registration.id }, data: { status: "CONFIRMED", paymentStatus: "PAID" } });
     await scope(arenas[0], (tx: any) => ensureRegistrationTrio(tx, arenas[0], registration.id));
     await scope(arenas[0], (tx: any) => ensureRegistrationTrio(tx, arenas[0], registration.id));
     const registeredTeams = await admin.categoryPair.findMany({ where: { competitionId: registrationCompetition.id }, include: { players: true } });
