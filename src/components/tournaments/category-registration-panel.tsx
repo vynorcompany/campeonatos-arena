@@ -34,7 +34,7 @@ type RegistrationCategory = {
   gender: string;
   competition: {
     id: string;
-    format: "LEAGUE" | "THREE_GROUPS" | "FOUR_GROUPS" | "SIMPLE";
+    format: "LEAGUE" | "THREE_GROUPS" | "FOUR_GROUPS" | "SIMPLE" | "TRIO";
     leagueTier: string;
     status: string;
     pairs: Array<{
@@ -110,7 +110,7 @@ export function CategoryRegistrationPanel({
             <div className={cx(`${viewStyles.page_header} ${category.competition?.format === "LEAGUE" ? viewStyles.league_registration_hero : ""}`)}>
               <div className={viewStyles.stack_xs}>
                 {categories.length > 1 ? <strong className="tw:text-sm">{category.name}</strong> : null}
-                <span className="tw:text-xs tw:font-semibold">{category.competition?.pairs.length ?? 0} duplas inscritas</span>
+                <span className="tw:text-xs tw:font-semibold">{category.competition?.pairs.length ?? 0} {category.competition?.format === "TRIO" ? "trios inscritos" : "duplas inscritas"}</span>
               </div>
               <StatusBadge
                 status={category.competition?.status ?? "DRAFT"}
@@ -125,7 +125,7 @@ export function CategoryRegistrationPanel({
             ) : (
               <>
                 {canAcceptManualPair ? (
-                  <CategoryPairForm competitionId={category.competition.id} athletes={availableAthletes} />
+                  <CategoryPairForm competitionId={category.competition.id} athletes={availableAthletes} trio={category.competition?.format === "TRIO"} />
                 ) : category.competition.status !== "DRAFT" ? (
                   <p className={viewStyles.muted}>
                     As inscrições manuais ficam bloqueadas após a publicação.
@@ -138,7 +138,7 @@ export function CategoryRegistrationPanel({
                 )}
 
                 <div className={cx(`stack-sm ${category.competition.format === "LEAGUE" ? viewStyles.league_registration_list_section : ""}`)}>
-                  <div className={`${rosterUi.head} tw:grid-cols-[minmax(0,1fr)_auto]`}><span>Dupla</span><span>Ações</span></div>
+                  <div className={`${rosterUi.head} tw:grid-cols-[minmax(0,1fr)_auto]`}><span>{category.competition?.format === "TRIO" ? "Trio" : "Dupla"}</span><span>Ações</span></div>
                   {category.competition.pairs.length ? (
                     <div className={cx(`${viewStyles.simple_list} ${category.competition.format === "LEAGUE" ? viewStyles.league_registration_list : ""}`)}>
                       {category.competition.pairs.map((pair) => (
@@ -147,14 +147,14 @@ export function CategoryRegistrationPanel({
                             {pair.playerNames.length ? pair.playerNames.map((name,index)=><span className="tw:flex tw:min-w-0 tw:items-center tw:gap-2" key={`${pair.id}-${index}`}><ClientAvatar name={name}/><span className="tw:min-w-0 tw:break-words">{name}</span></span>) : <span>{pair.name}</span>}
                           </div>
                           {canRemovePair ? (
-                            <SafeActionForm action={removeCategoryPairAction} successMessage="Dupla removida." confirmKeyword="REMOVER" confirmPrompt={`Remover a dupla ${pair.playerNames.length ? pair.playerNames.join(" / ") : pair.name} desta categoria? Digite REMOVER para confirmar.`}>
+                            <SafeActionForm action={removeCategoryPairAction} successMessage={category.competition?.format === "TRIO" ? "Trio removido." : "Dupla removida."} confirmKeyword="REMOVER" confirmPrompt={`Remover ${category.competition?.format === "TRIO" ? "o trio" : "a dupla"} ${pair.playerNames.length ? pair.playerNames.join(" / ") : pair.name} desta categoria? Digite REMOVER para confirmar.`}>
                               <input
                                 type="hidden"
                                 name="pairId"
                                 value={pair.id}
                               />
                               <SubmitButton
-                                label="Remover dupla"
+                                label={category.competition?.format === "TRIO" ? "Remover trio" : "Remover dupla"}
                                 pendingLabel="Removendo..."
                                 className={viewStyles.button_button_danger}
                               />
@@ -176,7 +176,7 @@ export function CategoryRegistrationPanel({
                       ))}
                     </div>
                   ) : (
-                    <p className={viewStyles.muted}>Nenhuma dupla confirmada.</p>
+                    <p className={viewStyles.muted}>{category.competition?.format === "TRIO" ? "Nenhum trio confirmado." : "Nenhuma dupla confirmada."}</p>
                   )}
                 </div>
               </>

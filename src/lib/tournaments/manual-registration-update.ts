@@ -1,3 +1,4 @@
+import { validateRegistrationThird } from "@/lib/tournaments/trio-registration";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { recordTournamentRegistrationReceipt } from "@/lib/tournaments/registration-receipt";
 import type { Prisma } from "@prisma/client";
@@ -14,7 +15,7 @@ type Input = Omit<z.infer<typeof updateManualTournamentRegistrationSchema>, "amo
 export async function updateManualTournamentRegistration(tx: Prisma.TransactionClient, input: Input): Promise<{ ok: true } | { ok: false; error: string }> {
   const registration = await tx.publicTournamentRegistration.findFirst({
     where: { id: input.registrationId, tournamentId: input.tournamentId, tournament: { arenaId: input.arenaId } },
-    select: { id: true, status: true, paymentStatus: true, paymentProvider: true, paymentReference: true, mercadoPagoPaymentId: true, paymentCheckoutUrl: true },
+    select: { id: true, status: true, paymentStatus: true, paymentProvider: true, paymentReference: true, mercadoPagoPaymentId: true, paymentCheckoutUrl: true, category: { select: { competition: { select: { format: true } } } } },
   });
   if (!registration) return { ok: false, error: "Inscrição não encontrada nesta arena." };
   if (registration.status === "CANCELED" || ["REVIEW", "REFUNDED"].includes(registration.paymentStatus)) {
@@ -26,10 +27,13 @@ export async function updateManualTournamentRegistration(tx: Prisma.TransactionC
 
   const category = await tx.tournamentCategory.findFirst({
     where: { id: input.categoryId, tournamentId: input.tournamentId, tournament: { arenaId: input.arenaId }, active: true },
-    select: { id: true },
+    select: { id: true, competition: { select: { id: true, format: true, status: true } } },
   });
   if (!category) return { ok: false, error: "Categoria inválida para este torneio." };
 
+  if ((registration.category?.competition?.format === "TRIO") !== (category.competition?.format === "TRIO")) return { ok: false, error: "A categoria de destino deve manter a modalidade da inscrição." };
+  try { validateRegistrationThird(category.competition?.format, input); } catch (error) { return { ok: false, error: error instanceof Error ? error.message : "Equipe inválida." }; }
+  if (category.competition?.format === "TRIO" && category.competition.status !== "DRAFT") return { ok: false, error: "As inscrições do Trio já foram encerradas." };
   let bankAccountId: string | null = null;
   if (input.paymentStatus === "PAID" && input.amountCents > 0) {
     try { bankAccountId = await requireReceivingBankAccount(tx, input.arenaId, input.bankAccountId); }
@@ -40,6 +44,7 @@ export async function updateManualTournamentRegistration(tx: Prisma.TransactionC
     where: { id: registration.id, tournamentId: input.tournamentId, status: "PENDING_PAYMENT", paymentStatus: "PENDING", paymentProvider: "MANUAL", paymentReference: "", mercadoPagoPaymentId: "", paymentCheckoutUrl: "" },
     data: {
       categoryId: category.id,
+      competitionId: category.competition?.format === "TRIO" ? category.competition.id : undefined,
       leadName: input.leadName,
       leadPhone: input.leadPhone,
       leadCpf: input.leadCpf,
@@ -48,6 +53,7 @@ export async function updateManualTournamentRegistration(tx: Prisma.TransactionC
       partnerPhone: input.partnerPhone,
       partnerCpf: input.partnerCpf,
       partnerBirthDate: input.partnerBirthDate,
+      thirdName: input.thirdName, thirdPhone: input.thirdPhone, thirdCpf: input.thirdCpf, thirdBirthDate: input.thirdBirthDate,
       amountCents: input.amountCents,
       paymentStatus: input.paymentStatus,
       status: input.paymentStatus === "PAID" ? "CONFIRMED" : "PENDING_PAYMENT",
@@ -59,6 +65,8 @@ export async function updateManualTournamentRegistration(tx: Prisma.TransactionC
 
   if (input.paymentStatus === "PAID") {
     await ensureTournamentPairFromRegistration(tx, {
+      thirdCpf: input.thirdCpf,
+      registrationId: registration.id,
       arenaId: input.arenaId,
       tournamentId: input.tournamentId,
       leadName: input.leadName,

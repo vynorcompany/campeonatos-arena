@@ -24,7 +24,7 @@ const initialState: ActionState = {
 
 type TournamentParticipantsFormProps = {
   tournamentId: string;
-  categories?: Array<{ id: string; name: string }>;
+  categories?: Array<{ id: string; name: string; competition?: { format: string } | null }>;
   registrations?: Array<{
     id: string;
     categoryId: string;
@@ -32,6 +32,10 @@ type TournamentParticipantsFormProps = {
     leadPhone: string;
     leadCpf: string;
     leadBirthDate: string;
+    thirdName?: string;
+    thirdPhone?: string;
+    thirdCpf?: string;
+    thirdBirthDate?: string;
     partnerName: string;
     partnerPhone: string;
     partnerCpf: string;
@@ -79,19 +83,21 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
     if (!registrations) return [];
     if (!normalizedSearch) return registrations;
     return registrations.filter((item) => {
-      const blob = `${item.leadName} ${item.partnerName} ${item.categoryName}`.toLowerCase();
+      const blob = `${item.leadName} ${item.partnerName} ${item.thirdName ?? ""} ${item.categoryName}`.toLowerCase();
       return blob.includes(normalizedSearch);
     });
   }, [normalizedSearch, registrations]);
 
   const safeCategories = categories ?? [];
+  const [selectedCategoryId, setSelectedCategoryId] = useState(categories?.[0]?.id ?? "");
+  const trio = safeCategories.find(category => category.id === selectedCategoryId)?.competition?.format === "TRIO";
   const eligiblePlayers = (players ?? []).filter((player) => player.phone && /^\d{11}$/.test(player.cpf));
   const safeFiltered = filtered ?? [];
 
   return (
     <div className={viewStyles.stack_md}>
       <article className={viewStyles.section_card}>
-        <h3>Inscrever dupla manualmente</h3>
+        <h3>Inscrever equipe manualmente</h3>
         {!eligiblePlayers.length ? (
           <p className={viewStyles.muted}>Nenhum atleta ativo possui os dados completos. Atualize telefone e CPF em <a href="/jogadores">Atletas</a>.</p>
         ) : (
@@ -99,7 +105,7 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
           <input type="hidden" name="tournamentId" value={tournamentId} />
           <div className={viewStyles.field}>
             <label htmlFor="categoryId">Categoria</label>
-            <SmartEntitySelect createKind="tournament-category" contextId={tournamentId} label="Categoria" id="categoryId" name="categoryId" required>
+            <SmartEntitySelect createKind="tournament-category" contextId={tournamentId} label="Categoria" id="categoryId" name="categoryId" value={selectedCategoryId} onChange={event => setSelectedCategoryId(event.target.value)} required>
               {safeCategories.map((category) => (
                 <option key={category.id} value={category.id}>{category.name}</option>
               ))}
@@ -123,8 +129,9 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
               ))}
             </SmartEntitySelect>
           </div>
+          {trio ? <div className={viewStyles.field}><label htmlFor="thirdPlayerId">Atleta 3</label><SmartEntitySelect createKind="client" label="Atleta 3" id="thirdPlayerId" name="thirdPlayerId" required><option value="">Selecione um atleta</option>{eligiblePlayers.map(player => <option key={player.id} value={player.id}>{player.name}</option>)}</SmartEntitySelect></div> : null}
           <div className={viewStyles.field}>
-            <label htmlFor="amountReais">Valor (R$)</label>
+            <label htmlFor="amountReais">{trio ? "Total da equipe (R$)" : "Valor (R$)"}</label>
             <input id="amountReais" name="amountReais" type="text" placeholder="Ex.: 150,00" required />
           </div>
           <div className={viewStyles.field}>
@@ -161,7 +168,7 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
               return (
                 <div key={registration.id} className={viewStyles.simple_item}>
                   <div className={viewStyles.stack_xs}>
-                    <strong>{registration.leadName} / {registration.partnerName}</strong>
+                    <strong>{[registration.leadName, registration.partnerName, registration.thirdName].filter(Boolean).join(" / ")}</strong>
                     <span className={viewStyles.muted}>
                       {registration.categoryName} · {formatCurrency(registration.amountCents)} · {new Date(registration.createdAt).toLocaleString("pt-BR")}
                     </span>
@@ -186,8 +193,8 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
                         <input type="hidden" name="tournamentId" value={tournamentId} />
                         <div className={viewStyles.field}>
                           <label>Categoria</label>
-                          <SmartEntitySelect createKind="tournament-category" contextId={tournamentId} label="Categoria" name="categoryId" defaultValue={registration.categoryId} required>
-                            {safeCategories.map((category) => (
+                          <SmartEntitySelect label="Categoria" name="categoryId" defaultValue={registration.categoryId} required>
+                            {safeCategories.filter(category => (category.competition?.format === "TRIO") === (Boolean(registration.thirdName) || safeCategories.find(original => original.id === registration.categoryId)?.competition?.format === "TRIO")).map((category) => (
                               <option key={category.id} value={category.id}>{category.name}</option>
                             ))}
                           </SmartEntitySelect>
@@ -224,6 +231,7 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
                           <label>Nascimento atleta 2 (opcional)</label>
                           <input name="partnerBirthDate" type="text" inputMode="numeric" placeholder="dd/mm/aaaa" defaultValue={registration.partnerBirthDate ? new Date(registration.partnerBirthDate).toLocaleDateString("pt-BR") : ""} />
                         </div>
+                        {registration.thirdName || safeCategories.find(category => category.id === registration.categoryId)?.competition?.format === "TRIO" ? <><div className={viewStyles.field}><label>Atleta 3</label><input name="thirdName" defaultValue={registration.thirdName} required /></div><div className={viewStyles.field}><label>Telefone atleta 3</label><input name="thirdPhone" defaultValue={registration.thirdPhone} required /></div><div className={viewStyles.field}><label>CPF atleta 3</label><input name="thirdCpf" defaultValue={registration.thirdCpf} required /></div><div className={viewStyles.field}><label>Nascimento atleta 3 (opcional)</label><input name="thirdBirthDate" type="date" defaultValue={registration.thirdBirthDate?.slice(0,10) ?? ""} /></div></> : null}
                         <div className={viewStyles.field}>
                           <label>Valor (R$)</label>
                           <input name="amountReais" defaultValue={(registration.amountCents / 100).toFixed(2).replace(".", ",")} required />

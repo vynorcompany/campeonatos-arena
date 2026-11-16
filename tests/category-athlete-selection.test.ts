@@ -46,7 +46,7 @@ test("inscrição manual pendente não entra na chave e não pode simular análi
   const action = read("src", "lib", "actions", "tournament.ts");
   assert.match(action, /if \(parsed\.data\.paymentStatus === "PAID"\) \{\s*await ensureTournamentPairFromRegistration\(tx/);
   const lockIndex = action.indexOf("await lockTournamentRegistrations(tx, parsed.data.tournamentId, auth.arenaId)");
-  const categoryIndex = action.indexOf('SELECT "id" FROM "TournamentCategory"', lockIndex);
+  const categoryIndex = action.indexOf('SELECT tc."id"', lockIndex);
   const createIndex = action.indexOf("await tx.publicTournamentRegistration.create", categoryIndex);
   assert.ok(lockIndex >= 0 && categoryIndex > lockIndex && createIndex > categoryIndex, "Categoria ativa deve ser revalidada depois do lock e antes da criação.");
   assert.match(action.slice(categoryIndex, createIndex), /FOR UPDATE/);

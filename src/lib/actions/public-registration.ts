@@ -1,4 +1,5 @@
 "use server";
+import { validateRegistrationThird } from "@/lib/tournaments/trio-registration";
 
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { revalidatePath } from "next/cache";
@@ -58,7 +59,8 @@ export async function createPublicRegistrationAction(
     partnerName: formData.get("partnerName"),
     partnerPhone: formData.get("partnerPhone"),
     partnerCpf: normalizeCpf(String(formData.get("partnerCpf") ?? "")),
-    partnerBirthDate: null
+    partnerBirthDate: null,
+    thirdName: formData.get("thirdName"), thirdPhone: formData.get("thirdPhone"), thirdCpf: normalizeCpf(String(formData.get("thirdCpf") ?? "")), thirdBirthDate: null
   });
 
   if (!parsed.success) {
@@ -76,6 +78,7 @@ export async function createPublicRegistrationAction(
         include: {
           categories: {
             where: { active: true },
+            include: { competition: { select: { id: true, format: true, status: true } } },
             orderBy: { level: "asc" }
           }
         }
@@ -91,6 +94,9 @@ export async function createPublicRegistrationAction(
 
       const selectedCategory = tournament.categories.find((category) => category.id === parsed.data.categoryId);
       if (!selectedCategory) throw new Error("Categoria invalida.");
+      const isTrio = selectedCategory.competition?.format === "TRIO";
+      validateRegistrationThird(selectedCategory.competition?.format, parsed.data);
+      if (isTrio && selectedCategory.competition?.status !== "DRAFT") throw new Error("As inscrições desta categoria de Trio já foram encerradas.");
 
       await releaseExpiredPublicRegistrationHolds(tx, tournament.id, now);
 
@@ -108,11 +114,11 @@ export async function createPublicRegistrationAction(
       // CPF is the athlete identity in public registration. Counts below are
       // intentionally calculated per CPF, so the second and third prices
       // follow the athlete even when they enter with a different partner.
-      const cpfs = [parsed.data.leadCpf, parsed.data.partnerCpf];
+      const cpfs = [parsed.data.leadCpf, parsed.data.partnerCpf, ...(isTrio ? [parsed.data.thirdCpf] : [])];
       const registrations = await tx.publicTournamentRegistration.findMany({
         where: {
           tournamentId: tournament.id,
-          OR: [{ leadCpf: { in: cpfs } }, { partnerCpf: { in: cpfs } }],
+          OR: [{ leadCpf: { in: cpfs } }, { partnerCpf: { in: cpfs } }, { thirdCpf: { in: cpfs } }],
           status: {
             not: "CANCELED"
           }
@@ -124,6 +130,7 @@ export async function createPublicRegistrationAction(
         }
       });
 
+      if (isTrio && registrations.some(item => item.categoryId === selectedCategory.id)) throw new Error("Um dos atletas já está inscrito nesta categoria.");
       const registrationOrder = await nextTournamentRegistrationOrder(tx, tournament.id);
 
       if (selectedCategory.allowedRegistrationCategoryIds.length) {
@@ -140,10 +147,10 @@ export async function createPublicRegistrationAction(
       }
 
       const leadCount = registrations.filter(
-        (item) => item.leadCpf === parsed.data.leadCpf || item.partnerCpf === parsed.data.leadCpf
+        (item) => item.leadCpf === parsed.data.leadCpf || item.partnerCpf === parsed.data.leadCpf || item.thirdCpf === parsed.data.leadCpf
       ).length;
       const partnerCount = registrations.filter(
-        (item) => item.leadCpf === parsed.data.partnerCpf || item.partnerCpf === parsed.data.partnerCpf
+        (item) => item.leadCpf === parsed.data.partnerCpf || item.partnerCpf === parsed.data.partnerCpf || item.thirdCpf === parsed.data.partnerCpf
       ).length;
 
       const categoryPricing = {
@@ -154,7 +161,9 @@ export async function createPublicRegistrationAction(
 
       const leadAmountCents = getPriceByOrder(leadCount + 1, categoryPricing);
       const partnerAmountCents = getPriceByOrder(partnerCount + 1, categoryPricing);
-      const grossAmountCents = leadAmountCents + partnerAmountCents;
+      const thirdCount = isTrio ? registrations.filter(item => [item.leadCpf, item.partnerCpf, item.thirdCpf].includes(parsed.data.thirdCpf)).length : 0;
+      const thirdAmountCents = isTrio ? getPriceByOrder(thirdCount + 1, categoryPricing) : 0;
+      const grossAmountCents = leadAmountCents + partnerAmountCents + thirdAmountCents;
       const discountCents = tournament.earlyDiscountCents > 0 && (!tournament.earlyDiscountUntil || now <= tournament.earlyDiscountUntil)
         ? Math.min(grossAmountCents, tournament.earlyDiscountCents)
         : 0;
@@ -180,6 +189,8 @@ export async function createPublicRegistrationAction(
           partnerPhone: parsed.data.partnerPhone,
           partnerCpf: parsed.data.partnerCpf,
           partnerBirthDate: parsed.data.partnerBirthDate,
+          thirdName: parsed.data.thirdName, thirdPhone: parsed.data.thirdPhone, thirdCpf: parsed.data.thirdCpf, thirdBirthDate: parsed.data.thirdBirthDate,
+          competitionId: isTrio ? selectedCategory.competition!.id : undefined,
           registrationOrder,
           amountCents,
           paymentBankAccountId,
@@ -215,6 +226,8 @@ export async function createPublicRegistrationAction(
           data: { paymentStatus: "PAID", paymentProvider: "FREE", paymentReference: "FREE", status: "CONFIRMED" }
         });
         await ensureTournamentPairFromRegistration(tx, {
+          thirdCpf: result.registration.thirdCpf,
+          registrationId: result.registration.id,
           arenaId: result.arenaId,
           tournamentId: result.registration.tournamentId,
           leadName: result.registration.leadName,
@@ -273,6 +286,8 @@ export async function createPublicRegistrationAction(
         });
 
         await ensureTournamentPairFromRegistration(tx, {
+          thirdCpf: result.registration.thirdCpf,
+          registrationId: result.registration.id,
           arenaId: result.arenaId,
           tournamentId: result.registration.tournamentId,
           leadName: result.registration.leadName,

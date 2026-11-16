@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import test from "node:test";
 import vm from "node:vm";
+import { createRequire } from "node:module";
 import ts from "typescript";
 import { canPerformPermission } from "../src/lib/permissions";
 
@@ -84,6 +85,7 @@ test("gestão, publicação, resultado e ranking não concedem acesso entre si",
 
 test("ações rejeitam o perfil sem permissão antes de consultar o banco", async () => {
   for (const [name, actions] of [
+    ["category-trio", ["recordCategoryTrioGameAction"]],
     ["tournament", ["createTournamentAction", "createRankingProfileAction", "generateCategoryBracketAction"]],
     ["category-competition", ["createCategoryCompetitionAction", "publishCategoryDrawAction", "recordCategoryMatchResultAction", "runLeagueLifecycleAction"]],
   ] as const) {
@@ -98,7 +100,7 @@ test("ações rejeitam o perfil sem permissão antes de consultar o banco", asyn
         ? { requirePermission: async (key: string) => { checked.push(key); throw new Error("SEM_PERMISSAO"); } }
         : moduleName === "@/lib/prisma"
           ? { prisma: new Proxy({}, { get: () => { throw new Error("ACESSO_AO_BANCO"); } }) }
-          : {},
+          : moduleName === "zod" ? createRequire(import.meta.url)("zod") : {},
     });
     for (const action of actions) {
       await assert.rejects(exported[action](new FormData(), new FormData()), /SEM_PERMISSAO/);
@@ -110,4 +112,8 @@ test("ações rejeitam o perfil sem permissão antes de consultar o banco", asyn
 test("substituição médica exige gestão da Liga", () => {
   const guards = tournamentGuards(readActionFile("league-medical-substitutions"));
   assert.deepEqual(guards, { reviewLeagueMedicalSubstitutionAction: "requirePermission:tournaments:manage" });
+});
+
+test("Trio mantém lançamento de placar separado da gestão da competição", () => {
+  assert.deepEqual(tournamentGuards(readActionFile("category-trio")), { recordCategoryTrioGameAction: "requirePermission:tournaments:results" });
 });

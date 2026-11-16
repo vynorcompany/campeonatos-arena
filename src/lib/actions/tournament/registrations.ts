@@ -1,4 +1,5 @@
 "use server";
+import { validateRegistrationThird } from "@/lib/tournaments/trio-registration";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { recordTournamentRegistrationReceipt } from "@/lib/tournaments/registration-receipt";
 import { revalidatePath } from "next/cache";
@@ -68,13 +69,15 @@ export async function generateCategoryBracketAction(formData: FormData) {
       throw new Error("Encerre as inscrições do torneio antes de montar o chaveamento.");
     }
     // Serialize generation and schedule edits on the same category row.
-    const categoryRows = await tx.$queryRaw<Array<{ id: string }>>`
-      SELECT c."id" FROM "TournamentCategory" c
+    const categoryRows = await tx.$queryRaw<Array<{ id: string; format?: string }>>`
+      SELECT c."id", cc.format::text AS format FROM "TournamentCategory" c
+      LEFT JOIN "CategoryCompetition" cc ON cc."categoryId"=c.id
       JOIN "Tournament" t ON t."id" = c."tournamentId"
       WHERE c."id" = ${categoryId} AND c."tournamentId" = ${tournamentId} AND t."arenaId" = ${auth.arenaId}
       FOR UPDATE OF c
     `;
     if (categoryRows.length !== 1) throw new Error("Torneio ou categoria não encontrados nesta arena.");
+    if (categoryRows[0].format === "TRIO") throw new Error("Monte os confrontos do Trio em Eventos → categoria → Grupos, para preservar ida, volta e desempate.");
     const registrations = await tx.publicTournamentRegistration.findMany({
       where: { tournamentId, categoryId, status: "CONFIRMED" },
       orderBy: { createdAt: "asc" },
@@ -217,6 +220,7 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
     categoryId: formData.get("categoryId"),
     leadPlayerId: formData.get("leadPlayerId"),
     partnerPlayerId: formData.get("partnerPlayerId"),
+    thirdPlayerId: formData.get("thirdPlayerId"),
     amountReais: formData.get("amountReais"),
     bankAccountId: formData.get("bankAccountId") || undefined,
     paymentStatus: formData.get("paymentStatus")
@@ -235,26 +239,38 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
   try {
     result = await withArenaTransaction(auth.arenaId, async (tx): Promise<ActionState> => {
       await lockTournamentRegistrations(tx, parsed.data.tournamentId, auth.arenaId);
-      const categories = await tx.$queryRaw<Array<{ id: string }>>`
-        SELECT "id" FROM "TournamentCategory"
-        WHERE "id" = ${parsed.data.categoryId} AND "tournamentId" = ${parsed.data.tournamentId} AND "active" = true
-        FOR UPDATE
+      const categories = await tx.$queryRaw<Array<{ id: string; format?: string; competitionId?: string; competitionStatus?: string }>>`
+        SELECT tc."id", c.format::text AS format, c.id AS "competitionId", c.status AS "competitionStatus" FROM "TournamentCategory" tc
+        LEFT JOIN "CategoryCompetition" c ON c."categoryId"=tc.id
+        WHERE tc."id" = ${parsed.data.categoryId} AND tc."tournamentId" = ${parsed.data.tournamentId} AND tc."active" = true
+        FOR UPDATE OF tc
       `;
       if (categories.length !== 1) return { error: "Categoria inválida ou desativada para este torneio.", success: null };
 
+      const isTrio = categories[0].format === "TRIO";
+      if (isTrio && categories[0].competitionStatus !== "DRAFT") return { error: "As inscrições do Trio já foram encerradas.", success: null };
+      const requestedIds = [parsed.data.leadPlayerId, parsed.data.partnerPlayerId, ...(parsed.data.thirdPlayerId ? [parsed.data.thirdPlayerId] : [])];
+      if (requestedIds.length !== (isTrio ? 3 : 2) || new Set(requestedIds).size !== requestedIds.length) return { error: isTrio ? "Selecione três atletas diferentes." : "Esta categoria aceita dois atletas diferentes.", success: null };
+
       const athletes = await tx.player.findMany({
-        where: { arenaId: auth.arenaId, active: true, id: { in: [parsed.data.leadPlayerId, parsed.data.partnerPlayerId] } },
+        where: { arenaId: auth.arenaId, active: true, id: { in: requestedIds } },
         select: { id: true, name: true, phone: true, cpf: true, birthDate: true }
       });
-      if (athletes.length !== 2 || athletes.some((athlete) => !athlete.phone || !/^\d{11}$/.test(athlete.cpf))) {
+      if (athletes.length !== (isTrio ? 3 : 2) || athletes.some((athlete) => !athlete.phone || !/^\d{11}$/.test(athlete.cpf))) {
         return { error: "Atleta não encontrado, inativo ou sem cadastro completo.", success: null };
       }
       const athletesById = new Map(athletes.map((athlete) => [athlete.id, athlete]));
       const lead = athletesById.get(parsed.data.leadPlayerId);
       const partner = athletesById.get(parsed.data.partnerPlayerId);
+      const third = parsed.data.thirdPlayerId ? athletesById.get(parsed.data.thirdPlayerId) : undefined;
       if (!lead || !partner) {
         return { error: "Atleta não encontrado, inativo ou sem cadastro completo.", success: null };
       }
+
+      try { validateRegistrationThird(categories[0].format, { leadCpf: lead.cpf, partnerCpf: partner.cpf, thirdName: third?.name, thirdPhone: third?.phone, thirdCpf: third?.cpf }); }
+      catch (error) { return { error: error instanceof Error ? error.message : "Equipe inválida.", success: null }; }
+
+      if (isTrio && await tx.publicTournamentRegistration.count({ where: { categoryId: categories[0].id, tournamentId: parsed.data.tournamentId, status: { not: "CANCELED" }, OR: [{ leadCpf: { in: athletes.map(athlete => athlete.cpf) } }, { partnerCpf: { in: athletes.map(athlete => athlete.cpf) } }, { thirdCpf: { in: athletes.map(athlete => athlete.cpf) } }] } })) return { error: "Um dos atletas já está inscrito nesta categoria.", success: null };
 
       const bankAccountId = parsed.data.paymentStatus === "PAID" && amountCents > 0 ? await requireReceivingBankAccount(tx, auth.arenaId, parsed.data.bankAccountId) : null;
       const registrationOrder = await nextTournamentRegistrationOrder(tx, parsed.data.tournamentId);
@@ -270,6 +286,8 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
           partnerPhone: partner.phone,
           partnerCpf: partner.cpf,
           partnerBirthDate: partner.birthDate,
+          thirdName: third?.name ?? "", thirdPhone: third?.phone ?? "", thirdCpf: third?.cpf ?? "", thirdBirthDate: third?.birthDate ?? null,
+          competitionId: isTrio ? categories[0].competitionId : undefined,
           registrationOrder,
           amountCents,
           paymentStatus: parsed.data.paymentStatus,
@@ -279,10 +297,12 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
         }
       });
 
-      if (bankAccountId) await recordTournamentRegistrationReceipt(tx, { arenaId: auth.arenaId, registrationId: registration.id, bankAccountId, amountCents, leadName: lead.name, partnerName: partner.name });
+      if (bankAccountId) await recordTournamentRegistrationReceipt(tx, { arenaId: auth.arenaId, registrationId: registration.id, bankAccountId, amountCents, leadName: lead.name, partnerName: partner.name, thirdName: third?.name });
 
       if (parsed.data.paymentStatus === "PAID") {
         await ensureTournamentPairFromRegistration(tx, {
+          thirdCpf: registration.thirdCpf,
+          registrationId: registration.id,
           arenaId: auth.arenaId,
           tournamentId: parsed.data.tournamentId,
           leadName: lead.name,
@@ -353,6 +373,7 @@ export async function updateTournamentRegistrationAction(
     partnerPhone: formData.get("partnerPhone"),
     partnerCpf: normalizeCpf(String(formData.get("partnerCpf") ?? "")),
     partnerBirthDate: normalizeDateInput(formData.get("partnerBirthDate")),
+    thirdName: formData.get("thirdName"), thirdPhone: formData.get("thirdPhone"), thirdCpf: normalizeCpf(String(formData.get("thirdCpf") ?? "")), thirdBirthDate: normalizeDateInput(formData.get("thirdBirthDate")),
     amountReais: formData.get("amountReais"),
     bankAccountId: formData.get("bankAccountId") || undefined,
     paymentStatus: formData.get("paymentStatus")

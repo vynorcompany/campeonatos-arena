@@ -2,7 +2,8 @@ export type CompetitionFormat =
   | "LEAGUE"
   | "THREE_GROUPS"
   | "FOUR_GROUPS"
-  | "SIMPLE";
+  | "SIMPLE"
+  | "TRIO";
 
 export type StandingRow = {
   pairId: string;

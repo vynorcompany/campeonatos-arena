@@ -4,7 +4,7 @@ import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./public-registration-form.utilities";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormState } from "react-dom";
 import { createPublicRegistrationAction } from "@/lib/actions/public-registration";
@@ -27,6 +27,7 @@ const initialState = {
 type Category = {
   id: string;
   name: string;
+  competition?: { format: string } | null;
 };
 
 function formatCategoryName(input: string) {
@@ -55,6 +56,8 @@ export function PublicRegistrationForm({
 }) {
   const [state, formAction] = useFormState(createPublicRegistrationAction, initialState);
   const router = useRouter();
+  const [categoryId, setCategoryId] = useState("");
+  const trio = categories.find(category => category.id === categoryId)?.competition?.format === "TRIO";
 
   useEffect(() => {
     if (state?.paymentCheckoutUrl && state.paymentMethod === "CARD") {
@@ -64,6 +67,8 @@ export function PublicRegistrationForm({
       router.push(`/inscricao/${tournamentSlug}/sucesso/${state.registrationId}`);
     }
   }, [router, state?.paymentCheckoutUrl, state?.paymentMethod, state?.registrationId, tournamentSlug]);
+
+  if (!categories.length) return <section className="tw:grid tw:min-w-0 tw:gap-2 tw:rounded-lg tw:border tw:border-[#c7d8eb] tw:bg-white tw:p-4 tw:text-[#172b45]"><h2 className="tw:m-0 tw:text-base tw:font-semibold">Inscrições encerradas</h2><p className="tw:m-0 tw:text-sm">Não há categorias abertas para inscrição neste momento. Acompanhe as equipes e os jogos nas abas acima.</p></section>;
 
   return (
     <div className={viewStyles.public_reg_shell}>
@@ -76,7 +81,7 @@ export function PublicRegistrationForm({
         <div className={viewStyles.public_reg_steps}>
           <div className={viewStyles.public_reg_step_public_reg_step_done}>
             <span>1</span>
-            <div><strong>Dados da dupla</strong><small>Preencha os dados de atleta 1 e atleta 2</small></div>
+            <div><strong>{trio ? "Dados do trio" : "Dados da dupla"}</strong><small>{trio ? "Preencha os dados dos três atletas" : "Preencha os dados de atleta 1 e atleta 2"}</small></div>
           </div>
           <div className={viewStyles.public_reg_step_public_reg_step_done}>
             <span>2</span>
@@ -84,7 +89,7 @@ export function PublicRegistrationForm({
           </div>
           <div className={cx(`${viewStyles.public_reg_step} ${state?.success ? viewStyles.public_reg_step_active : ""}`)}>
             <span>3</span>
-            <div><strong>Confirmação</strong><small>Após a aprovação do pagamento, sua dupla é confirmada</small></div>
+            <div><strong>Confirmação</strong><small>Após a aprovação do pagamento, sua equipe é confirmada</small></div>
           </div>
         </div>
       </aside>
@@ -101,7 +106,7 @@ export function PublicRegistrationForm({
           <div className={viewStyles.public_reg_grid_public_reg_grid_2}>
             <div className={viewStyles.field}>
               <label htmlFor="categoryId">Categoria</label>
-              <SmartEntitySelect label="Categoria" id="categoryId" name="categoryId" className={viewStyles.public_reg_select} required>
+              <SmartEntitySelect label="Categoria" id="categoryId" name="categoryId" value={categoryId} onChange={event => setCategoryId(event.target.value)} className={viewStyles.public_reg_select} required>
                 <option value="">Selecione</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>{formatCategoryName(category.name)}</option>
@@ -135,7 +140,7 @@ export function PublicRegistrationForm({
         <section className={viewStyles.public_reg_card}>
           <header className={viewStyles.public_reg_card_head}>
             <h3>Atleta 2</h3>
-            <p>Dados do parceiro da dupla.</p>
+            <p>Dados do segundo atleta da equipe.</p>
           </header>
           <div className={viewStyles.public_reg_grid_public_reg_grid_2}>
             <div className={viewStyles.field}><label htmlFor="partnerName">Nome</label><input id="partnerName" name="partnerName" required /></div>
@@ -144,8 +149,9 @@ export function PublicRegistrationForm({
           </div>
         </section>
 
+        {trio ? <section className={viewStyles.public_reg_card}><header className={viewStyles.public_reg_card_head}><h3>Atleta 3</h3><p>Dados do terceiro atleta do trio. O total da equipe considera a inscrição de cada um dos três atletas.</p></header><div className={viewStyles.public_reg_grid_public_reg_grid_2}><div className={viewStyles.field}><label htmlFor="thirdName">Nome</label><input id="thirdName" name="thirdName" required /></div><div className={viewStyles.field}><label htmlFor="thirdPhone">Telefone</label><input id="thirdPhone" name="thirdPhone" required /></div><div className={viewStyles.field}><label htmlFor="thirdCpf">CPF</label><input id="thirdCpf" name="thirdCpf" required /></div></div></section> : null}
         <BotTrap/>
-        <p className="tw:col-span-full tw:text-sm tw:leading-relaxed tw:text-[var(--muted)]">O CPF identifica o atleta e evita inscrições duplicadas no cálculo dos preços por categoria. Nome e resultados da dupla poderão aparecer na competição. Informe seu parceiro sobre o uso desses dados e consulte as condições da arena antes de continuar.</p>
+        <p className="tw:col-span-full tw:text-sm tw:leading-relaxed tw:text-[var(--muted)]">O CPF identifica o atleta e evita inscrições duplicadas no cálculo dos preços por categoria. Nome e resultados da equipe poderão aparecer na competição. Informe os demais atletas sobre o uso desses dados e consulte as condições da arena antes de continuar.</p>
         <div className={viewStyles.public_reg_submit}>
           <SubmitButton label="Ir para pagamento" pendingLabel="Criando inscrição..." className={viewStyles.button_button_primary} />
         </div>

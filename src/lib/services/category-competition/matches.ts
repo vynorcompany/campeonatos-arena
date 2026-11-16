@@ -78,6 +78,9 @@ export async function updateCategoryMatchStatus(
       throw new Error("Jogo publicado não encontrado nesta arena.");
     }
 
+    const category = await tx.categoryCompetition.findUnique({ where: { id: match.competitionId }, select: { format: true } });
+    if (category?.format === "TRIO") throw new Error("O status do Trio é definido pelos jogos de ida, volta e desempate.");
+
     await assertStoredMatchCanBeCorrected(tx, match);
 
     if (status === "SCHEDULED" && (!match.scheduledDate || !match.scheduledTime)) {
@@ -163,6 +166,7 @@ export async function recordCategoryMatchResult(
     if (!match) {
       throw new Error("Jogo publicado não encontrado nesta arena.");
     }
+    if (match.competition.format === "TRIO") throw new Error("Registre cada jogo do Trio, com as respectivas formações.");
     if (!match.homePairId || !match.awayPairId) {
       throw new Error("Defina as duas duplas antes de salvar o resultado.");
     }

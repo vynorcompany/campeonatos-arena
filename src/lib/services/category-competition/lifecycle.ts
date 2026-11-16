@@ -14,6 +14,7 @@ export async function createCategoryCompetition(
     let rankingId: string | null = null;
     let feedsGeneralRanking = false;
 
+    if (input.format === "TRIO" && input.rankingId) throw new Error("O Trio não utiliza ranking de duplas. Deixe o ranking vazio.");
     if (input.rankingId) {
       const rankingRows = await tx.$queryRaw<
         Array<{

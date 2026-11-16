@@ -71,8 +71,8 @@ export function validateManualPairEligibility(
   players: EligiblePlayer[],
   existingPairPlayerIds: string[][],
 ) {
-  if (players.length !== 2 || players[0].id === players[1].id) {
-    throw new Error("Selecione dois atletas diferentes.");
+  if (players.length !== (category.format === "TRIO" ? 3 : 2) || new Set(players.map(player => player.id)).size !== players.length) {
+    throw new Error(category.format === "TRIO" ? "Selecione três atletas diferentes." : "Selecione dois atletas diferentes.");
   }
 
   if (players.some((player) => player.arenaId !== category.arenaId)) {

@@ -1,3 +1,4 @@
+import { PublicTrioMatches } from "@/components/tournaments/public-trio-matches";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
@@ -15,8 +16,8 @@ const publicTabs: Array<{ id: PublicTournamentTab; label: string }> = [
   { id: "jogos", label: "Jogos" },
 ];
 
-function pairName(registration: { leadName: string; partnerName: string } | null) {
-  return registration ? `${registration.leadName} / ${registration.partnerName}` : "A definir";
+function pairName(registration: { leadName: string; partnerName: string; thirdName?: string } | null) {
+  return registration ? [registration.leadName, registration.partnerName, registration.thirdName].filter(Boolean).join(" / ") : "A definir";
 }
 
 export default async function PublicRegistrationPage(
@@ -36,11 +37,11 @@ export default async function PublicRegistrationPage(
     where: { publicSlug: params.slug, arenaId: tournamentOwner.arenaId },
     include: {
       arena: { select: { name: true, logoUrl: true, slug: true } },
-      categories: { where: { active: true }, orderBy: { level: "asc" } },
+      categories: { where: { active: true }, orderBy: { level: "asc" }, include: { competition: { select: { format: true, status: true, isPublic: true, pairs: { where: { active: true, competition: { format: "TRIO", isPublic: true, status: { in: ["PUBLISHED", "FINISHED"] } } }, orderBy: { drawOrder: "asc" }, select: { id: true, name: true, players: { orderBy: { slot: "asc" }, select: { player: { select: { id: true, name: true } } } } } }, matches: { where: { competition: { format: "TRIO", isPublic: true, status: { in: ["PUBLISHED", "FINISHED"] } } }, orderBy: { roundOrder: "asc" }, select: { id: true, label: true, stage: true, scheduledTime: true, courtName: true, homeScore: true, awayScore: true, homePair: { select: { name: true, players: { select: { player: { select: { id: true, name: true } } } } } }, awayPair: { select: { name: true, players: { select: { player: { select: { id: true, name: true } } } } } }, trioGames: { orderBy: { gameNumber: "asc" }, select: { gameNumber: true, homePlayerIds: true, awayPlayerIds: true, homeScore: true, awayScore: true } } } } } } } },
       publicRegistrations: {
         where: { status: "CONFIRMED" },
         orderBy: [{ registrationOrder: "asc" }, { createdAt: "asc" }, { id: "asc" }],
-        select: { id: true, leadName: true, partnerName: true, categoryId: true },
+        select: { id: true, leadName: true, partnerName: true, thirdName: true, categoryId: true },
       },
       categoryBrackets: {
         include: {
@@ -48,9 +49,9 @@ export default async function PublicRegistrationPage(
           matches: {
             orderBy: [{ roundOrder: "asc" }, { label: "asc" }],
             include: {
-              homeRegistration: { select: { leadName: true, partnerName: true } },
-              awayRegistration: { select: { leadName: true, partnerName: true } },
-              winnerRegistration: { select: { leadName: true, partnerName: true } },
+              homeRegistration: { select: { leadName: true, partnerName: true, thirdName: true } },
+              awayRegistration: { select: { leadName: true, partnerName: true, thirdName: true } },
+              winnerRegistration: { select: { leadName: true, partnerName: true, thirdName: true } },
             },
           },
         },
@@ -59,6 +60,7 @@ export default async function PublicRegistrationPage(
   });
 
   if (!tournament) notFound();
+  const publicTrios = tournament.categories.filter(category => category.competition?.format === "TRIO" && category.competition.isPublic && ["PUBLISHED", "FINISHED"].includes(category.competition.status));
 
   return (
     <main className={viewStyles.stack_md}>
@@ -66,20 +68,20 @@ export default async function PublicRegistrationPage(
         <div className={viewStyles.stack_xs}>
           <p className={viewStyles.eyebrow}>Inscrição pública</p>
           <h1>{tournament.name}</h1>
-          <p className={viewStyles.muted}>{tournament.description || "Acompanhe o torneio e inscreva sua dupla."}</p>
+          <p className={viewStyles.muted}>{tournament.description || "Acompanhe o torneio e faça sua inscrição."}</p>
         </div>
       </header>
       <nav className={viewStyles.public_tournament_tabs} aria-label="Navegação do torneio">
         {publicTabs.map((tab) => <Link aria-current={activeTab === tab.id ? "page" : undefined} className={cx(activeTab === tab.id ? "is-active" : "")} href={`/inscricao/${tournament.publicSlug}${tab.id === "inscricao" ? "" : `?tab=${tab.id}`}`} key={tab.id}>{tab.label}</Link>)}
       </nav>
 
-      {activeTab === "inscricao" ? <PublicRegistrationForm tournamentSlug={tournament.publicSlug} categories={tournament.categories} arenaSlug={tournament.arena.slug} arenaName={tournament.arena.name} arenaLogoUrl={tournament.arena.logoUrl} responsibleName={tournament.responsibleName} responsiblePhone={tournament.responsiblePhone} /> : null}
+      {activeTab === "inscricao" ? <PublicRegistrationForm tournamentSlug={tournament.publicSlug} categories={tournament.categories.filter(category => category.competition?.format !== "TRIO" || category.competition.status === "DRAFT").map(category => ({ id: category.id, name: category.name, competition: category.competition ? { format: category.competition.format } : null }))} arenaSlug={tournament.arena.slug} arenaName={tournament.arena.name} arenaLogoUrl={tournament.arena.logoUrl} responsibleName={tournament.responsibleName} responsiblePhone={tournament.responsiblePhone} /> : null}
 
-      {activeTab === "inscritos" ? <section className={viewStyles.section_card_public_tournament_content}><header><h2>Inscritos</h2><p className={viewStyles.muted}>Duplas com inscrição confirmada.</p></header>{tournament.categories.map((category) => { const registrations = tournament.publicRegistrations.filter((registration) => registration.categoryId === category.id); return <article className={viewStyles.public_tournament_group} key={category.id}><h3>{category.name}</h3>{registrations.length ? <ul>{registrations.map((registration) => <li key={registration.id}>{pairName(registration)}</li>)}</ul> : <p className={viewStyles.muted}>Nenhuma dupla confirmada nesta categoria.</p>}</article>; })}</section> : null}
+      {activeTab === "inscritos" ? <section className={viewStyles.section_card_public_tournament_content}><header><h2>Inscritos</h2><p className={viewStyles.muted}>Equipes com inscrição confirmada.</p></header>{tournament.categories.map((category) => { const registrations = tournament.publicRegistrations.filter((registration) => registration.categoryId === category.id); const trio = publicTrios.find(item => item.id === category.id)?.competition; return <article className={viewStyles.public_tournament_group} key={category.id}><h3>{category.name}</h3>{trio ? (trio.pairs.length ? <ul>{trio.pairs.map(pair => <li key={pair.id}>{pair.players.map(({player}) => player.name).join(" / ") || pair.name}</li>)}</ul> : <p className={viewStyles.muted}>Nenhum trio confirmado nesta categoria.</p>) : registrations.length ? <ul>{registrations.map((registration) => <li key={registration.id}>{pairName(registration)}</li>)}</ul> : <p className={viewStyles.muted}>Nenhuma equipe confirmada nesta categoria.</p>}</article>; })}</section> : null}
 
-      {activeTab === "chaveamento" ? <section className={viewStyles.section_card_public_tournament_content}><header><h2>Chaveamento</h2><p className={viewStyles.muted}>Acompanhe as chaves publicadas pela organização.</p></header>{tournament.categoryBrackets.length ? tournament.categoryBrackets.map((bracket) => <article className={viewStyles.public_tournament_group} key={bracket.id}><h3>{bracket.category.name}</h3>{bracket.matches.length ? <ul>{bracket.matches.map((match) => <li key={match.id}><strong>{match.label}</strong><span>{pairName(match.homeRegistration)} × {pairName(match.awayRegistration)}{match.winnerRegistration ? ` · Vencedora: ${pairName(match.winnerRegistration)}` : ""}</span></li>)}</ul> : <p className={viewStyles.muted}>Chave ainda não montada.</p>}</article>) : <p className={viewStyles.muted}>O chaveamento será publicado após o encerramento das inscrições.</p>}</section> : null}
+      {activeTab === "chaveamento" ? <section className={viewStyles.section_card_public_tournament_content}><header><h2>Chaveamento</h2><p className={viewStyles.muted}>Acompanhe as chaves publicadas pela organização.</p></header>{publicTrios.map(category => <PublicTrioMatches key={category.id} categoryName={category.name} matches={category.competition!.matches} knockoutOnly />)}{tournament.categoryBrackets.length ? tournament.categoryBrackets.map((bracket) => <article className={viewStyles.public_tournament_group} key={bracket.id}><h3>{bracket.category.name}</h3>{bracket.matches.length ? <ul>{bracket.matches.map((match) => <li key={match.id}><strong>{match.label}</strong><span>{pairName(match.homeRegistration)} × {pairName(match.awayRegistration)}{match.winnerRegistration ? ` · Vencedora: ${pairName(match.winnerRegistration)}` : ""}</span></li>)}</ul> : <p className={viewStyles.muted}>Chave ainda não montada.</p>}</article>) : publicTrios.length ? null : <p className={viewStyles.muted}>O chaveamento será publicado após o encerramento das inscrições.</p>}</section> : null}
 
-      {activeTab === "jogos" ? <section className={viewStyles.section_card_public_tournament_content}><header><h2>Jogos</h2><p className={viewStyles.muted}>Calendário e resultados por categoria.</p></header>{tournament.categoryBrackets.length ? tournament.categoryBrackets.map((bracket) => <article className={viewStyles.public_tournament_group} key={bracket.id}><h3>{bracket.category.name}</h3>{bracket.matches.length ? <ul>{bracket.matches.map((match) => <li key={match.id}><strong>{match.label}</strong><span>{match.scheduledTime || "Horário a definir"}{match.courtName ? ` · ${match.courtName}` : ""} · {pairName(match.homeRegistration)} × {pairName(match.awayRegistration)}</span></li>)}</ul> : <p className={viewStyles.muted}>Nenhum jogo publicado.</p>}</article>) : <p className={viewStyles.muted}>Os jogos aparecerão aqui quando a organização publicar as chaves.</p>}</section> : null}
+      {activeTab === "jogos" ? <section className={viewStyles.section_card_public_tournament_content}><header><h2>Jogos</h2><p className={viewStyles.muted}>Calendário e resultados por categoria.</p></header>{publicTrios.map(category => <PublicTrioMatches key={category.id} categoryName={category.name} matches={category.competition!.matches} knockoutOnly={false} />)}{tournament.categoryBrackets.length ? tournament.categoryBrackets.map((bracket) => <article className={viewStyles.public_tournament_group} key={bracket.id}><h3>{bracket.category.name}</h3>{bracket.matches.length ? <ul>{bracket.matches.map((match) => <li key={match.id}><strong>{match.label}</strong><span>{match.scheduledTime || "Horário a definir"}{match.courtName ? ` · ${match.courtName}` : ""} · {pairName(match.homeRegistration)} × {pairName(match.awayRegistration)}</span></li>)}</ul> : <p className={viewStyles.muted}>Nenhum jogo publicado.</p>}</article>) : publicTrios.length ? null : <p className={viewStyles.muted}>Os jogos aparecerão aqui quando a organização publicar as chaves.</p>}</section> : null}
     </main>
   );
 }

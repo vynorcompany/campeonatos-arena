@@ -61,7 +61,7 @@ export const createCategoryCompetitionSchema = z
     categoryId: z.string().trim().min(1, "Categoria inválida."),
     class: z.enum(CATEGORY_CLASS_OPTIONS),
     gender: categoryGenderSchema,
-    format: z.enum(["LEAGUE", "THREE_GROUPS", "FOUR_GROUPS", "SIMPLE"]),
+    format: z.enum(["LEAGUE", "THREE_GROUPS", "FOUR_GROUPS", "SIMPLE", "TRIO"]),
     leagueTier: z.enum(["A", "B"]).optional(),
     rankingId: nullableIdSchema,
     isPublic: checkboxSchema,
@@ -72,6 +72,7 @@ export const addManualPairSchema = z
     competitionId: competitionIdSchema,
     firstPlayerId: z.string().trim().min(1, "Selecione o primeiro atleta."),
     secondPlayerId: z.string().trim().min(1, "Selecione o segundo atleta."),
+    thirdPlayerId: z.preprocess(value => value || undefined, z.string().trim().min(1).optional()),
   })
   .superRefine((value, context) => {
     if (value.firstPlayerId === value.secondPlayerId) {
