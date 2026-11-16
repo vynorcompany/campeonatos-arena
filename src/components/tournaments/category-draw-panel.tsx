@@ -17,7 +17,7 @@ type DrawCategory = {
   name: string;
   competition: {
     id: string;
-    format: "LEAGUE" | "THREE_GROUPS" | "FOUR_GROUPS" | "SIMPLE";
+    format: "LEAGUE" | "THREE_GROUPS" | "FOUR_GROUPS" | "SIMPLE" | "TRIO";
     status: string;
     pairs: Array<{
       id: string;
@@ -105,13 +105,14 @@ export function CategoryDrawPanel({
               <div className={viewStyles.stack_xs}>
                 {categories.length > 1 ? <strong className="tw:text-sm">{category.name}</strong> : null}
                 <p className={viewStyles.muted}>
-                  {competition?.pairs.length ?? 0} duplas ·{" "}
+                  {competition?.pairs.length ?? 0} {competition?.format === "TRIO" ? "trios" : "duplas"} ·{" "}
                   {competition?.groups.length ?? 0} grupos
                 </p>
               </div>
               <StatusBadge status={competition?.status ?? "DRAFT"} />
             </div>
 
+            {competition?.format === "TRIO" ? <p className="tw:m-0 tw:text-xs tw:text-[#465c75]">O Trio precisa de pelo menos 8 equipes completas para gerar grupos e mata-mata.</p> : null}
             {!competition ? (
               <p className={viewStyles.muted}>
                 Configure a competição desta categoria antes do sorteio.
@@ -169,7 +170,7 @@ export function CategoryDrawPanel({
                           <div>
                           <h4>{group.name}</h4>
                           <p className={viewStyles.muted}>
-                            {group.pairs.length} duplas
+                            {group.pairs.length} {competition.format === "TRIO" ? "trios" : "duplas"}
                           </p>
                           </div>
                         </div>

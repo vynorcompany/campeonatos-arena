@@ -31,6 +31,7 @@ test("edição da inscrição valida arena/categoria e confirma a dupla na mesma
         arenaId: arenaA.id, tournamentId: tournamentA.id, registrationId: registration.id, categoryId: categoryA.id,
         leadName: registration.leadName, leadPhone: registration.leadPhone, leadCpf: registration.leadCpf, leadBirthDate: registration.leadBirthDate,
         partnerName: registration.partnerName, partnerPhone: registration.partnerPhone, partnerCpf: registration.partnerCpf, partnerBirthDate: registration.partnerBirthDate,
+        thirdName: "", thirdPhone: "", thirdCpf: "", thirdBirthDate: null,
         amountCents: registration.amountCents, paymentStatus: "PAID" as const,
       };
 

@@ -1,3 +1,4 @@
+import { ensureRegistrationTrio } from "@/lib/tournaments/trio-registration";
 import type { Prisma } from "@prisma/client";
 
 export async function ensureTournamentPairFromRegistration(
@@ -5,6 +6,8 @@ export async function ensureTournamentPairFromRegistration(
   input: {
     arenaId: string;
     tournamentId: string;
+    registrationId?: string;
+    thirdCpf?: string;
     leadName: string;
     partnerName: string;
     leadCpf?: string;
@@ -13,6 +16,7 @@ export async function ensureTournamentPairFromRegistration(
     partnerPlayerId?: string;
   }
 ) {
+  if (input.thirdCpf && input.registrationId && await ensureRegistrationTrio(tx, input.arenaId, input.registrationId)) return;
   const leadName = input.leadName.trim();
   const partnerName = input.partnerName.trim();
 

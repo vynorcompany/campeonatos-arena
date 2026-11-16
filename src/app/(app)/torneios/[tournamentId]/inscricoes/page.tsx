@@ -23,13 +23,13 @@ export default async function TournamentRegistrationsPage(
   if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) redirect(`/jogos?tournamentId=${encodeURIComponent(params.tournamentId)}`);
   const tournament = await arenaDatabase(auth.arenaId).tournament.findFirst({
     where: { id: params.tournamentId, arenaId: auth.arenaId },
-    include: { categories: { orderBy: { level: "asc" }, select: { id: true, name: true } }, publicRegistrations: { orderBy: { createdAt: "asc" }, include: { category: { select: { id: true, name: true } } } } },
+    include: { categories: { orderBy: { level: "asc" }, select: { id: true, name: true, competition: { select: { format: true } } } }, publicRegistrations: { orderBy: { createdAt: "asc" }, include: { category: { select: { id: true, name: true, competition: { select: { format: true } } } } } } },
   });
   if (!tournament) notFound();
   const bankAccounts = await arenaDatabase(auth.arenaId).bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
   const q = (searchParams?.q ?? "").trim().toLowerCase();
   const registrations = tournament.publicRegistrations.filter((item) => {
-    if (q && !`${item.leadName} ${item.partnerName}`.toLowerCase().includes(q)) return false;
+    if (q && !`${item.leadName} ${item.partnerName} ${item.thirdName}`.toLowerCase().includes(q)) return false;
     if (searchParams?.category && item.categoryId !== searchParams.category) return false;
     if (searchParams?.status === "CONFIRMED") return item.status === "CONFIRMED";
     if (searchParams?.status === "REVIEW") return item.paymentStatus === "REVIEW";
@@ -54,11 +54,11 @@ export default async function TournamentRegistrationsPage(
           const canceled = registration.status === "CANCELED" || registration.paymentStatus === "REFUNDED";
           const confirmed = registration.status === "CONFIRMED";
           return <details key={registration.id} className={viewStyles.tournament_registration_row}>
-            <summary><span className={viewStyles.registration_order}>{index + 1}</span><div><strong>{registration.leadName} / {registration.partnerName}</strong><small>{registration.category.name}</small></div><span>{money.format(registration.amountCents / 100)}</span><span className={cx(confirmed ? viewStyles.status_confirmed : viewStyles.status_pending)}>{underReview ? "Pagamento em análise" : canceled ? registration.paymentStatus === "REFUNDED" ? "Cancelada após estorno" : "Cancelada" : confirmed ? "Confirmada" : "Pagamento pendente"}</span></summary>
+            <summary><span className={viewStyles.registration_order}>{index + 1}</span><div><strong>{[registration.leadName, registration.partnerName, registration.thirdName].filter(Boolean).join(" / ")}</strong><small>{registration.category.name}</small></div><span>{money.format(registration.amountCents / 100)}</span><span className={cx(confirmed ? viewStyles.status_confirmed : viewStyles.status_pending)}>{underReview ? "Pagamento em análise" : canceled ? registration.paymentStatus === "REFUNDED" ? "Cancelada após estorno" : "Cancelada" : confirmed ? "Confirmada" : "Pagamento pendente"}</span></summary>
             {underReview ? <ReviewedCheckoutRelease kind="registration" recordId={registration.id} paymentId={registration.mercadoPagoPaymentId} clientName={`${registration.leadName} / ${registration.partnerName}`} canResolve={canResolveReview} /> : canceled ? <p className={viewStyles.muted}>Pagamento estornado ou cancelado. A dupla pode fazer uma nova inscrição.</p> : !canEditManualTournamentRegistration(registration) ? <p className={viewStyles.muted}>{confirmed ? "Dupla confirmada: correções devem preservar seus vínculos com os jogos." : "Inscrição com cobrança online: confira o pagamento antes de alterar os dados."}</p> :
               <RegistrationEditForm className={viewStyles.tournament_registration_edit}>
                 <input type="hidden" name="registrationId" value={registration.id} /><input type="hidden" name="tournamentId" value={tournament.id} />
-                <label>Categoria<SmartEntitySelect createKind="tournament-category" contextId={tournament.id} label="Categoria" name="categoryId" defaultValue={registration.categoryId}>{tournament.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SmartEntitySelect></label>
+                <label>Categoria<SmartEntitySelect label="Categoria" name="categoryId" defaultValue={registration.categoryId}>{tournament.categories.filter(category => (category.competition?.format === "TRIO") === (registration.category.competition?.format === "TRIO")).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SmartEntitySelect></label>
                 <label>Atleta 1<input name="leadName" defaultValue={registration.leadName} required /></label>
                 <label>Telefone<input name="leadPhone" defaultValue={registration.leadPhone} required /></label>
                 <label>CPF<input name="leadCpf" defaultValue={registration.leadCpf} required /></label>
@@ -67,6 +67,7 @@ export default async function TournamentRegistrationsPage(
                 <label>Telefone<input name="partnerPhone" defaultValue={registration.partnerPhone} required /></label>
                 <label>CPF<input name="partnerCpf" defaultValue={registration.partnerCpf} required /></label>
                 <label>Nascimento (opcional)<input name="partnerBirthDate" type="date" defaultValue={registration.partnerBirthDate?.toISOString().slice(0, 10) ?? ""} /></label>
+                {registration.category.competition?.format === "TRIO" ? <><label>Atleta 3<input name="thirdName" defaultValue={registration.thirdName} required /></label><label>Telefone<input name="thirdPhone" defaultValue={registration.thirdPhone} required /></label><label>CPF<input name="thirdCpf" defaultValue={registration.thirdCpf} required /></label><label>Nascimento (opcional)<input name="thirdBirthDate" type="date" defaultValue={registration.thirdBirthDate?.toISOString().slice(0,10) ?? ""} /></label></> : null}
                 <RegistrationPaymentFields amountCents={registration.amountCents} accounts={bankAccounts} />
                 <SubmitButton label="Salvar alterações" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
               </RegistrationEditForm>}

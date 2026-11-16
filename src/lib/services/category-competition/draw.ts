@@ -97,6 +97,7 @@ export async function publishCategoryDraw(
           select: {
             id: true,
             groupId: true,
+            players: { select: { playerId: true } },
           },
         },
         groups: {
@@ -120,6 +121,11 @@ export async function publishCategoryDraw(
       competition.pairs.some((pair) => !pair.groupId)
     ) {
       throw new Error("Gere os grupos e distribua todas as duplas antes de publicar.");
+    }
+
+    if (competition.format === "TRIO") {
+      if (competition.pairs.some(pair => pair.players.length !== 3)) throw new Error("Cada equipe do Trio deve ter três atletas.");
+      if (await tx.publicTournamentRegistration.count({ where: { competitionId: competition.id, status: "PENDING_PAYMENT" } })) throw new Error("Confirme ou cancele as inscrições pendentes antes de publicar o Trio.");
     }
 
     const standings: GroupStandings[] = competition.groups.map((group) => ({

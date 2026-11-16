@@ -44,7 +44,7 @@ export function TournamentParticipantsTab({ tournament }: { tournament: NonNulla
         cpf: player.cpf,
         birthDate: player.birthDate?.toISOString() ?? null
       }))}
-      categories={tournament.categories.map((category) => ({ id: category.id, name: category.name }))}
+      categories={tournament.categories.map((category) => ({ id: category.id, name: category.name, competition: category.competition }))}
       registrations={tournament.publicRegistrations.map((registration) => ({
         id: registration.id,
         categoryId: registration.categoryId,
@@ -52,6 +52,10 @@ export function TournamentParticipantsTab({ tournament }: { tournament: NonNulla
         leadPhone: registration.leadPhone,
         leadCpf: registration.leadCpf,
         leadBirthDate: registration.leadBirthDate?.toISOString() ?? "",
+        thirdName: registration.thirdName,
+        thirdPhone: registration.thirdPhone,
+        thirdCpf: registration.thirdCpf,
+        thirdBirthDate: registration.thirdBirthDate?.toISOString() ?? "",
         partnerName: registration.partnerName,
         partnerPhone: registration.partnerPhone,
         partnerCpf: registration.partnerCpf,

@@ -1,3 +1,4 @@
+import { CategoryTrioMatchPanel, type TrioGame, type TrioSide } from "./category-trio-match-panel";
 import { ClientAvatar } from "@/components/players/client-avatar";
 import { LeagueIcon } from "./league-icon";
 
@@ -37,13 +38,16 @@ type CompetitionMatch = {
   manualStatus: string | null;
   leagueBlock: number | null;
   woReason: string | null;
-  homePair: { id?: string; name: string } | null;
-  awayPair: { id?: string; name: string } | null;
+  homePair: ({ id?: string; name: string; players?: TrioSide["players"] }) | null;
+  awayPair: ({ id?: string; name: string; players?: TrioSide["players"] }) | null;
   winnerPair: { name: string } | null;
+  trioGames?: TrioGame[];
 };
 
 type GameSort = "round" | "date" | "status";
 type GameStatusFilter = "ALL" | "WAITING" | "SCHEDULED" | "LIVE" | "FINISHED";
+
+const stageLabels: Record<string, string> = { GROUP: "Grupos", ROUND_OF_16: "Oitavas de final", QUARTERFINAL: "Quartas de final", SEMIFINAL: "Semifinal", FINAL: "Final", THIRD_PLACE: "Disputa de terceiro lugar" };
 
 const statusPriority = {
   WAITING: 0,
@@ -90,7 +94,7 @@ type ResultCategory = {
   name: string;
   competition: {
     id: string;
-    format: "LEAGUE" | "THREE_GROUPS" | "FOUR_GROUPS" | "SIMPLE";
+    format: "LEAGUE" | "THREE_GROUPS" | "FOUR_GROUPS" | "SIMPLE" | "TRIO";
     status: string;
     pairs: Array<{
       id: string;
@@ -237,7 +241,7 @@ export function CategoryResultsPanel({
                         Aplicar filtros
                       </button>
                     </form>
-                  <div className="tw:grid tw:min-w-0 tw:gap-0"><div className="tw:grid tw:grid-cols-[minmax(90px,.7fr)_minmax(90px,.7fr)_minmax(0,2fr)_minmax(100px,.8fr)_32px] tw:gap-3 tw:bg-[#174983] tw:px-3 tw:py-2 tw:text-[11px] tw:font-semibold tw:uppercase tw:text-white tw:viewport-760:hidden"><span>Data / horário</span><span>Fase / grupo</span><span>Duplas</span><span>Placar / status</span><span className="tw:sr-only">Ações</span></div><div className={cx(`${viewStyles.category_game_list} ${competition.format === "LEAGUE" ? viewStyles.league_calendar_list : ""}`)}>
+                  <div className="tw:grid tw:min-w-0 tw:gap-0"><div className="tw:grid tw:grid-cols-[minmax(90px,.7fr)_minmax(90px,.7fr)_minmax(0,2fr)_minmax(100px,.8fr)_32px] tw:gap-3 tw:bg-[#174983] tw:px-3 tw:py-2 tw:text-[11px] tw:font-semibold tw:uppercase tw:text-white tw:viewport-760:hidden"><span>Data / horário</span><span>Fase / grupo</span><span>{competition.format === "TRIO" ? "Trios" : "Duplas"}</span><span>Placar / status</span><span className="tw:sr-only">Ações</span></div><div className={cx(`${viewStyles.category_game_list} ${competition.format === "LEAGUE" ? viewStyles.league_calendar_list : ""}`)}>
                     {orderedMatches.map((match, index) => {
                       const canRecord =
                         competition.status === "PUBLISHED" &&
@@ -271,11 +275,11 @@ export function CategoryResultsPanel({
                           </div>
                           <div className={viewStyles.category_game_stage}>
                             <span className={viewStyles.category_game_label}>Fase / grupo</span>
-                            <strong>{competition.format === "LEAGUE" ? `Semana ${leagueBlock}` : match.stage}</strong>
+                            <strong>{competition.format === "LEAGUE" ? `Semana ${leagueBlock}` : (stageLabels[match.stage] ?? match.stage)}</strong>
                             <span>{match.label}</span>
                           </div>
                           <div className={viewStyles.category_game_pairs}>
-                            <span className={viewStyles.category_game_label}>Duplas</span>
+                            <span className={viewStyles.category_game_label}>{competition.format === "TRIO" ? "Trios" : "Duplas"}</span>
                             {competition.format === "LEAGUE" ? <span className={viewStyles.league_match_sides}><span><small className="tw:sr-only">Mandante</small><MatchPairIdentity names={competition.pairs.find(pair=>pair.id===match.homePair?.id)?.playerNames} fallback={match.homePair?.name ?? "A definir"}/></span><b>×</b><span><small className="tw:sr-only">Visitante</small><MatchPairIdentity names={competition.pairs.find(pair=>pair.id===match.awayPair?.id)?.playerNames} fallback={match.awayPair?.name ?? "A definir"}/></span></span> : <span>{match.homePair?.name ?? "A definir"} × {match.awayPair?.name ?? "A definir"}</span>}
                           </div>
                           <div className={viewStyles.category_game_result}>
@@ -288,7 +292,7 @@ export function CategoryResultsPanel({
                             {canRecordResults && competition.format === "LEAGUE" && canRecord ? <LeagueMatchResultDialog match={match} /> : null}
                           </div>
                           {canManage || canRecordResults ? <details className="tw:min-w-0 tw:open:col-span-full tw:viewport-760:col-span-full"><summary className={`${ui.icon} tw:list-none tw:[&::-webkit-details-marker]:hidden`} aria-label={`Editar agendamento e status de ${match.label}`} title="Editar agendamento e status"><LeagueIcon name="edit"/></summary><div className={viewStyles.category_game_actions}>
-                          {canRecordResults && competition.status === "PUBLISHED" ? (
+                          {canRecordResults && competition.status === "PUBLISHED" && competition.format !== "TRIO" ? (
                             <form
                               action={updateCategoryMatchStatusAction}
                               className={viewStyles.category_game_form}
@@ -358,7 +362,7 @@ export function CategoryResultsPanel({
                               className={viewStyles.button}
                             />
                           </form> : null}
-                          {canRecordResults && canRecord && competition.format !== "LEAGUE" ? (
+                          {canRecordResults && canRecord && competition.format !== "LEAGUE" && competition.format !== "TRIO" ? (
                             <form
                               action={recordCategoryMatchResultAction}
                               className={viewStyles.category_game_form}
@@ -410,6 +414,7 @@ export function CategoryResultsPanel({
                             </form>
                           ) : null}
                           </div></details> : null}
+                          {competition.format === "TRIO" && match.homePair && match.awayPair ? <CategoryTrioMatchPanel matchId={match.id} games={match.trioGames ?? []} home={{ ...match.homePair, players: match.homePair.players ?? [] }} away={{ ...match.awayPair, players: match.awayPair.players ?? [] }} canRecordResults={Boolean(canRecordResults && canRecord)} /> : null}
                         </div>
                         </Fragment>
                       );

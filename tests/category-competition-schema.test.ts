@@ -19,7 +19,7 @@ test("schema defines the category competition boundary", async () => {
 test("schema keeps competition data scoped to each category", async () => {
   const schema = await readFile(schemaPath, "utf8");
 
-  assert.match(schema, /enum CompetitionFormat\s*\{\s*LEAGUE\s+THREE_GROUPS\s+FOUR_GROUPS\s+SIMPLE\s*\}/s);
+  assert.match(schema, /enum CompetitionFormat\s*\{\s*LEAGUE\s+THREE_GROUPS\s+FOUR_GROUPS\s+SIMPLE\s+TRIO\s*\}/s);
   assert.match(schema, /enum RankingType\s*\{\s*INDIVIDUAL\s+PAIR\s*\}/s);
   assert.match(schema, /class\s+String\s+@default\(""\)/);
   assert.match(schema, /gender\s+String\s+@default\(""\)/);

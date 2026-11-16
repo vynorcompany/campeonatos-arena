@@ -175,6 +175,6 @@ export default async function TournamentDetailPage(props: TournamentDetailPagePr
   );
 }
 
-function formatLabel(format: "LEAGUE" | "THREE_GROUPS" | "FOUR_GROUPS" | "SIMPLE") {
-  return { LEAGUE: "Liga", THREE_GROUPS: "3 grupos", FOUR_GROUPS: "4 grupos", SIMPLE: "Simples" }[format];
+function formatLabel(format: "LEAGUE" | "THREE_GROUPS" | "FOUR_GROUPS" | "SIMPLE" | "TRIO") {
+  return { LEAGUE: "Liga", THREE_GROUPS: "3 grupos", FOUR_GROUPS: "4 grupos", SIMPLE: "Simples", TRIO: "Trio" }[format];
 }

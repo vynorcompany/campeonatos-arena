@@ -423,6 +423,7 @@ export async function POST(request: Request) {
           arenaId: registration.tournament.arenaId, registrationId: registration.id,
           bankAccountId: current.paymentBankAccountId ?? null, amountCents: current.amountCents,
           leadName: registration.leadName, partnerName: registration.partnerName,
+          thirdName: registration.thirdName,
           paymentMethod: "Mercado Pago online", paidAt: payment.date_approved ? new Date(payment.date_approved) : new Date(),
         });
         if (!current.paymentBankAccountId) {
@@ -434,6 +435,8 @@ export async function POST(request: Request) {
           } });
         }
         await ensureTournamentPairFromRegistration(tx, {
+          thirdCpf: registration.thirdCpf,
+          registrationId: registration.id,
           arenaId: registration.tournament.arenaId,
           tournamentId: registration.tournament.id,
           leadName: registration.leadName,

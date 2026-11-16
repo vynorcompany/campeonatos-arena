@@ -8,7 +8,7 @@ type CategoryListItem = {
   id: string;
   name: string;
   competition: {
-    format: "LEAGUE" | "THREE_GROUPS" | "FOUR_GROUPS" | "SIMPLE";
+    format: "LEAGUE" | "THREE_GROUPS" | "FOUR_GROUPS" | "SIMPLE" | "TRIO";
     pairCount: number;
   } | null;
 };
@@ -21,6 +21,7 @@ const formatLabels: Record<
   THREE_GROUPS: "3 grupos",
   FOUR_GROUPS: "4 grupos",
   SIMPLE: "Simples",
+  TRIO: "Trio",
 };
 
 export function CategoryList({
@@ -47,7 +48,7 @@ export function CategoryList({
 
       {categories.length ? (
         <div className={viewStyles.t_category_list}>
-          <div className={viewStyles.t_category_table_head}><span>Categoria</span><span>Tipo</span><span>Duplas inscritas</span><span>Status</span><span>Ações</span></div>
+          <div className={viewStyles.t_category_table_head}><span>Categoria</span><span>Tipo</span><span>Equipes inscritas</span><span>Status</span><span>Ações</span></div>
           <>{categories.map((category) => (
             <div className={viewStyles.t_category_row} key={category.id}>
 
@@ -59,7 +60,7 @@ export function CategoryList({
               </span>
               <span className={viewStyles.t_category_pairs}>
                 {category.competition
-                  ? `${category.competition.pairCount} ${category.competition.pairCount === 1 ? "dupla" : "duplas"}`
+                  ? `${category.competition.pairCount} ${category.competition.format === "TRIO" ? (category.competition.pairCount === 1 ? "trio" : "trios") : (category.competition.pairCount === 1 ? "dupla" : "duplas")}`
                   : "—"}
               </span>
               <span className={cx(`${viewStyles.t_category_status} ${category.competition ? "active" : "pending"}`)}>{category.competition ? "Ativa" : "Pendente"}</span>

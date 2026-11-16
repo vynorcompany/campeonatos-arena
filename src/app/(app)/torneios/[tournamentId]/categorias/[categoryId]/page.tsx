@@ -60,6 +60,7 @@ const formatLabels = {
   THREE_GROUPS: "3 grupos",
   FOUR_GROUPS: "4 grupos",
   SIMPLE: "Simples",
+  TRIO: "Trio",
 } as const;
 
 export default async function CategoryPage(props: CategoryPageProps) {
@@ -140,9 +141,10 @@ export default async function CategoryPage(props: CategoryPageProps) {
             matches: {
               orderBy: { roundOrder: "asc" },
               include: {
-                homePair: { select: { id: true, name: true } },
-                awayPair: { select: { id: true, name: true } },
+                homePair: { select: { id: true, name: true, players: { select: { player: { select: { id: true, name: true } } } } } },
+                awayPair: { select: { id: true, name: true, players: { select: { player: { select: { id: true, name: true } } } } } },
                 winnerPair: { select: { id: true, name: true } },
+                trioGames: { orderBy: { gameNumber: "asc" } },
               },
             },
           },
@@ -336,6 +338,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
             winnerPairId: match.winnerPairId,
             leagueBlock: match.leagueBlock,
             woReason: match.woReason,
+            trioGames: match.trioGames,
             homePair: match.homePair,
             awayPair: match.awayPair,
             winnerPair: match.winnerPair,
@@ -364,7 +367,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
           }
         : !canGenerateCategoryDraw(competition.format, competition.pairs.length)
           ? {
-              label: "Adicionar duplas",
+              label: competition.format === "TRIO" ? "Adicionar trios" : "Adicionar duplas",
               href: `/torneios/${params.tournamentId}/categorias/${category.id}?tab=registrations`,
             }
           : competition.groups.length === 0
@@ -497,7 +500,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
                 )}
               </div>
             </article>
-            {competition ? <><CategoryOverviewRoster pairs={competition.pairs} groups={competition.groups} registrationsHref={`/torneios/${params.tournamentId}/categorias/${category.id}?tab=registrations`} /><p className="tw:m-0 tw:text-xs tw:text-[var(--muted)]">Ranking geral: {competition.feedsGeneralRanking ? "Ativo" : "Inativo"}</p></> : null}
+            {competition ? <><CategoryOverviewRoster pairs={competition.pairs} groups={competition.groups} trio={competition.format === "TRIO"} registrationsHref={`/torneios/${params.tournamentId}/categorias/${category.id}?tab=registrations`} /><p className="tw:m-0 tw:text-xs tw:text-[var(--muted)]">Ranking geral: {competition.feedsGeneralRanking ? "Ativo" : "Inativo"}</p></> : null}
             {!competition && isPublicTournament ? (
               <article className={viewStyles.section_card}>
                 <TournamentCategorySettingsForm

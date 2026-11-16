@@ -1,7 +1,7 @@
 "use client";
 import { viewStyles } from "./category-competition-form.utilities";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { SubmitButton } from "@/components/forms/submit-button";
 import {
   createCategoryCompetitionAction,
@@ -28,6 +28,7 @@ export function CategoryCompetitionForm({
   categoryName,
   pairRankings,
 }: CategoryCompetitionFormProps) {
+  const [format, setFormat] = useState("LEAGUE");
   return (
     <form action={createCategoryCompetitionAction} className={viewStyles.grid_form}>
       <input type="hidden" name="categoryId" value={categoryId} />
@@ -66,8 +67,9 @@ export function CategoryCompetitionForm({
 
       <div className={viewStyles.field}>
         <label htmlFor={`format-${categoryId}`}>Formato</label>
-        <select id={`format-${categoryId}`} name="format" defaultValue="LEAGUE">
+        <select id={`format-${categoryId}`} name="format" value={format} onChange={event => setFormat(event.target.value)}>
           <option value="LEAGUE">Liga</option>
+          <option value="TRIO">Trio (3 atletas por equipe)</option>
           <option value="THREE_GROUPS">3 grupos</option>
           <option value="FOUR_GROUPS">4 grupos</option>
           <option value="SIMPLE">Simples (grupos de 3 e 4)</option>
@@ -76,7 +78,7 @@ export function CategoryCompetitionForm({
 
       <div className={viewStyles.field}>
         <label htmlFor={`league-tier-${categoryId}`}>Nível da Liga</label>
-        <select id={`league-tier-${categoryId}`} name="leagueTier" defaultValue="A">
+        <select id={`league-tier-${categoryId}`} name="leagueTier" defaultValue="A" disabled={format !== "LEAGUE"}>
           <option value="A">Liga A</option>
           <option value="B">Liga B</option>
         </select>
@@ -84,7 +86,7 @@ export function CategoryCompetitionForm({
 
       <div className={viewStyles.field}>
         <label htmlFor={`ranking-${categoryId}`}>Ranking de duplas</label>
-        <select id={`ranking-${categoryId}`} name="rankingId" defaultValue="">
+        <select id={`ranking-${categoryId}`} name="rankingId" defaultValue="" disabled={format === "TRIO"}>
           <option value="">Sem ranking</option>
           {pairRankings.map((ranking) => (
             <option key={ranking.id} value={ranking.id}>
@@ -95,7 +97,7 @@ export function CategoryCompetitionForm({
       </div>
 
       <p className={viewStyles.muted_form_full}>
-        O Ranking Geral será alimentado conforme a configuração do ranking selecionado.
+        {format === "TRIO" ? "Cada confronto tem ida e volta; em caso de empate, um terceiro jogo. Escolha duas formações diferentes por equipe. As formações reiniciam em cada confronto." : "O Ranking Geral será alimentado conforme a configuração do ranking selecionado."}
       </p>
 
       <label className={viewStyles.field_form_full_2}>

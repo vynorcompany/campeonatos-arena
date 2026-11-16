@@ -12,13 +12,13 @@ import { searchAthleteOptions } from "@/lib/tournament-category/athlete-search";
 
 type AthleteOption = { id: string; name: string };
 
-export function AthleteSearchField({ id, label, name, athletes, excludedId, onSelect, compact = false }: { id: string; label: string; name: string; athletes: AthleteOption[]; excludedId?: string; onSelect?: (id: string) => void; compact?: boolean }) {
+export function AthleteSearchField({ id, label, name, athletes, excludedId, excludedIds, onSelect, compact = false }: { id: string; label: string; name: string; athletes: AthleteOption[]; excludedId?: string; excludedIds?: string[]; onSelect?: (id: string) => void; compact?: boolean }) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<AthleteOption | null>(null);
   const [open, setOpen] = useState(false);
   const matches = useMemo(() => {
-    return searchAthleteOptions(athletes, query, excludedId);
-  }, [athletes, excludedId, query]);
+    return searchAthleteOptions(athletes, query, excludedId).filter(athlete => !excludedIds?.includes(athlete.id));
+  }, [athletes, excludedId, excludedIds, query]);
 
   return <div className={cx(`${viewStyles.field_category_athlete_search}${compact ? " category-athlete-search-compact" : ""}`)}>
     {!compact ? <label htmlFor={id}>{label}</label> : null}
@@ -30,17 +30,21 @@ export function AthleteSearchField({ id, label, name, athletes, excludedId, onSe
   </div>;
 }
 
-export function CategoryPairForm({ competitionId, athletes }: { competitionId: string; athletes: AthleteOption[] }) {
+export function CategoryPairForm({ competitionId, athletes, trio = false }: { competitionId: string; athletes: AthleteOption[]; trio?: boolean }) {
   const [open, setOpen] = useState(false);
-  const close = useCallback(() => { setOpen(false); setFirstPlayerId(""); setSecondPlayerId(""); }, []);
+  const close = useCallback(() => { setOpen(false); setFirstPlayerId(""); setSecondPlayerId(""); setThirdPlayerId(""); }, []);
   const [firstPlayerId, setFirstPlayerId] = useState("");
   const [secondPlayerId, setSecondPlayerId] = useState("");
 
-  return <><button type="button" className={viewStyles.button_button_primary} disabled={athletes.length < 2} onClick={() => setOpen(true)}>Adicionar dupla</button><Modal title="Adicionar dupla" open={open} onClose={close} width="tw:max-w-[720px]" tone="management-strong"><SafeActionForm action={addManualPairAction} onSuccess={close} className={viewStyles.grid_form_category_pair_form} successMessage="Dupla adicionada com sucesso." resetOnSuccess>
+  const [thirdPlayerId, setThirdPlayerId] = useState("");
+  const minimum = trio ? 3 : 2;
+  const label = trio ? "Adicionar trio" : "Adicionar dupla";
+  return <><button type="button" className={viewStyles.button_button_primary} disabled={athletes.length < minimum} onClick={() => setOpen(true)}>{label}</button><Modal title={label} open={open} onClose={close} width="tw:max-w-[720px]" fixedSize={false} tone="management-strong"><SafeActionForm action={addManualPairAction} onSuccess={close} className={viewStyles.grid_form_category_pair_form} successMessage={trio ? "Trio adicionado com sucesso." : "Dupla adicionada com sucesso."} resetOnSuccess>
     <input type="hidden" name="competitionId" value={competitionId} />
-    <AthleteSearchField id={`first-player-${competitionId}`} label="Primeiro atleta" name="firstPlayerId" athletes={athletes} excludedId={secondPlayerId} onSelect={setFirstPlayerId} />
-    <AthleteSearchField id={`second-player-${competitionId}`} label="Segundo atleta" name="secondPlayerId" athletes={athletes} excludedId={firstPlayerId} onSelect={setSecondPlayerId} />
-    <div className={viewStyles.field_field_submit_category_pair_submit}><button type="button" className="tw:mr-2 tw:rounded-md tw:border tw:border-[var(--line)] tw:bg-white tw:px-3 tw:text-xs" onClick={close}>Cancelar</button><SubmitButton label="Adicionar dupla" pendingLabel="Adicionando..." className={viewStyles.button_button_primary} disabled={athletes.length < 2} /></div>
-    {athletes.length < 2 ? <p className={viewStyles.muted_form_full}>Disponibilize ao menos dois atletas ativos, elegíveis e ainda sem dupla nesta categoria em <Link href="/players">Gestão → Atletas</Link>.</p> : null}
+    <AthleteSearchField id={`first-player-${competitionId}`} label="Primeiro atleta" name="firstPlayerId" athletes={athletes} excludedIds={[secondPlayerId, thirdPlayerId]} onSelect={setFirstPlayerId} />
+    <AthleteSearchField id={`second-player-${competitionId}`} label="Segundo atleta" name="secondPlayerId" athletes={athletes} excludedIds={[firstPlayerId, thirdPlayerId]} onSelect={setSecondPlayerId} />
+    {trio ? <AthleteSearchField id={`third-player-${competitionId}`} label="Terceiro atleta" name="thirdPlayerId" athletes={athletes} excludedIds={[firstPlayerId, secondPlayerId]} onSelect={setThirdPlayerId} /> : null}
+    <div className={viewStyles.field_field_submit_category_pair_submit}><button type="button" className="tw:mr-2 tw:rounded-md tw:border tw:border-[var(--line)] tw:bg-white tw:px-3 tw:text-xs" onClick={close}>Cancelar</button><SubmitButton label={label} pendingLabel="Adicionando..." className={viewStyles.button_button_primary} disabled={athletes.length < minimum} /></div>
+    {athletes.length < minimum ? <p className={viewStyles.muted_form_full}>Disponibilize ao menos {minimum} atletas ativos, elegíveis e ainda sem equipe nesta categoria em <Link href="/players">Gestão → Atletas</Link>.</p> : null}
   </SafeActionForm></Modal></>;
 }

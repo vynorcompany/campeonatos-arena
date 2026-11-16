@@ -16,7 +16,11 @@ export const createPublicRegistrationSchema = z.object({
   partnerName: fullNameSchema,
   partnerPhone: z.string().trim().min(8, "Informe o telefone da dupla."),
   partnerCpf: cpfSchema,
-  partnerBirthDate: optionalBirthDateSchema
+  partnerBirthDate: optionalBirthDateSchema,
+  thirdName: z.preprocess(value => value ?? "", z.string().trim().max(160)),
+  thirdPhone: z.preprocess(value => value ?? "", z.string().trim().max(30)),
+  thirdCpf: z.preprocess(value => value ?? "", z.string().trim().max(11)),
+  thirdBirthDate: optionalBirthDateSchema
 }).refine((registration) => registration.leadCpf !== registration.partnerCpf, {
   message: "Os dois atletas da dupla devem ter CPFs diferentes.",
   path: ["partnerCpf"]
@@ -27,6 +31,7 @@ export const createManualTournamentRegistrationSchema = z.object({
   categoryId: z.string().trim().min(1, "Selecione uma categoria."),
   leadPlayerId: z.string().trim().min(1, "Selecione o primeiro atleta."),
   partnerPlayerId: z.string().trim().min(1, "Selecione o segundo atleta."),
+  thirdPlayerId: z.preprocess(value => value || undefined, z.string().trim().min(1).optional()),
   amountReais: z.union([z.string(), z.number()]),
   bankAccountId: z.string().trim().max(100).optional(),
   paymentStatus: z.enum(["PENDING", "PAID"]).default("PENDING")
@@ -44,6 +49,10 @@ export const updateManualTournamentRegistrationSchema = z.object({
   partnerPhone: z.string().trim().min(8, "Informe o telefone da dupla."),
   partnerCpf: cpfSchema,
   partnerBirthDate: optionalBirthDateSchema,
+  thirdName: z.preprocess(value => value ?? "", z.string().trim().max(160)),
+  thirdPhone: z.preprocess(value => value ?? "", z.string().trim().max(30)),
+  thirdCpf: z.preprocess(value => value ?? "", z.string().trim().max(11)),
+  thirdBirthDate: optionalBirthDateSchema,
   amountReais: z.union([z.string(), z.number()]),
   bankAccountId: z.string().trim().max(100).optional(),
   paymentStatus: z.enum(["PENDING", "PAID"]).default("PENDING")

@@ -14,6 +14,7 @@ export async function createCategoryCompetition(
     let rankingId: string | null = null;
     let feedsGeneralRanking = false;
 
+    if (input.format === "TRIO" && input.rankingId) throw new Error("O Trio não utiliza ranking de duplas. Deixe o ranking vazio.");
     if (input.rankingId) {
       const rankingRows = await tx.$queryRaw<
         Array<{
@@ -65,6 +66,8 @@ export async function createCategoryCompetition(
     if (category.competition) {
       throw new Error("Esta categoria já possui uma competição.");
     }
+
+    if (input.format === "TRIO" && await tx.publicTournamentRegistration.count({ where: { categoryId: category.id, status: { not: "CANCELED" } } })) throw new Error("Esta categoria já possui inscrições de duplas. Crie uma nova categoria para o Trio.");
 
     await tx.tournamentCategory.update({
       where: { id: category.id },

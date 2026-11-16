@@ -13,6 +13,7 @@ enum CompetitionFormat {
   THREE_GROUPS
   FOUR_GROUPS
   SIMPLE
+  TRIO
 }
 
 enum RankingType {
@@ -715,6 +716,10 @@ model PublicTournamentRegistration {
   partnerPhone         String
   partnerCpf           String
   partnerBirthDate     DateTime?
+  thirdName            String @default("")
+  thirdPhone           String @default("")
+  thirdCpf             String @default("")
+  thirdBirthDate       DateTime?
   registrationOrder    Int
   amountCents          Int
   discountCents        Int                    @default(0)
@@ -973,6 +978,7 @@ model CategoryMatch {
   homePair             CategoryPair?         @relation("CategoryHomePair", fields: [homePairId, competitionId], references: [id, competitionId], onDelete: NoAction, map: "CategoryMatch_homePairId_fkey")
   awayPair             CategoryPair?         @relation("CategoryAwayPair", fields: [awayPairId, competitionId], references: [id, competitionId], onDelete: NoAction, map: "CategoryMatch_awayPairId_fkey")
   winnerPair           CategoryPair?         @relation("CategoryWinnerPair", fields: [winnerPairId, competitionId], references: [id, competitionId], onDelete: NoAction, map: "CategoryMatch_winnerPairId_fkey")
+  trioGames            CategoryTrioGame[]
   challenge            LeagueChallenge?
   leagueCycleId        String?
   leagueBlock          Int?
@@ -982,6 +988,7 @@ model CategoryMatch {
   bookingOccurrences   ScheduleOccurrence[]
   proposals            LeagueMatchProposal[]
 
+  @@unique([id, competitionId])
   @@index([competitionId, stage, roundOrder])
   @@index([groupId])
   @@index([winnerPairId])
@@ -2927,4 +2934,21 @@ model RecoveryCheck {
   checkedAt     DateTime
   lastSuccessAt DateTime?
   errorCode     String    @default("")
+}
+
+model CategoryTrioGame {
+  id String @id @default(cuid())
+  matchId String
+  competitionId String
+  gameNumber Int
+  homePlayerIds String[]
+  awayPlayerIds String[]
+  homeScore Int
+  awayScore Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  match CategoryMatch @relation(fields: [matchId, competitionId], references: [id, competitionId], onDelete: Cascade)
+
+  @@unique([matchId, gameNumber])
+  @@index([competitionId])
 }

@@ -83,6 +83,7 @@ export async function addManualPairAction(formData: FormData) {
     competitionId: formData.get("competitionId"),
     firstPlayerId: formData.get("firstPlayerId"),
     secondPlayerId: formData.get("secondPlayerId"),
+    thirdPlayerId: formData.get("thirdPlayerId"),
   });
   if (!parsed.success) {
     throw new Error(invalidInputMessage(parsed.error));
@@ -93,6 +94,7 @@ export async function addManualPairAction(formData: FormData) {
     parsed.data.competitionId,
     parsed.data.firstPlayerId,
     parsed.data.secondPlayerId,
+    parsed.data.thirdPlayerId,
   );
   refreshCategoryCompetitionRoutes();
   return result;

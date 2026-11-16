@@ -10,6 +10,7 @@ export async function addManualPair(
   competitionId: string,
   firstPlayerId: string,
   secondPlayerId: string,
+  thirdPlayerId?: string,
 ) {
   return runSerializableTransaction(
     arenaId,
@@ -54,7 +55,9 @@ export async function addManualPair(
         throw new Error("O formato Simples suporta no máximo 16 duplas.");
       }
 
-      const requestedPlayerIds = [firstPlayerId, secondPlayerId];
+      if (competition.format === "TRIO" && !thirdPlayerId) throw new Error("Selecione os três atletas da equipe.");
+      if (competition.format !== "TRIO" && thirdPlayerId) throw new Error("Esta categoria aceita somente duplas.");
+      const requestedPlayerIds = thirdPlayerId ? [firstPlayerId, secondPlayerId, thirdPlayerId] : [firstPlayerId, secondPlayerId];
       const players = await tx.player.findMany({
         where: {
           id: { in: requestedPlayerIds },
@@ -118,7 +121,7 @@ export async function addManualPair(
       const pair = await tx.categoryPair.create({
         data: {
           competitionId: competition.id,
-          name: `${orderedPlayers[0].name} / ${orderedPlayers[1].name}`,
+          name: orderedPlayers.map(player => player.name).join(" / "),
           totalPoints: orderedPlayers.reduce(
             (total, player) => total + player.points,
             0,
