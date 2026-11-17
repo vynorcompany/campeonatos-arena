@@ -8,6 +8,8 @@ export const viewStyles = {
  public_reg_card: "tw:grid tw:min-w-0 tw:gap-4 tw:[&+section]:border-t tw:[&+section]:border-[#e1e4e9] tw:[&+section]:pt-5",
  public_reg_card_head: "tw:flex tw:items-center tw:justify-between tw:gap-3 tw:[&_h2]:m-0 tw:[&_h2]:text-lg tw:[&_h2]:font-medium tw:[&_span]:text-xs tw:[&_span]:text-[#465c75]",
  public_reg_grid_public_reg_grid_2: "tw:grid tw:min-w-0 tw:grid-cols-2 tw:gap-4 tw:max-[420px]:grid-cols-1",
+ price_tiers: "tw:grid tw:min-w-0 tw:gap-2 tw:text-xs tw:text-[#354f70] tw:[&>p]:m-0 tw:[&_dl]:m-0 tw:[&_dl]:grid tw:[&_dl]:gap-2 tw:[&_dl>div]:flex tw:[&_dl>div]:justify-between tw:[&_dl>div]:gap-3 tw:[&_dd]:m-0 tw:[&_dd]:text-right",
+ regulation: "tw:grid tw:min-w-0 tw:gap-3 tw:rounded-lg tw:border tw:border-[#e1e4e9] tw:bg-white tw:p-5 tw:text-[#172b45] tw:[&_h2]:m-0 tw:[&_h2]:text-lg tw:[&_h2]:font-medium tw:[&_p]:m-0 tw:[&_p]:whitespace-pre-line tw:[&_p]:break-words tw:[&_p]:text-sm tw:[&_p]:leading-relaxed",
  field,
  public_reg_select: "tw:w-full tw:min-w-0 tw:rounded-md tw:border tw:border-[#bccbde] tw:bg-white tw:text-[#172b45]",
  desktop_submit: "tw:hidden tw:min-[900px]:grid tw:gap-4",

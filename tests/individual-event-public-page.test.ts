@@ -10,8 +10,8 @@ function nodes(root: any): Node[] {
   if (!root || typeof root !== "object" || !("props" in root)) return [];
   return [root, ...nodes(root.props.children)];
 }
-function page(categories: any[]) {
-  const tournament = { name: "Day use", publicSlug: "day-use", arena: { name: "Arena QA", slug: "qa", logoUrl: "" }, categories, publicRegistrations: [], categoryBrackets: [] };
+function page(categories: any[], overrides: Record<string, unknown> = {}) {
+  const tournament = { name: "Day use", publicSlug: "day-use", arena: { name: "Arena QA", slug: "qa", logoUrl: "" }, categories, publicRegistrations: [], categoryBrackets: [], ...overrides };
   const exports: any = {};
   const source = readFileSync(new URL("../src/app/inscricao/[slug]/page.tsx", import.meta.url), "utf8");
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText, {
@@ -55,4 +55,19 @@ test("mixed events preserve competition navigation and pair/trio registration ty
   assert.deepEqual(navigationLabels(result), ["Inscrição", "Inscritos", "Chaveamento", "Jogos"]);
   const categories = result.find(node => node.type === "registration-form")!.props.categories;
   assert.equal(categories[1].registrationType, "PAIR");
+});
+
+
+test("local registration receives category prices and the published regulation without private fields", async () => {
+  const category = { id: "individual", name: "Day use", registrationType: "INDIVIDUAL", competition: null, priceFirstCents: 8000, priceSecondCents: 6000, priceThirdCents: 0, internalNote: "private" };
+  const rules = "Chegue 15 minutos antes.\nPagamento na recepção.";
+  const Page = page([category], { rules, onlinePaymentEnabled: false });
+  const result = nodes(await Page({ params: Promise.resolve({ slug: "day-use" }) }));
+  const props = result.find(node => node.type === "registration-form")!.props;
+  assert.equal(props.onlinePaymentEnabled, false);
+  assert.equal(props.rules, rules);
+  assert.equal(props.categories[0].priceFirstCents, 8000);
+  assert.equal(props.categories[0].priceSecondCents, 6000);
+  assert.equal(props.categories[0].priceThirdCents, 0);
+  assert.equal(props.categories[0].internalNote, undefined);
 });
