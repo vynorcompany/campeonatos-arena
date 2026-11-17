@@ -139,6 +139,7 @@ export async function updateTournamentSettings(
       allowedRegistrationStandardKeys: string[];
       maxRegistrations: number;
       active: boolean;
+      registrationType?: "PAIR" | "INDIVIDUAL";
     }>;
     rankingId: string | null;
   }
@@ -238,6 +239,7 @@ export async function updateTournamentSettings(
             priceThirdCents: category.priceThirdCents,
             standardKey: category.standardKey,
             maxRegistrations: category.maxRegistrations,
+            registrationType: category.registrationType,
             active: category.active
           }
         });
@@ -254,6 +256,7 @@ export async function updateTournamentSettings(
             priceThirdCents: category.priceThirdCents,
             standardKey: category.standardKey,
             maxRegistrations: category.maxRegistrations,
+            registrationType: category.registrationType,
             active: category.active
           }
         });

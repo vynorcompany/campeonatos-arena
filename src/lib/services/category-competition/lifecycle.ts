@@ -57,12 +57,14 @@ export async function createCategoryCompetition(
       },
       select: {
         id: true,
+        registrationType: true,
         competition: { select: { id: true } },
       },
     });
     if (!category) {
       throw new Error("Categoria não encontrada nesta arena.");
     }
+    if (category.registrationType === "INDIVIDUAL") throw new Error("Esta categoria aceita inscrições individuais para evento sem jogos.");
     if (category.competition) {
       throw new Error("Esta categoria já possui uma competição.");
     }

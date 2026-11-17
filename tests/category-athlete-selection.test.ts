@@ -36,7 +36,7 @@ test("manual category registration rejects the same athlete twice", () => {
   const action = read("src", "lib", "actions", "tournament.ts");
 
   assert.match(validator, /leadPlayerId: z\.string\(\)\.trim\(\)\.min\(1/);
-  assert.match(validator, /partnerPlayerId: z\.string\(\)\.trim\(\)\.min\(1/);
+  assert.equal(createManualTournamentRegistrationSchema.safeParse({ tournamentId: "event", categoryId: "category", leadPlayerId: "lead", amountReais: "80,00" }).success, false, "Pair categories still require a second athlete.");
   assert.match(action, /leadPlayerId === parsed\.data\.partnerPlayerId/);
   assert.match(action, /Os atletas da dupla devem ser diferentes/);
   assert.match(action, /active: true/);

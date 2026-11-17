@@ -44,7 +44,7 @@ export function TournamentParticipantsTab({ tournament }: { tournament: NonNulla
         cpf: player.cpf,
         birthDate: player.birthDate?.toISOString() ?? null
       }))}
-      categories={tournament.categories.map((category) => ({ id: category.id, name: category.name, competition: category.competition }))}
+      categories={tournament.categories.map((category) => ({ id: category.id, name: category.name, registrationType: category.registrationType, competition: category.competition }))}
       registrations={tournament.publicRegistrations.map((registration) => ({
         id: registration.id,
         categoryId: registration.categoryId,
@@ -100,6 +100,8 @@ export function TournamentCategoriesTab({ tournament }: { tournament: NonNullabl
           defaultRankingId={tournament.rankingId ?? ""}
           defaultCategories={tournament.categories.map((category) => ({
             name: category.name,
+            registrationType: category.registrationType,
+            hasCompetition: Boolean(category.competition),
             groupCount: category.groupCount,
             pairsPerGroup: category.pairsPerGroup,
             priceFirstCents: category.priceFirstCents ?? 0,

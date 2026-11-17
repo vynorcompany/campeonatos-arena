@@ -7,7 +7,8 @@ import { ensureTournamentPairFromRegistration } from "@/lib/services/registratio
 import { canEditManualTournamentRegistration } from "@/lib/tournaments/registration-deletion";
 import type { updateManualTournamentRegistrationSchema } from "@/lib/validators/public-registration";
 
-type Input = Omit<z.infer<typeof updateManualTournamentRegistrationSchema>, "amountReais"> & {
+type Input = Omit<z.infer<typeof updateManualTournamentRegistrationSchema>, "amountReais" | "registrationType"> & {
+  registrationType?: "PAIR" | "INDIVIDUAL";
   arenaId: string;
   amountCents: number;
 };
@@ -15,7 +16,7 @@ type Input = Omit<z.infer<typeof updateManualTournamentRegistrationSchema>, "amo
 export async function updateManualTournamentRegistration(tx: Prisma.TransactionClient, input: Input): Promise<{ ok: true } | { ok: false; error: string }> {
   const registration = await tx.publicTournamentRegistration.findFirst({
     where: { id: input.registrationId, tournamentId: input.tournamentId, tournament: { arenaId: input.arenaId } },
-    select: { id: true, status: true, paymentStatus: true, paymentProvider: true, paymentReference: true, mercadoPagoPaymentId: true, paymentCheckoutUrl: true, category: { select: { competition: { select: { format: true } } } } },
+    select: { id: true, status: true, paymentStatus: true, paymentProvider: true, paymentReference: true, mercadoPagoPaymentId: true, paymentCheckoutUrl: true, category: { select: { registrationType: true, competition: { select: { format: true } } } } },
   });
   if (!registration) return { ok: false, error: "Inscrição não encontrada nesta arena." };
   if (registration.status === "CANCELED" || ["REVIEW", "REFUNDED"].includes(registration.paymentStatus)) {
@@ -27,10 +28,11 @@ export async function updateManualTournamentRegistration(tx: Prisma.TransactionC
 
   const category = await tx.tournamentCategory.findFirst({
     where: { id: input.categoryId, tournamentId: input.tournamentId, tournament: { arenaId: input.arenaId }, active: true },
-    select: { id: true, competition: { select: { id: true, format: true, status: true } } },
+    select: { id: true, registrationType: true, competition: { select: { id: true, format: true, status: true } } },
   });
   if (!category) return { ok: false, error: "Categoria inválida para este torneio." };
 
+  if (category.registrationType !== (input.registrationType ?? "PAIR") || registration.category.registrationType !== category.registrationType) return { ok: false, error: "A categoria de destino deve manter o tipo de inscrição." };
   if ((registration.category?.competition?.format === "TRIO") !== (category.competition?.format === "TRIO")) return { ok: false, error: "A categoria de destino deve manter a modalidade da inscrição." };
   try { validateRegistrationThird(category.competition?.format, input); } catch (error) { return { ok: false, error: error instanceof Error ? error.message : "Equipe inválida." }; }
   if (category.competition?.format === "TRIO" && category.competition.status !== "DRAFT") return { ok: false, error: "As inscrições do Trio já foram encerradas." };

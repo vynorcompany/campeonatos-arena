@@ -14,9 +14,10 @@ export default async function RegistrationSuccessPage(props: { params: Promise<{
   if (!tournament) notFound();
   const registration = await arenaDatabase(tournament.arenaId).publicTournamentRegistration.findFirst({
     where: { id: params.registrationId, tournamentId: tournament.id },
-    include: { tournament: { include: { arena: { select: { name: true, logoUrl: true } } } }, category: { select: { name: true, competition: { select: { format: true } } } } },
+    include: { tournament: { include: { arena: { select: { name: true, logoUrl: true } } } }, category: { select: { name: true, registrationType: true, competition: { select: { format: true } } } } },
   });
   if (!registration) notFound();
+  const individual = registration.category.registrationType === "INDIVIDUAL";
   const trio = registration.category.competition?.format === "TRIO";
   const confirmed = registration.status === "CONFIRMED" || registration.paymentStatus === "PAID";
   const needsReview = registration.paymentStatus === "REVIEW";
@@ -27,11 +28,11 @@ export default async function RegistrationSuccessPage(props: { params: Promise<{
     <section className={viewStyles.public_reg_success_card}>
       <p className={viewStyles.eyebrow}>{confirmed ? "INSCRIÇÃO CONCLUÍDA" : needsReview ? "PAGAMENTO EM ANÁLISE" : canceled ? "INSCRIÇÃO CANCELADA" : expired ? "PRAZO ENCERRADO" : "PAGAMENTO PENDENTE"}</p>
       <h1>{confirmed ? "Inscrição concluída com sucesso!" : needsReview ? "Estamos conferindo seu pagamento" : canceled ? "Esta inscrição foi cancelada" : expired ? "O prazo desta vaga terminou" : "Sua vaga está aguardando pagamento"}</h1>
-      <p>{confirmed ? trio ? "O trio já está confirmado no torneio." : "A dupla já está confirmada no torneio." : needsReview ? "A arena verificará o pagamento antes de confirmar a inscrição. Não faça outro pagamento agora." : canceled ? "O pagamento anterior foi estornado ou cancelado. Para participar, faça uma nova inscrição." : expired ? "Não pague esta cobrança. Faça uma nova inscrição se ainda houver vagas; pagamentos tardios exigem conferência pela arena." : "Conclua o pagamento para confirmar automaticamente a inscrição da equipe."}</p>
+      <p>{confirmed ? individual ? "Sua inscrição está confirmada no evento." : trio ? "O trio já está confirmado no torneio." : "A dupla já está confirmada no torneio." : needsReview ? "A arena verificará o pagamento antes de confirmar a inscrição. Não faça outro pagamento agora." : canceled ? "O pagamento anterior foi estornado ou cancelado. Para participar, faça uma nova inscrição." : expired ? "Não pague esta cobrança. Faça uma nova inscrição se ainda houver vagas; pagamentos tardios exigem conferência pela arena." : "Conclua o pagamento para confirmar automaticamente a inscrição da equipe."}</p>
       <div className={viewStyles.public_reg_success_summary}>
         <div><span>Torneio</span><strong>{registration.tournament.name}</strong></div>
         <div><span>Categoria</span><strong>{registration.category.name}</strong></div>
-        <div><span>{trio ? "Trio" : "Dupla"}</span><strong>{[registration.leadName, registration.partnerName, registration.thirdName].filter(Boolean).join(" / ")}</strong></div>
+        <div><span>{individual ? "Atleta" : trio ? "Trio" : "Dupla"}</span><strong>{[registration.leadName, registration.partnerName, registration.thirdName].filter(Boolean).join(" / ")}</strong></div>
         <div><span>{trio ? "Total da equipe" : "Valor"}</span><strong className="tw:text-xl! tw:font-semibold tw:text-[#174983] tw:dark:text-white">{money.format(registration.amountCents / 100)}</strong></div>
         {registration.discountCents ? <div><span>Desconto aplicado</span><strong>{money.format(registration.discountCents / 100)}</strong></div> : null}
         <div><span>Status</span><strong className={cx(confirmed ? viewStyles.status_confirmed : canceled || expired ? viewStyles.status_expired : viewStyles.status_pending)}>{confirmed ? "Confirmada" : needsReview ? "Em análise" : canceled ? "Cancelada" : expired ? "Prazo encerrado" : "Pagamento pendente"}</strong></div>

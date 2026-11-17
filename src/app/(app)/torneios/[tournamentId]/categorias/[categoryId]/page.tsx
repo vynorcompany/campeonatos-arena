@@ -1,3 +1,4 @@
+import { IndividualRegistrationPanel } from "@/components/tournaments/individual-registration-panel";
 import { CategoryOverviewRoster } from "@/components/tournaments/category-overview-roster";
 import { tournamentWorkspace as categoryUi } from "@/components/tournaments/tournament-workspace";
 import { viewStyles } from "./page.utilities";
@@ -79,6 +80,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
         tournament: { arenaId: auth.arenaId },
       },
       include: {
+        _count: { select: { registrations: true } },
         tournament: {
           select: {
             id: true,
@@ -186,8 +188,11 @@ export default async function CategoryPage(props: CategoryPageProps) {
   }
 
   const competition = category.competition;
+  const individual = category.registrationType === "INDIVIDUAL";
+  if (individual && !canManage) redirect(`/jogos?tournamentId=${params.tournamentId}`);
+  const individualAccounts = individual ? await arenaDatabase(auth.arenaId).bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true } }) : [];
   const requestedTab = searchParams?.tab as TournamentTabKey | undefined;
-  const availableTabs: TournamentTabKey[] = canManage ? validTabs : competition?.format === "LEAGUE" ? ["games", "results", "history"] : ["games", "results"];
+  const availableTabs: TournamentTabKey[] = individual ? ["overview", "registrations"] : canManage ? validTabs : competition?.format === "LEAGUE" ? ["games", "results", "history"] : ["games", "results"];
   const tab = requestedTab && availableTabs.includes(requestedTab)
     ? requestedTab
     : canManage ? "overview" : "games";
@@ -394,10 +399,10 @@ export default async function CategoryPage(props: CategoryPageProps) {
         categoryId={category.id}
         activeTab={tab}
         availableTabs={availableTabs}
-        counts={{ registrations: competition?.pairs.length ?? 0, games: `${completedMatchCount}/${competition?.matches.length ?? 0}` }}
+        counts={{ registrations: individual ? category.registrations.length : competition?.pairs.length ?? 0, games: `${completedMatchCount}/${competition?.matches.length ?? 0}` }}
       >
         {tab === "overview" ? (
-          competition?.format === "LEAGUE" ? (
+          individual ? <div className="tw:grid tw:min-w-0 tw:gap-4"><div className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-between tw:gap-3"><div><h1 className="tw:m-0 tw:text-lg tw:font-semibold tw:text-[#174983]">{category.name}</h1><p className="tw:m-0 tw:mt-1 tw:text-xs tw:text-[#465c75]">Inscrição individual · um atleta · evento sem jogos</p></div><Link className={categoryUi.primary} href={`/torneios/${params.tournamentId}/categorias/${category.id}?tab=registrations`}>Gerenciar inscrições</Link></div><TournamentCategorySettingsForm category={{ ...category, registrationTypeLocked: category._count.registrations > 0 || Boolean(competition) }} standardCategories={standardCategories}/></div> : competition?.format === "LEAGUE" ? (
           <div className={viewStyles.league_overview_dashboard}>
             {searchParams?.reopened === "1" && competition.leagueCycles[0]?.status === "OPEN"
               && competition.leagueCycles[0]?.referenceMonth === currentReferenceMonth
@@ -507,6 +512,8 @@ export default async function CategoryPage(props: CategoryPageProps) {
                   category={{
                     id: category.id,
                     name: category.name,
+                    registrationType: category.registrationType,
+                    registrationTypeLocked: category._count.registrations > 0 || Boolean(competition),
                     maxRegistrations: category.maxRegistrations,
                     priceFirstCents: category.priceFirstCents,
                     priceSecondCents: category.priceSecondCents,
@@ -530,7 +537,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
           )
         ) : null}
 
-        {tab === "registrations" ? (
+        {tab === "registrations" ? (individual ? <IndividualRegistrationPanel tournamentId={params.tournamentId} categoryId={category.id} registrations={category.registrations} athletes={athletes} accounts={individualAccounts} defaultAmountCents={category.priceFirstCents}/> :
           <CategoryRegistrationPanel
             tournamentId={params.tournamentId}
             categories={[categoryView]}

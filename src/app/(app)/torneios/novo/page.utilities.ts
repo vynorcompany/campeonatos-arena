@@ -9,5 +9,5 @@ export const viewStyles = {
   ].join(" "),
   "eyebrow": sharedUtilities.eyebrow,
   "muted": sharedUtilities.muted,
-  "button": (sharedUtilities.button) + " " + managementControls.secondary,
+  "button": managementControls.secondary,
 } as const;

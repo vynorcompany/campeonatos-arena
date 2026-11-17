@@ -21,7 +21,7 @@ export const viewStyles = {
     "tw:[&_a]:pb-[0]", "tw:[&_a]:pl-[14px]", "tw:[&_a]:border-t-[length:1px]", "tw:[&_a]:[border-top-style:solid]",
     "tw:[&_a]:border-t-[color:#cfdaea]", "tw:[&_a]:border-r-[length:1px]", "tw:[&_a]:[border-right-style:solid]", "tw:[&_a]:border-r-[color:#cfdaea]",
     "tw:[&_a]:border-b-[length:1px]", "tw:[&_a]:[border-bottom-style:solid]", "tw:[&_a]:border-b-[color:#cfdaea]", "tw:[&_a]:border-l-[length:1px]",
-    "tw:[&_a]:[border-left-style:solid]", "tw:[&_a]:border-l-[color:#cfdaea]", "tw:[&_a]:rounded-[8px]", "tw:[&_a]:text-[color:#526681]",
+    "tw:[&_a]:[border-left-style:solid]", "tw:[&_a]:border-l-[color:#cfdaea]", "tw:[&_a]:rounded-[4px]", "tw:[&_a]:bg-[color:#215da5]", "tw:[&_a]:text-white",
     "tw:[&_a]:text-[.86rem]", "tw:[&_a]:font-[650]", "tw:[&_a]:[text-decoration:none]", "tw:[&_a:hover]:border-t-[color:var(--brand)]",
     "tw:[&_a:hover]:border-r-[color:var(--brand)]", "tw:[&_a:hover]:border-b-[color:var(--brand)]", "tw:[&_a:hover]:border-l-[color:var(--brand)]", "tw:[&_a:hover]:bg-[color:#174983]",
     "tw:[&_a:hover]:[background-image:none]", "tw:[&_a:hover]:text-white", "tw:[&_a.is-active]:border-t-[color:var(--brand)]", "tw:[&_a.is-active]:border-r-[color:var(--brand)]",

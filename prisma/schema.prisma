@@ -679,6 +679,7 @@ model Tournament {
 }
 
 model TournamentCategory {
+  registrationType String @default("PAIR")
   id               String                         @id @default(cuid())
   name             String
   level            Int

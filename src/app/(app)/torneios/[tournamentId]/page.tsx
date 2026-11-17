@@ -35,6 +35,7 @@ export default async function TournamentDetailPage(props: TournamentDetailPagePr
         categories: {
           orderBy: { level: "asc" },
           include: {
+            _count: { select: { registrations: { where: { status: { not: "CANCELED" } } } } },
             competition: {
               select: {
                 format: true,
@@ -140,6 +141,8 @@ export default async function TournamentDetailPage(props: TournamentDetailPagePr
             categories={tournament.categories.map((category) => ({
               id: category.id,
               name: category.name,
+              registrationType: category.registrationType,
+              registrationCount: category._count.registrations,
               competition: category.competition
                 ? { format: category.competition.format, pairCount: category.competition._count.pairs }
                 : null,
@@ -151,7 +154,7 @@ export default async function TournamentDetailPage(props: TournamentDetailPagePr
           <EventQuickActions
             tournament={tournament}
             publicPageUrl={`/inscricao/${tournament.publicSlug}`}
-            categories={tournament.categories.map((category) => ({ id: category.id, name: category.name, pairCount: category.competition?._count.pairs ?? 0 }))}
+            categories={tournament.categories.map((category) => ({ id: category.id, name: category.name, registrationType: category.registrationType, pairCount: category.competition?._count.pairs ?? 0 }))}
           />
           <section className={viewStyles.event_information}>
             <header><EventIcon name="info" /><h2>Informações do evento</h2></header>

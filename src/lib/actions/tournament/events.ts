@@ -105,6 +105,8 @@ export async function createTournamentCategoryAction(formData: FormData) {
   const auth = await requirePermission("tournaments:manage");
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
+  const registrationType = String(formData.get("registrationType") ?? "PAIR");
+  if (!["PAIR", "INDIVIDUAL"].includes(registrationType)) throw new Error("Tipo de inscrição inválido.");
   if (!tournamentId || name.length < 3) throw new Error("Informe um nome de categoria com pelo menos 3 caracteres.");
   const tournament = await prisma.tournament.findFirst({
     where: { id: tournamentId, arenaId: auth.arenaId },
@@ -115,6 +117,7 @@ export async function createTournamentCategoryAction(formData: FormData) {
     data: {
       tournamentId: tournament.id,
       name,
+      registrationType,
       level: Math.max(0, ...tournament.categories.map((item) => item.level)) + 1,
       groupCount: tournament.groupCount,
       pairsPerGroup: tournament.pairsPerGroup,

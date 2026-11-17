@@ -7,7 +7,7 @@ export const viewStyles = {
   "page_header_tournament_management_header": sharedUtilities.pageHeaderTournamentManagementHeader,
   "eyebrow": sharedUtilities.eyebrow,
   "muted": sharedUtilities.muted,
-  "button": (ui.secondary) + " " + managementControls.secondary,
+  "button": managementControls.secondary,
   "section_card": sharedUtilities.sectionCard2,
   "grid_form": sharedUtilities.gridForm,
   "field_form_full": `${ui.field} tw:col-span-full tw:[&_label]:text-xs!`,
