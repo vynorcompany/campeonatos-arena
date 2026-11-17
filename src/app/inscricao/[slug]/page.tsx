@@ -69,8 +69,8 @@ export default async function PublicRegistrationPage(
     <main className={viewStyles.stack_md}>
       <header className={viewStyles.page_header}>
         <div className={viewStyles.stack_xs}>
-          <p className={viewStyles.eyebrow}>Inscrição pública</p>
-          <h1>{tournament.name}</h1>
+
+          <h1 className="tw:m-0 tw:text-3xl tw:font-semibold tw:text-[#174983] tw:viewport-560:text-2xl">{tournament.name}</h1>
           <p className={viewStyles.muted}>{tournament.description || "Acompanhe o torneio e faça sua inscrição."}</p>
         </div>
       </header>

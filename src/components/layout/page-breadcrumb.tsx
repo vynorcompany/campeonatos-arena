@@ -1,6 +1,7 @@
 "use client";
 import { viewStyles } from "./page-breadcrumb.utilities";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export function PageBreadcrumb({ section, current }: { section: string; current: string }) {
@@ -38,7 +39,12 @@ export function WorkspaceBreadcrumb({ canViewTournaments = true }: { canViewTour
   const parts = path.split("/").filter(Boolean);
   if (path.startsWith("/proximos-jogos/patrocinios")) return <PageBreadcrumb section="Gestão" current="Planos" />;
   if (path.startsWith("/proximos-jogos")) return <PageBreadcrumb section="Painéis" current="Tela da TV" />;
-  if (path.startsWith("/torneios/rankings")) return <PageBreadcrumb section="Torneios" current="Rankings" />;
+  if (path.startsWith("/torneios")) {
+    const eventId = parts[1], categoryId = parts[3];
+    const current = !eventId ? "Eventos" : eventId === "novo" ? "Novo evento" : eventId === "rankings" ? (parts[2] ? "Configuração do ranking" : "Rankings") : eventId === "inscricoes" ? "Inscrições" : parts[2] === "categorias" ? (categoryId === "nova" ? "Nova categoria" : categoryId ? "Categoria" : "Categorias") : parts[2] === "inscricoes" ? "Inscrições do evento" : parts[2] === "jogos" ? "Jogos do evento" : "Evento";
+    const actualEvent = eventId && !["novo", "rankings", "inscricoes"].includes(eventId);
+    return <nav className={`${viewStyles.page_breadcrumb_workspace_page_breadcrumb} tw:flex-wrap tw:[&_a]:text-[#174983] tw:[&_a:hover]:underline`} aria-label="Caminho de navegação"><Link href="/torneios">Eventos</Link>{actualEvent && parts[2] ? <><i aria-hidden="true">›</i><Link href={`/torneios/${eventId}`}>Evento</Link></> : null}{actualEvent && parts[2] === "categorias" && categoryId ? <><i aria-hidden="true">›</i><Link href={`/torneios/${eventId}/categorias`}>Categorias</Link></> : null}{current !== "Eventos" ? <><i aria-hidden="true">›</i><strong aria-current="page">{current}</strong></> : null}</nav>;
+  }
   if (path.startsWith("/jogos")) return canViewTournaments
     ? <PageBreadcrumb section="Torneios" current="Eventos ativos" />
     : <PageBreadcrumb section="Jogos" current="Programação e placares" />;

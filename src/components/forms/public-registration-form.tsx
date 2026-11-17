@@ -57,7 +57,7 @@ export function PublicRegistrationForm({
 }) {
   const [state, formAction] = useFormState(createPublicRegistrationAction, initialState);
   const router = useRouter();
-  const [categoryId, setCategoryId] = useState("");
+  const [categoryId, setCategoryId] = useState(categories.length === 1 ? categories[0].id : "");
   const individual = categories.find(category => category.id === categoryId)?.registrationType === "INDIVIDUAL";
   const trio = categories.find(category => category.id === categoryId)?.competition?.format === "TRIO";
 
@@ -126,7 +126,7 @@ export function PublicRegistrationForm({
           </div>
         </section>
 
-        <section className={viewStyles.public_reg_card}>
+        <section className={cx(viewStyles.public_reg_card, individual && "tw:col-span-full")}>
           <header className={viewStyles.public_reg_card_head}>
             <h3>Atleta 1</h3>
             <p>Dados do titular da inscrição.</p>
