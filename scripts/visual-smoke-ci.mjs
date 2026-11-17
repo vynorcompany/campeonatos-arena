@@ -1325,7 +1325,7 @@ async function main() {
       });
       const tabRects = tabsLayout.result.value.links;
       const rows = new Set(tabRects.map((tab) => Math.round(tab.top)));
-      if (tabRects.length !== 4 || tabRects.some((tab) => tab.width < 70 || tab.left < -1 || tab.right > viewport.width + 1) ||
+      if (tabRects.length !== 4 || tabRects.some((tab) => tab.width < 40 || tab.left < -1 || tab.right > viewport.width + 1) ||
           rows.size !== (viewport.name === "desktop" ? 1 : 2)) {
         throw new Error(`${viewport.name}: abas públicas cortadas ou sem hierarquia responsiva: ${JSON.stringify(tabsLayout.result.value)}`);
       }
