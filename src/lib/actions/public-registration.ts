@@ -1,9 +1,11 @@
 "use server";
+import { resolveIndividualRegistrationClient, registrationNameKey } from "@/lib/tournaments/individual-registration-client";
+import { sameBrazilianPhone } from "@/lib/phone";
 import { validateRegistrationThird } from "@/lib/tournaments/trio-registration";
 
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { revalidatePath } from "next/cache";
-import { createCardCheckout, createPixPayment } from "@/lib/payments/mercado-pago";
+import { createCardCheckout, createHostedCheckout, createPixPayment } from "@/lib/payments/mercado-pago";
 import { prisma } from "@/lib/prisma";
 import { ensureTournamentPairFromRegistration } from "@/lib/services/registration-pair";
 import { createPublicRegistrationSchema } from "@/lib/validators/public-registration";
@@ -22,6 +24,7 @@ type PublicRegistrationState = {
   paymentCheckoutUrl?: string;
   paymentMethod?: "PIX" | "CARD";
   registrationId?: string;
+  redirectToCheckout?: boolean;
 };
 
 const initialState: PublicRegistrationState = {
@@ -51,7 +54,7 @@ export async function createPublicRegistrationAction(
     tournamentSlug: formData.get("tournamentSlug"),
     categoryId: formData.get("categoryId"),
     registrationType: formData.get("registrationType") || "PAIR",
-    paymentMethod: formData.get("paymentMethod"),
+    paymentMethod: formData.get("paymentMethod") || "PIX",
     leadName: formData.get("leadName"),
     leadEmail: formData.get("leadEmail"),
     leadPhone: formData.get("leadPhone"),
@@ -101,6 +104,9 @@ export async function createPublicRegistrationAction(
       validateRegistrationThird(selectedCategory.competition?.format, parsed.data);
       if (isTrio && selectedCategory.competition?.status !== "DRAFT") throw new Error("As inscrições desta categoria de Trio já foram encerradas.");
 
+      const leadClient = isIndividual ? await resolveIndividualRegistrationClient(tx, tournament.arenaId, parsed.data.leadName, parsed.data.leadPhone, parsed.data.leadCpf) : null;
+      const leadCpf = leadClient?.cpf ?? parsed.data.leadCpf;
+
       await releaseExpiredPublicRegistrationHolds(tx, tournament.id, now);
 
       const occupiedSlots = await tx.publicTournamentRegistration.count({
@@ -114,14 +120,13 @@ export async function createPublicRegistrationAction(
         throw new Error("Esta categoria atingiu o limite máximo de inscrições.");
       }
 
-      // CPF is the athlete identity in public registration. Counts below are
-      // intentionally calculated per CPF, so the second and third prices
-      // follow the athlete even when they enter with a different partner.
-      const cpfs = [parsed.data.leadCpf, ...(!isIndividual ? [parsed.data.partnerCpf] : []), ...(isTrio ? [parsed.data.thirdCpf] : [])];
-      const registrations = await tx.publicTournamentRegistration.findMany({
+      // Teams retain CPF identity for progressive category pricing. Individual
+      // events use the arena client link, with contact matching for legacy rows.
+      const cpfs = [leadCpf, ...(!isIndividual ? [parsed.data.partnerCpf] : []), ...(isTrio ? [parsed.data.thirdCpf] : [])].filter(Boolean);
+      const candidates = await tx.publicTournamentRegistration.findMany({
         where: {
           tournamentId: tournament.id,
-          OR: [{ leadCpf: { in: cpfs } }, { partnerCpf: { in: cpfs } }, { thirdCpf: { in: cpfs } }],
+          ...(!isIndividual ? { OR: [{ leadCpf: { in: cpfs } }, { partnerCpf: { in: cpfs } }, { thirdCpf: { in: cpfs } }] } : {}),
           status: {
             not: "CANCELED"
           }
@@ -132,6 +137,8 @@ export async function createPublicRegistrationAction(
           }
         }
       });
+
+      const registrations = isIndividual ? candidates.filter(item => item.leadPlayerId === leadClient!.id || Boolean(leadCpf && [item.leadCpf, item.partnerCpf, item.thirdCpf].includes(leadCpf)) || sameBrazilianPhone(item.leadPhone, parsed.data.leadPhone) && registrationNameKey(item.leadName) === registrationNameKey(parsed.data.leadName)) : candidates;
 
       if ((isTrio || isIndividual) && registrations.some(item => item.categoryId === selectedCategory.id)) throw new Error("Um dos atletas já está inscrito nesta categoria.");
       const registrationOrder = await nextTournamentRegistrationOrder(tx, tournament.id);
@@ -149,7 +156,7 @@ export async function createPublicRegistrationAction(
         }
       }
 
-      const leadCount = registrations.filter(
+      const leadCount = isIndividual ? registrations.length : registrations.filter(
         (item) => item.leadCpf === parsed.data.leadCpf || item.partnerCpf === parsed.data.leadCpf || item.thirdCpf === parsed.data.leadCpf
       ).length;
       const partnerCount = registrations.filter(
@@ -172,7 +179,7 @@ export async function createPublicRegistrationAction(
         : 0;
       const amountCents = grossAmountCents - discountCents;
       let paymentBankAccountId: string | null = null;
-      if (amountCents > 0) {
+      if (amountCents > 0 && tournament.onlinePaymentEnabled !== false) {
         const settings = await tx.arenaOperationalSettings.findUnique({ where: { arenaId: tournament.arenaId }, select: { portalPaymentBankAccountId: true } });
         try {
           paymentBankAccountId = await requireReceivingBankAccount(tx, tournament.arenaId, settings?.portalPaymentBankAccountId);
@@ -184,9 +191,10 @@ export async function createPublicRegistrationAction(
         data: {
           tournamentId: tournament.id,
           categoryId: selectedCategory.id,
+          leadPlayerId: leadClient?.id,
           leadName: parsed.data.leadName,
           leadPhone: parsed.data.leadPhone,
-          leadCpf: parsed.data.leadCpf,
+          leadCpf,
           leadBirthDate: parsed.data.leadBirthDate,
           partnerName: parsed.data.partnerName,
           partnerPhone: parsed.data.partnerPhone,
@@ -199,15 +207,23 @@ export async function createPublicRegistrationAction(
           paymentBankAccountId,
           discountCents,
           paymentStatus: "PENDING",
-          paymentProvider: amountCents > 0 ? "MERCADO_PAGO_PENDING" : "",
+          paymentProvider: amountCents > 0 ? tournament.onlinePaymentEnabled === false ? "PAY_ON_SITE" : "MERCADO_PAGO_PENDING" : "",
           paymentReference: "",
-          holdExpiresAt: amountCents > 0 ? publicRegistrationPaymentExpiresAt(now) : null,
-          status: "PENDING_PAYMENT"
+          holdExpiresAt: amountCents > 0 && tournament.onlinePaymentEnabled !== false ? publicRegistrationPaymentExpiresAt(now) : null,
+          status: amountCents > 0 && tournament.onlinePaymentEnabled === false ? "CONFIRMED" : "PENDING_PAYMENT"
         }
       });
 
-      return { registration, amountCents, tournamentName: tournament.name, arenaId: tournament.arenaId };
+      if (amountCents > 0 && tournament.onlinePaymentEnabled === false) {
+        await ensureTournamentPairFromRegistration(tx, { registrationId: registration.id, arenaId: tournament.arenaId, tournamentId: tournament.id, leadName: registration.leadName, partnerName: registration.partnerName, leadCpf: registration.leadCpf, partnerCpf: registration.partnerCpf, thirdCpf: registration.thirdCpf });
+      }
+      return { registration, amountCents, tournamentName: tournament.name, arenaId: tournament.arenaId, onlinePaymentEnabled: tournament.onlinePaymentEnabled !== false };
     });
+
+    if (!result.onlinePaymentEnabled && result.amountCents > 0) {
+      revalidatePath(`/inscricao/${parsed.data.tournamentSlug}`);
+      return { error: null, success: "Inscrição confirmada. Pagamento no local.", amountCents: result.amountCents, registrationId: result.registration.id };
+    }
 
     const paymentPayload = {
       arenaId: result.arenaId,
@@ -245,7 +261,9 @@ export async function createPublicRegistrationAction(
 
     let payment;
     try {
-      payment = parsed.data.paymentMethod === "CARD"
+      payment = !parsed.data.leadEmail
+        ? await createHostedCheckout({ ...paymentPayload, paymentTypes: { pix: parsed.data.paymentMethod === "PIX", creditCard: parsed.data.paymentMethod === "CARD" } })
+        : parsed.data.paymentMethod === "CARD"
         ? await createCardCheckout(paymentPayload)
         : await createPixPayment(paymentPayload);
       if (payment.provider !== "PIX_MOCK" && !payment.checkoutUrl && !payment.qrCode) throw new Error("O Mercado Pago não retornou um meio de pagamento para esta inscrição.");
@@ -265,8 +283,8 @@ export async function createPublicRegistrationAction(
       data: {
         paymentProvider: payment.provider,
         paymentReference: payment.reference,
-        // Checkout de cartão devolve o ID da preferência, não do pagamento.
-        mercadoPagoPaymentId: parsed.data.paymentMethod === "CARD" ? "" : payment.paymentId,
+        // Checkout hospedado devolve o ID da preferência, não do pagamento.
+        mercadoPagoPaymentId: parsed.data.paymentMethod === "CARD" || !parsed.data.leadEmail ? "" : payment.paymentId,
         paymentQrCode: payment.qrCode,
         paymentQrCodeBase64: payment.qrCodeBase64,
         paymentCheckoutUrl: payment.checkoutUrl,
@@ -314,6 +332,7 @@ export async function createPublicRegistrationAction(
       paymentQrCodeBase64: payment.qrCodeBase64,
       paymentCheckoutUrl: payment.checkoutUrl,
       paymentMethod: parsed.data.paymentMethod,
+      redirectToCheckout: !parsed.data.leadEmail,
       registrationId: result.registration.id
     };
   } catch (error) {

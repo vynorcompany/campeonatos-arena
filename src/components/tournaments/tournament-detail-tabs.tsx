@@ -249,6 +249,7 @@ export function TournamentSettingsTab({ tournament, rankings }: { tournament: No
           defaultPublicSlug={tournament.publicSlug}
           defaultRegistrationPhase={tournament.registrationPhase}
           defaultShowInEventRadar={tournament.showInEventRadar}
+          defaultOnlinePaymentEnabled={tournament.onlinePaymentEnabled}
           defaultCreationMode={tournament.creationMode as "MANUAL" | "PUBLIC"}
           defaultGroupCount={tournament.groupCount}
           defaultPairsPerGroup={tournament.pairsPerGroup}

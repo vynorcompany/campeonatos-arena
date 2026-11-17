@@ -59,5 +59,6 @@ export {
   updateTournamentCategoryFormatAction,
   createManualTournamentRegistrationAction,
   deleteTournamentRegistrationAction,
-  updateTournamentRegistrationAction
+  updateTournamentRegistrationAction,
+  receiveOnsiteTournamentRegistrationAction
 } from "@/lib/actions/tournament/registrations";

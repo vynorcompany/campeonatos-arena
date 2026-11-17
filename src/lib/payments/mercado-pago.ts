@@ -136,9 +136,7 @@ async function createCheckoutPreference(input: CreateCardCheckoutInput, paymentM
     },
     body: JSON.stringify({
       external_reference: input.externalReference,
-      payer: {
-        email: input.payerEmail
-      },
+      ...(input.payerEmail ? { payer: { email: input.payerEmail } } : {}),
       items: [
         {
           title: input.description,

@@ -22,3 +22,13 @@ test("category input preserves individual type without changing legacy categorie
   assert.equal(parseCategoryList(JSON.stringify([{ name: "Day use", registrationType: "INDIVIDUAL" }]), 0, 0, 0)[0].registrationType, "INDIVIDUAL");
   assert.throws(() => parseCategoryList(JSON.stringify([{ name: "Day use", registrationType: "SINGLES" }]), 0, 0, 0), /Tipo de inscrição inválido/);
 });
+
+
+test("individual public registration needs only name and valid phone; pairs retain email and CPF", () => {
+  const minimal = { tournamentSlug: "day-use", categoryId: "category", registrationType: "INDIVIDUAL", leadName: "Novo Atleta", leadPhone: "+55 (42) 99999-1234" };
+  const result = createPublicRegistrationSchema.parse(minimal);
+  assert.equal(result.leadPhone, "42999991234"); assert.equal(result.leadCpf, ""); assert.equal(result.leadEmail, "");
+  for (const leadPhone of ["123", "(00) 99999-1234", "telefone", "429123"]) assert.equal(createPublicRegistrationSchema.safeParse({ ...minimal, leadPhone }).success, false);
+  assert.equal(createPublicRegistrationSchema.safeParse({ ...minimal, registrationType: "PAIR", partnerName: "Outro Atleta", partnerPhone: "42999991235", partnerCpf: "11144477735" }).success, false);
+  assert.equal(createPublicRegistrationSchema.safeParse({ ...minimal, leadEmail: "email inválido" }).success, false);
+});

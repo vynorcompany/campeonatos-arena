@@ -1,4 +1,5 @@
 "use server";
+import { receiveOnsiteTournamentRegistration } from "@/lib/tournaments/onsite-registration-receipt";
 import { validateRegistrationThird } from "@/lib/tournaments/trio-registration";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { recordTournamentRegistrationReceipt } from "@/lib/tournaments/registration-receipt";
@@ -406,4 +407,23 @@ export async function updateTournamentRegistrationAction(
   refreshTournamentRoutes();
   revalidatePath(`/torneios/${parsed.data.tournamentId}`);
   return { error: null, success: "Inscricao atualizada com sucesso." };
+}
+
+export async function receiveOnsiteTournamentRegistrationAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await requirePermission("tournaments:manage");
+  await requirePermission("finance:receivable:settle");
+  const registrationId = String(formData.get("registrationId") ?? "").trim();
+  const bankAccountId = String(formData.get("bankAccountId") ?? "").trim();
+  const date = String(formData.get("paidAt") ?? "").trim();
+  if (!registrationId) return { error: "Inscrição inválida.", success: null };
+  if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(`${date}T12:00:00Z`)) || new Date(`${date}T12:00:00Z`).toISOString().slice(0, 10) !== date)) return { error: "Informe uma data de pagamento válida.", success: null };
+  try {
+    const registration = await withArenaTransaction(auth.arenaId, tx => receiveOnsiteTournamentRegistration(tx, { arenaId: auth.arenaId, registrationId, bankAccountId, paidAt: date ? new Date(`${date}T12:00:00Z`) : new Date() }));
+    refreshTournamentRoutes();
+    revalidatePath(`/inscricao/${registration.tournament.publicSlug}`);
+    revalidatePath(`/inscricao/${registration.tournament.publicSlug}/sucesso/${registration.id}`);
+    return { error: null, success: "Recebimento registrado com sucesso." };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Não foi possível registrar o recebimento.", success: null };
+  }
 }

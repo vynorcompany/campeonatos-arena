@@ -21,6 +21,7 @@ export const createTournamentSchema = z.object({
     .regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífen no link público."),
   registrationPhase: z.enum(["REGISTRATIONS", "EDITING", "LIVE", "FINISHED"]).default("REGISTRATIONS"),
   showInEventRadar: z.coerce.boolean().default(false),
+  onlinePaymentEnabled: z.boolean().optional(),
   groupCount: z.coerce.number().int().min(1).max(8),
   pairsPerGroup: z.coerce.number().int().min(2).max(16),
   priceFirstCents: z.coerce.number().int().min(0),

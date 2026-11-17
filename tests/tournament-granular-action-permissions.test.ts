@@ -41,7 +41,7 @@ test("cada ação de torneio usa a permissão exata, sem guarda genérica", () =
     "finishTournamentAction", "reopenTournamentAction", "updateTournamentAction",
     "deleteTournamentAction", "syncEntriesAction", "updateTournamentRegistrationPhaseAction",
     "generateCategoryBracketAction", "updateTournamentCategoryFormatAction", "updateTournamentStatusAction",
-    "createManualTournamentRegistrationAction", "deleteTournamentRegistrationAction", "updateTournamentRegistrationAction",
+    "createManualTournamentRegistrationAction", "deleteTournamentRegistrationAction", "updateTournamentRegistrationAction", "receiveOnsiteTournamentRegistrationAction",
   ];
   const rankings = [
     "createRankingProfileAction", "updateRankingProfileAction", "updateRankingPointsAction",
@@ -116,4 +116,15 @@ test("substituição médica exige gestão da Liga", () => {
 
 test("Trio mantém lançamento de placar separado da gestão da competição", () => {
   assert.deepEqual(tournamentGuards(readActionFile("category-trio")), { recordCategoryTrioGameAction: "requirePermission:tournaments:results" });
+});
+
+test("receber inscrição no local exige baixa financeira além da gestão de torneios", async () => {
+  const checked: string[] = [];
+  const exported: Record<string, (...args: any[]) => Promise<any>> = {};
+  vm.runInNewContext(ts.transpileModule(readActionFile("tournament/registrations"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
+    exports: exported, FormData,
+    require: (name: string) => name === "@/lib/auth/guards" ? { requirePermission: async (key: string) => { checked.push(key); if (key === "tournaments:manage") return { arenaId: "arena-a" }; throw new Error("SEM_BAIXA_FINANCEIRA"); } } : name === "@/lib/rls" ? { withArenaTransaction: () => { throw new Error("ACESSO_AO_BANCO"); } } : {},
+  });
+  await assert.rejects(exported.receiveOnsiteTournamentRegistrationAction({}, new FormData()), /SEM_BAIXA_FINANCEIRA/);
+  assert.deepEqual(checked, ["tournaments:manage", "finance:receivable:settle"]);
 });

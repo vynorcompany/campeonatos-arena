@@ -19,6 +19,7 @@ export default async function RegistrationSuccessPage(props: { params: Promise<{
   if (!registration) notFound();
   const individual = registration.category.registrationType === "INDIVIDUAL";
   const trio = registration.category.competition?.format === "TRIO";
+  const onsitePending = registration.paymentProvider === "PAY_ON_SITE" && registration.paymentStatus !== "PAID";
   const confirmed = registration.status === "CONFIRMED" || registration.paymentStatus === "PAID";
   const needsReview = registration.paymentStatus === "REVIEW";
   const canceled = registration.status === "CANCELED" || registration.paymentStatus === "REFUNDED";
@@ -33,11 +34,12 @@ export default async function RegistrationSuccessPage(props: { params: Promise<{
         <div><span>Torneio</span><strong>{registration.tournament.name}</strong></div>
         <div><span>Categoria</span><strong>{registration.category.name}</strong></div>
         <div><span>{individual ? "Atleta" : trio ? "Trio" : "Dupla"}</span><strong>{[registration.leadName, registration.partnerName, registration.thirdName].filter(Boolean).join(" / ")}</strong></div>
-        <div><span>{trio ? "Total da equipe" : "Valor"}</span><strong className="tw:text-xl! tw:font-semibold tw:text-[#174983] tw:dark:text-white">{money.format(registration.amountCents / 100)}</strong></div>
+        <div><span>{onsitePending ? "Valor em aberto" : trio ? "Total da equipe" : "Valor"}</span><strong className="tw:text-xl! tw:font-semibold tw:text-[#174983] tw:dark:text-white">{money.format(registration.amountCents / 100)}</strong></div>
         {registration.discountCents ? <div><span>Desconto aplicado</span><strong>{money.format(registration.discountCents / 100)}</strong></div> : null}
         <div><span>Status</span><strong className={cx(confirmed ? viewStyles.status_confirmed : canceled || expired ? viewStyles.status_expired : viewStyles.status_pending)}>{confirmed ? "Confirmada" : needsReview ? "Em análise" : canceled ? "Cancelada" : expired ? "Prazo encerrado" : "Pagamento pendente"}</strong></div>
+        {onsitePending && !canceled ? <div><span>Pagamento</span><strong>Pagamento no local</strong></div> : null}
       </div>
-      {!canceled && !confirmed && !needsReview && !expired ? <RegistrationPaymentControls
+      {!onsitePending && !canceled && !confirmed && !needsReview && !expired ? <RegistrationPaymentControls
         holdExpiresAt={registration.holdExpiresAt?.toISOString() ?? null}
         checkoutUrl={registration.paymentCheckoutUrl}
         qrCode={registration.paymentQrCode}
