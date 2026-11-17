@@ -20,6 +20,7 @@ type TournamentEventEditFormProps = {
     name: string;
     description: string;
     rules: string;
+    onlinePaymentEnabled?: boolean;
   };
 };
 
@@ -60,6 +61,8 @@ export function TournamentEventEditForm({
           placeholder="Insira o regulamento que será exibido na página pública."
         />
       </div>
+      <input type="hidden" name="onlinePaymentEnabledPresent" value="true"/>
+      <label className={viewStyles.field_form_full + " tw:flex tw:items-center tw:gap-2"}><input type="checkbox" name="onlinePaymentEnabled" defaultChecked={tournament.onlinePaymentEnabled ?? true}/>Pagamento online</label>
       <footer className={viewStyles.field_field_submit_form_full}>
         {onCancel ? <button type="button" className={viewStyles.button_secondary} onClick={onCancel}>Cancelar</button> : null}
         <SubmitButton
