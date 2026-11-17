@@ -25,7 +25,7 @@ export const viewStyles = {
     "tw:[&_a]:text-[.86rem]", "tw:[&_a]:font-[650]", "tw:[&_a]:[text-decoration:none]", "tw:[&_a:hover]:border-t-[color:var(--brand)]",
     "tw:[&_a:hover]:border-r-[color:var(--brand)]", "tw:[&_a:hover]:border-b-[color:var(--brand)]", "tw:[&_a:hover]:border-l-[color:var(--brand)]", "tw:[&_a:hover]:bg-[color:#174983]",
     "tw:[&_a:hover]:[background-image:none]", "tw:[&_a:hover]:text-white", "tw:[&_a.is-active]:border-t-[color:var(--brand)]", "tw:[&_a.is-active]:border-r-[color:var(--brand)]",
-    "tw:[&_a.is-active]:border-b-[color:var(--brand)]", "tw:[&_a.is-active]:border-l-[color:var(--brand)]", "tw:[&_a.is-active]:bg-[color:#174983]", "tw:[&_a.is-active]:[background-image:none]",
+    "tw:[&_a.is-active]:border-b-[color:var(--brand)]", "tw:[&_a.is-active]:border-l-[color:var(--brand)]", "tw:[&_a.is-active]:bg-[color:#103b6c]", "tw:[&_a.is-active]:underline", "tw:[&_a.is-active]:decoration-2", "tw:[&_a.is-active]:underline-offset-4", "tw:[&_a.is-active:hover]:bg-[color:#0a2955]", "tw:[&_a.is-active]:[background-image:none]",
     "tw:[&_a.is-active]:text-white", "tw:viewport-600:[&_a]:justify-center", "tw:viewport-600:[&_a]:min-w-0",
     "tw:viewport-600:[&_a]:pr-[8px]", "tw:viewport-600:[&_a]:pl-[8px]", "tw:viewport-600:[&_a]:text-[.8rem]",
   ].join(" "),
