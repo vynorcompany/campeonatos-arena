@@ -13,7 +13,7 @@ export const batchSchema=z.object({items:z.array(z.discriminatedUnion("action",[
   const e=i.entry;
   if(e.status==="PAID"&&(!e.paidAt||!e.paymentMethod)||e.status==="PENDING"&&(e.paidAt||e.interestCents)||e.amountCents+e.interestCents>2147483647)c.addIssue({code:"custom",message:"Dados de pagamento inválidos"});
  }else{
-  if(!i.selector.supplier&&!i.selector.description||i.selector.dueDate&&!/^20\d\d-\d\d-\d\d$/.test(i.selector.dueDate)||i.action==="settle"&&(!i.paidAt||!i.paymentMethod)||i.action==="update"&&(i.paidAt||i.paymentMethod))c.addIssue({code:"custom",message:"Identificação ou dados de baixa inválidos"});
+  if(!i.selector.supplier&&!i.selector.description||i.selector.dueDate&&(!/^20\d\d-\d\d-\d\d$/.test(i.selector.dueDate)||!Number.isFinite(new Date(i.selector.dueDate+"T12:00:00.000Z").getTime())||new Date(i.selector.dueDate+"T12:00:00.000Z").toISOString().slice(0,10)!==i.selector.dueDate)||i.action==="settle"&&(!i.paidAt||!i.paymentMethod)||i.action==="update"&&(i.paidAt||i.paymentMethod))c.addIssue({code:"custom",message:"Identificação ou dados de baixa inválidos"});
  }}
 });
 export type Batch=z.infer<typeof batchSchema>;
