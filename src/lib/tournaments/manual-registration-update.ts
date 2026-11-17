@@ -16,7 +16,7 @@ type Input = Omit<z.infer<typeof updateManualTournamentRegistrationSchema>, "amo
 export async function updateManualTournamentRegistration(tx: Prisma.TransactionClient, input: Input): Promise<{ ok: true } | { ok: false; error: string }> {
   const registration = await tx.publicTournamentRegistration.findFirst({
     where: { id: input.registrationId, tournamentId: input.tournamentId, tournament: { arenaId: input.arenaId } },
-    select: { id: true, status: true, paymentStatus: true, paymentProvider: true, paymentReference: true, mercadoPagoPaymentId: true, paymentCheckoutUrl: true, category: { select: { registrationType: true, competition: { select: { format: true } } } } },
+    select: { id: true, categoryId: true, status: true, paymentStatus: true, paymentProvider: true, paymentReference: true, mercadoPagoPaymentId: true, paymentCheckoutUrl: true, category: { select: { registrationType: true, competition: { select: { format: true } } } } },
   });
   if (!registration) return { ok: false, error: "Inscrição não encontrada nesta arena." };
   if (registration.status === "CANCELED" || ["REVIEW", "REFUNDED"].includes(registration.paymentStatus)) {
@@ -27,7 +27,7 @@ export async function updateManualTournamentRegistration(tx: Prisma.TransactionC
   }
 
   const category = await tx.tournamentCategory.findFirst({
-    where: { id: input.categoryId, tournamentId: input.tournamentId, tournament: { arenaId: input.arenaId }, active: true },
+    where: { id: input.categoryId, tournamentId: input.tournamentId, tournament: { arenaId: input.arenaId }, OR: [{ active: true, archivedAt: null }, { id: registration.categoryId, archivedAt: { not: null } }] },
     select: { id: true, registrationType: true, competition: { select: { id: true, format: true, status: true } } },
   });
   if (!category) return { ok: false, error: "Categoria inválida para este torneio." };

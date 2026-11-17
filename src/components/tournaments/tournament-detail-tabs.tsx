@@ -99,6 +99,8 @@ export function TournamentCategoriesTab({ tournament }: { tournament: NonNullabl
           defaultMaxCategoryGap={tournament.maxCategoryGap}
           defaultRankingId={tournament.rankingId ?? ""}
           defaultCategories={tournament.categories.map((category) => ({
+            id: category.id,
+            registrationCount: category._count.registrations,
             name: category.name,
             registrationType: category.registrationType,
             hasCompetition: Boolean(category.competition),

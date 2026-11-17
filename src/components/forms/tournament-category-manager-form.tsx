@@ -1,4 +1,5 @@
 "use client";
+import { RemoveCategoryButton } from "@/components/tournaments/remove-category-button";
 import { viewStyles } from "./tournament-category-manager-form.utilities";
 
 import { useMemo, useState } from "react";
@@ -16,6 +17,8 @@ const initialState: ActionState = {
 };
 
 type ManagedCategory = {
+  id?: string;
+  registrationCount?: number;
   name: string;
   groupCount: number;
   pairsPerGroup: number;
@@ -219,7 +222,7 @@ export function TournamentCategoryManagerForm(
                     : "Aguardando classe, gênero e formato"}
                   </span>
                 </div>
-                {!category.hasCompetition ? <button type="button" className={viewStyles.button_button_small} onClick={() => removeCategory(category.name)}>Remover</button> : null}
+                {category.id ? <RemoveCategoryButton tournamentId={props.tournamentId} categoryId={category.id} categoryName={category.name} registrationCount={category.registrationCount ?? 0} onRemoved={() => setCategories(current => current.filter(item => item.id !== category.id))}/> : <button type="button" className={viewStyles.button_button_small} onClick={() => removeCategory(category.name)}>Remover</button>}
               </div>
               <div className="tournament-category-settings-grid">
                 <label className={viewStyles.tournament_category_standard}>Tipo de inscrição<select value={category.registrationType ?? "PAIR"} disabled={category.hasCompetition} onChange={event => setCategories(current => current.map(item => item.name === category.name ? { ...item, registrationType: event.target.value } : item))}><option value="PAIR">Dupla · dois atletas</option><option value="INDIVIDUAL">Individual · um atleta, sem jogos</option></select></label><label className={viewStyles.tournament_category_standard}>Categoria padrão<select value={category.standardKey ?? ""} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, standardKey: event.target.value, allowedRegistrationStandardKeys: [] } : item))}><option value="">Selecione</option>{TOURNAMENT_CATEGORY_PRESETS.map((preset) => <option value={preset} key={preset}>{preset}</option>)}</select></label>

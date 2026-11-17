@@ -79,8 +79,43 @@ test("individual day-use public/manual registration, pricing, payment and tenant
     await assert.rejects(scope(arenaId, (tx: any) => tx.tournamentCategory.update({ where: { id: category.id }, data: { registrationType: "PAIR" } })), /já possui inscrições/);
     await assert.rejects(scope(arenaId, (tx: any) => tx.publicTournamentRegistration.update({ where: { id: registration.id }, data: { partnerName: "Intruso Atleta" } })), /somente um participante/);
     assert.equal(await scope(arenas[1], (tx: any) => tx.publicTournamentRegistration.count({ where: { tournamentId: tournament.id } })), 0);
+    const { archiveTournamentCategory } = load("src/lib/tournaments/category-removal.ts");
+    const lateAthlete = await admin.player.create({ data: { arenaId, name: "Acerto Após Remoção", cpf: "77777777777", phone: "42999990007" } });
+    const latePending = await createManualTournamentRegistrationAction({}, data({ tournamentId: tournament.id, categoryId: category.id, registrationType: "INDIVIDUAL", leadPlayerId: lateAthlete.id, amountReais: "80,00", paymentStatus: "PENDING" }));
+    assert.equal(latePending.error, null);
+    const lateRegistration = await admin.publicTournamentRegistration.findFirstOrThrow({ where: { categoryId: category.id, leadCpf: lateAthlete.cpf } });
+    const count = await admin.publicTournamentRegistration.count({ where: { categoryId: category.id } });
+    const removal = { arenaId, tournamentId: tournament.id, categoryId: category.id, expectedRegistrationCount: count, confirmed: true, actorId: "goal-test", actorName: "Operador QA" };
+    assert.equal((await scope(arenaId, (tx: any) => archiveTournamentCategory(tx, { ...removal, confirmed: false }))).ok, false);
+    assert.equal((await scope(arenaId, (tx: any) => archiveTournamentCategory(tx, { ...removal, expectedRegistrationCount: count - 1 }))).ok, false);
+    await assert.rejects(scope(arenas[1], (tx: any) => archiveTournamentCategory(tx, { ...removal, arenaId: arenas[1] })), /não encontrado nesta arena/);
+    const receiptsBefore = await admin.financialEntry.count({ where: { arenaId } });
+    assert.equal((await scope(arenaId, (tx: any) => archiveTournamentCategory(tx, removal))).ok, true);
+    assert.equal((await scope(arenaId, (tx: any) => archiveTournamentCategory(tx, removal))).ok, true);
+    const archived = await admin.tournamentCategory.findUniqueOrThrow({ where: { id: category.id } });
+    assert.ok(archived.archivedAt); assert.equal(archived.active, false);
+    assert.equal(await admin.publicTournamentRegistration.count({ where: { categoryId: category.id } }), count);
+    assert.equal(await admin.financialEntry.count({ where: { arenaId } }), receiptsBefore);
+    assert.equal(await admin.auditEvent.count({ where: { arenaId, entityId: category.id, action: "TOURNAMENT_CATEGORY_REMOVED" } }), 1);
+    const reconciled = await updateTournamentRegistrationAction({}, data({ registrationId: lateRegistration.id, tournamentId: tournament.id, categoryId: category.id, registrationType: "INDIVIDUAL", leadName: lateAthlete.name, leadCpf: lateAthlete.cpf, leadPhone: lateAthlete.phone, amountReais: "80,00", paymentStatus: "PAID", bankAccountId: bank.id }));
+    assert.equal(reconciled.error, null);
+    assert.equal(await admin.financialEntry.count({ where: { arenaId, externalReference: lateRegistration.id } }), 1);
+    assert.equal(await admin.pair.count({ where: { tournamentId: tournament.id } }), 0);
+
+    assert.match((await createPublicRegistrationAction({}, data({ ...fields, leadCpf: "55555555555" }))).error, /Categoria inv/);
+    await assert.rejects(scope(arenaId, (tx: any) => tx.tournamentCategory.update({ where: { id: category.id }, data: { active: true } })), /archived_inactive/);
+    await assert.rejects(scope(arenaId, (tx: any) => tx.publicTournamentRegistration.create({ data: { tournamentId: tournament.id, categoryId: category.id, registrationOrder: 10, leadName: "Novo Atleta", leadPhone: "42999990005", leadCpf: "55555555555", partnerName: "", partnerPhone: "", partnerCpf: "", amountCents: 0 } })), /removida/);
+    const historyCategory = await admin.tournamentCategory.create({ data: { tournamentId: tournament.id, name: "Duplas com histórico", level: 3 } });
+    const competition = await admin.categoryCompetition.create({ data: { categoryId: historyCategory.id, format: "SIMPLE" } });
+    const home = await admin.categoryPair.create({ data: { competitionId: competition.id, name: "Dupla QA A", drawOrder: 1 } });
+    const away = await admin.categoryPair.create({ data: { competitionId: competition.id, name: "Dupla QA B", drawOrder: 2 } });
+    const match = await admin.categoryMatch.create({ data: { competitionId: competition.id, label: "Final QA", stage: "FINAL", roundOrder: 1, homePairId: home.id, awayPairId: away.id, winnerPairId: home.id, homeScore: 6, awayScore: 4 } });
+    assert.equal((await scope(arenaId, (tx: any) => archiveTournamentCategory(tx, { ...removal, categoryId: historyCategory.id, expectedRegistrationCount: 0 }))).ok, true);
+    const preserved = await admin.categoryMatch.findUniqueOrThrow({ where: { id: match.id } });
+    assert.equal(preserved.homeScore, 6); assert.equal(preserved.awayScore, 4); assert.equal(preserved.winnerPairId, home.id);
+
   } finally {
-    for (const id of arenas) { await admin.financialEntry.deleteMany({ where: { arenaId: id } }); await admin.tournament.deleteMany({ where: { arenaId: id } }); await admin.player.deleteMany({ where: { arenaId: id } }); await admin.arenaOperationalSettings.deleteMany({ where: { arenaId: id } }); await admin.bankAccount.deleteMany({ where: { arenaId: id } }); await admin.arena.deleteMany({ where: { id } }); }
+    for (const id of arenas) { await admin.financialEntry.deleteMany({ where: { arenaId: id } }); await admin.tournament.deleteMany({ where: { arenaId: id } }); await admin.player.deleteMany({ where: { arenaId: id } }); await admin.arenaOperationalSettings.deleteMany({ where: { arenaId: id } }); await admin.bankAccount.deleteMany({ where: { arenaId: id } }); await admin.auditEvent.deleteMany({ where: { arenaId: id } }); await admin.arena.deleteMany({ where: { id } }); }
     await runtime.$disconnect(); await admin.$disconnect();
   }
 });

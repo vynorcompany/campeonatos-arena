@@ -164,7 +164,7 @@ export async function updateTournamentCategorySettingsAction(formData: FormData)
     formData.get("priceThird"),
   ].map(parseReaisToCents);
   const category = await prisma.tournamentCategory.findFirst({
-    where: { id: categoryId, tournament: { arenaId: auth.arenaId } },
+    where: { id: categoryId, archivedAt: null, tournament: { arenaId: auth.arenaId } },
     select: { id: true, tournamentId: true, registrationType: true },
   });
   if (!category) throw new Error("Categoria não encontrada.");

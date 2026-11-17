@@ -218,7 +218,7 @@ export async function updateTournamentSettings(
     });
 
     const existingCategories = await tx.tournamentCategory.findMany({
-      where: { tournamentId },
+      where: { tournamentId, archivedAt: null },
       select: { id: true, name: true }
     });
 
@@ -263,7 +263,7 @@ export async function updateTournamentSettings(
       }
     }
 
-    const persistedCategories = await tx.tournamentCategory.findMany({ where: { tournamentId }, select: { id: true, name: true, standardKey: true } });
+    const persistedCategories = await tx.tournamentCategory.findMany({ where: { tournamentId, archivedAt: null }, select: { id: true, name: true, standardKey: true } });
     const categoryIdsByName = new Map(persistedCategories.map((category) => [category.name, category.id]));
     for (const category of input.categoryList) {
       const id = categoryIdsByName.get(category.name);
@@ -284,16 +284,11 @@ export async function updateTournamentSettings(
         where: { categoryId: category.id }
       });
 
-      if (registrationCount > 0) {
-        await tx.tournamentCategory.update({
-          where: { id: category.id },
-          data: { active: false }
-        });
-      } else {
-        await tx.tournamentCategory.delete({
-          where: { id: category.id }
-        });
-      }
+      if (registrationCount > 0) throw new Error("Esta categoria possui inscrições. Use Remover categoria na listagem e confirme o aviso.");
+      await tx.tournamentCategory.update({
+        where: { id: category.id },
+        data: { active: false, archivedAt: new Date() }
+      });
     }
 
     await recalculateTournamentRankingPointsTx(tx, tournamentId);

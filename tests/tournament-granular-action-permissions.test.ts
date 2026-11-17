@@ -37,7 +37,7 @@ function tournamentGuards(source: string) {
 
 test("cada ação de torneio usa a permissão exata, sem guarda genérica", () => {
   const manage = [
-    "updateTournamentEntryPointsAction", "createTournamentAction", "createTournamentCategoryAction",
+    "updateTournamentEntryPointsAction", "createTournamentAction", "createTournamentCategoryAction", "removeTournamentCategoryAction",
     "finishTournamentAction", "reopenTournamentAction", "updateTournamentAction",
     "deleteTournamentAction", "syncEntriesAction", "updateTournamentRegistrationPhaseAction",
     "generateCategoryBracketAction", "updateTournamentCategoryFormatAction", "updateTournamentStatusAction",

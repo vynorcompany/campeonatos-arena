@@ -87,6 +87,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
             name: true,
             creationMode: true,
             categories: {
+              where: { archivedAt: null },
               select: { id: true, name: true, standardKey: true },
             },
           },
@@ -187,7 +188,14 @@ export default async function CategoryPage(props: CategoryPageProps) {
     notFound();
   }
 
+  if (category.archivedAt && !canManage) notFound();
+
   const competition = category.competition;
+  if (category.archivedAt) return <main className="tw:grid tw:min-w-0 tw:gap-4">
+    <Link className={categoryUi.primary} href={`/torneios/${params.tournamentId}`}>Voltar ao evento</Link>
+    <section role="status" className="tw:grid tw:gap-2 tw:rounded tw:border tw:border-[#a02119] tw:bg-white tw:p-3 tw:text-sm tw:text-[#82221b]"><h1 className="tw:m-0 tw:text-lg tw:font-semibold">{category.name} · removida do evento</h1><p className="tw:m-0">Novas inscrições estão bloqueadas. Pagamentos, resultados e históricos foram preservados.</p><span>{category._count.registrations} inscrições registradas · consulta somente leitura</span><Link className={categoryUi.primary} href={`/torneios/${params.tournamentId}/inscricoes`}>Consultar inscrições e pagamentos</Link></section>
+    {competition ? <section className="tw:grid tw:min-w-0 tw:gap-2"><h2 className="tw:m-0 tw:text-base tw:font-semibold tw:text-[#174983]">Resultados preservados</h2>{competition.matches.length ? competition.matches.map(match => <article key={match.id} className="tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)_auto] tw:gap-2 tw:border-b tw:border-[#cfdaea] tw:py-2 tw:text-sm tw:text-[#231f20]"><div className="tw:min-w-0 tw:break-words"><strong>{match.label}</strong><p className="tw:m-0 tw:mt-1">{match.homePair?.players.map(member => member.player.name).join(" / ") || match.homePair?.name || "A definir"} × {match.awayPair?.players.map(member => member.player.name).join(" / ") || match.awayPair?.name || "A definir"}</p></div><strong className="tw:whitespace-nowrap">{match.homeScore ?? "—"} × {match.awayScore ?? "—"}</strong></article>) : <p className="tw:text-sm tw:text-[#465c75]">Nenhum placar registrado.</p>}{competition.leagueCycles.length ? <div className="tw:grid tw:gap-2"><h3 className="tw:text-sm tw:font-semibold">Ciclos preservados</h3>{competition.leagueCycles.map(cycle => <p key={cycle.id} className="tw:m-0 tw:text-sm tw:text-[#231f20]">{cycle.referenceMonth} · {cycle.status === "CLOSED" ? "Encerrado" : "Aberto"}{cycle.prizeDescription ? ` · ${cycle.prizeDescription}` : ""}</p>)}</div> : null}</section> : null}
+  </main>;
   const individual = category.registrationType === "INDIVIDUAL";
   if (individual && !canManage) redirect(`/jogos?tournamentId=${params.tournamentId}`);
   const individualAccounts = individual ? await arenaDatabase(auth.arenaId).bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true } }) : [];
@@ -393,6 +401,8 @@ export default async function CategoryPage(props: CategoryPageProps) {
       >
         <span aria-hidden="true">←</span> Categorias
       </Link>
+
+
 
       <TournamentDetailLayout
         tournamentId={params.tournamentId}

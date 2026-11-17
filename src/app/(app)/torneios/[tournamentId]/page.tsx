@@ -33,9 +33,10 @@ export default async function TournamentDetailPage(props: TournamentDetailPagePr
           select: { slug: true },
         },
         categories: {
+          where: { archivedAt: null },
           orderBy: { level: "asc" },
           include: {
-            _count: { select: { registrations: { where: { status: { not: "CANCELED" } } } } },
+            _count: { select: { registrations: true } },
             competition: {
               select: {
                 format: true,

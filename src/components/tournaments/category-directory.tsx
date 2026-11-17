@@ -1,4 +1,5 @@
 
+import { RemoveCategoryButton } from "./remove-category-button";
 import Link from "next/link";
 import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
 const formats: Record<string, string> = { LEAGUE: "Liga", THREE_GROUPS: "3 grupos", FOUR_GROUPS: "4 grupos", SIMPLE: "Simples", TRIO: "Trio" };
@@ -6,8 +7,8 @@ export function CategoryDirectory({ tournamentId, categories }: { tournamentId: 
   return <div className="tw:grid tw:min-w-0 tw:gap-3">
     <div className="tw:flex tw:justify-end"><Link href={`/torneios/${tournamentId}/categorias/nova`} className={ui.primary}>Adicionar categoria</Link></div>
     <section className={ui.list} aria-label="Categorias do evento">
-      <div className={`${ui.head} tw:grid-cols-[minmax(0,1fr)_120px_100px_90px]`}><span>Categoria</span><span>Formato</span><span>Inscrições</span><span className="tw:text-right">Ação</span></div>
-      <>{categories.map(category => <article key={category.id} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_120px_100px_90px] tw:viewport-760:grid-cols-[minmax(0,1fr)_auto]`}><strong>{category.name}</strong><span className="tw:text-xs">{category.registrationType === "INDIVIDUAL" ? "Individual · sem jogos" : category.competition ? formats[category.competition.format] : "Configurar"}</span><span className="tw:text-xs">{category.registrationType === "INDIVIDUAL" ? `${category.registrationCount ?? 0} atletas` : `${category.competition?.pairCount ?? 0} equipes`}</span><Link href={`/torneios/${tournamentId}/categorias/${category.id}`} className={`${ui.secondary} tw:justify-self-end`}>Entrar</Link></article>)}{!categories.length ? <p className={ui.empty}>Nenhuma categoria cadastrada.</p> : null}</>
+      <div className={`${ui.head} tw:grid-cols-[minmax(0,1fr)_120px_100px_130px]`}><span>Categoria</span><span>Formato</span><span>Inscrições</span><span className="tw:text-right">Ação</span></div>
+      <>{categories.map(category => <article key={category.id} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_120px_100px_130px] tw:viewport-760:grid-cols-[minmax(0,1fr)_auto]`}><strong>{category.name}</strong><span className="tw:text-xs">{category.registrationType === "INDIVIDUAL" ? "Individual · sem jogos" : category.competition ? formats[category.competition.format] : "Configurar"}</span><span className="tw:text-xs">{category.registrationType === "INDIVIDUAL" ? `${category.registrationCount ?? 0} atletas` : `${category.competition?.pairCount ?? 0} equipes`}</span><div className="tw:flex tw:items-center tw:justify-end tw:gap-1"><Link href={`/torneios/${tournamentId}/categorias/${category.id}`} className={ui.secondary}>Entrar</Link><RemoveCategoryButton tournamentId={tournamentId} categoryId={category.id} categoryName={category.name} registrationCount={category.registrationCount ?? 0}/></div></article>)}{!categories.length ? <p className={ui.empty}>Nenhuma categoria cadastrada.</p> : null}</>
 
     </section>
   </div>;

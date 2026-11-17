@@ -13,7 +13,7 @@ export default async function TournamentCategoriesPage(props: { params: Promise<
   if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) redirect(`/jogos?tournamentId=${encodeURIComponent(params.tournamentId)}`);
   const tournament = await prisma.tournament.findFirst({
     where: { id: params.tournamentId, arenaId: auth.arenaId },
-    include: { categories: { orderBy: { level: "asc" }, include: { _count: { select: { registrations: { where: { status: { not: "CANCELED" } } } } }, competition: { select: { format: true, _count: { select: { pairs: { where: { active: true } } } } } } } } },
+    include: { categories: { where: { archivedAt: null }, orderBy: { level: "asc" }, include: { _count: { select: { registrations: true } }, competition: { select: { format: true, _count: { select: { pairs: { where: { active: true } } } } } } } } },
   });
   if (!tournament) notFound();
 

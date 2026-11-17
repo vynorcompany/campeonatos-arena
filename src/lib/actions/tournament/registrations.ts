@@ -244,7 +244,7 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
       const categories = await tx.$queryRaw<Array<{ id: string; registrationType?: string; format?: string; competitionId?: string; competitionStatus?: string; maxRegistrations?: number }>>`
         SELECT tc."id", tc."registrationType", tc."maxRegistrations", c.format::text AS format, c.id AS "competitionId", c.status AS "competitionStatus" FROM "TournamentCategory" tc
         LEFT JOIN "CategoryCompetition" c ON c."categoryId"=tc.id
-        WHERE tc."id" = ${parsed.data.categoryId} AND tc."tournamentId" = ${parsed.data.tournamentId} AND tc."active" = true
+        WHERE tc."id" = ${parsed.data.categoryId} AND tc."tournamentId" = ${parsed.data.tournamentId} AND tc."active" = true AND tc."archivedAt" IS NULL
         FOR UPDATE OF tc
       `;
       if (categories.length !== 1) return { error: "Categoria inválida ou desativada para este torneio.", success: null };

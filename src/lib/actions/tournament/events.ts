@@ -1,4 +1,6 @@
 "use server";
+import { archiveTournamentCategory } from "@/lib/tournaments/category-removal";
+import { withArenaTransaction } from "@/lib/rls";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -308,4 +310,28 @@ export async function updateTournamentStatusAction(formData: FormData) {
 
   refreshTournamentRoutes();
   revalidatePath(`/torneios/${tournamentId}`);
+}
+
+export async function removeTournamentCategoryAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await requirePermission("tournaments:manage");
+  const tournamentId = String(formData.get("tournamentId") ?? "");
+  const categoryId = String(formData.get("categoryId") ?? "");
+  const expectedRegistrationCount = Number(formData.get("expectedRegistrationCount") ?? "");
+  if (!tournamentId || !categoryId || !formData.has("expectedRegistrationCount") || !Number.isInteger(expectedRegistrationCount) || expectedRegistrationCount < 0) return { error: "Categoria ou confirmação inválida. Atualize a página.", success: null };
+  let result: Awaited<ReturnType<typeof archiveTournamentCategory>>;
+  try {
+    result = await withArenaTransaction(auth.arenaId, tx => archiveTournamentCategory(tx, {
+      arenaId: auth.arenaId, tournamentId, categoryId,
+      confirmed: formData.get("confirmed") === "on", expectedRegistrationCount, actorId: auth.userId, actorName: auth.userName,
+    }));
+  } catch {
+    return { error: "Não foi possível remover a categoria. Nenhum dado foi alterado. Atualize a página e tente novamente.", success: null };
+  }
+  if (!result.ok) return { error: result.error, success: null };
+  refreshTournamentRoutes();
+  revalidatePath(`/torneios/${tournamentId}`);
+  revalidatePath(`/torneios/${tournamentId}/categorias`);
+  revalidatePath(`/torneios/${tournamentId}/categorias/${categoryId}`);
+  revalidatePath("/inscricao/[slug]", "page");
+  return { error: null, success: "Categoria removida. Histórico e pagamentos preservados." };
 }

@@ -1,4 +1,5 @@
 
+import { RemoveCategoryButton } from "./remove-category-button";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./category-list.utilities";
 import Link from "next/link";
@@ -66,12 +67,12 @@ export function CategoryList({
                   : "—"}
               </span>
               <span className={cx(`${viewStyles.t_category_status} ${category.competition ? "active" : "pending"}`)}>{category.registrationType === "INDIVIDUAL" || category.competition ? "Ativa" : "Pendente"}</span>
-              <Link
+              <div className="tw:flex tw:items-center tw:justify-end tw:gap-1"><Link
                 href={`/torneios/${tournamentId}/categorias/${category.id}`}
                 className={viewStyles.t_category_enter}
               >
                 Abrir <EventIcon name="chevron" size={14}/>
-              </Link>
+              </Link><RemoveCategoryButton tournamentId={tournamentId} categoryId={category.id} categoryName={category.name} registrationCount={category.registrationCount ?? 0}/></div>
             </div>
           ))}</>
         </div>

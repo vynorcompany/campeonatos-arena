@@ -78,7 +78,7 @@ export async function createPublicRegistrationAction(
         where: { id: target.id },
         include: {
           categories: {
-            where: { active: true },
+            where: { active: true, archivedAt: null },
             include: { competition: { select: { id: true, format: true, status: true } } },
             orderBy: { level: "asc" }
           }
