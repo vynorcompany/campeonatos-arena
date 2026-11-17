@@ -1,4 +1,5 @@
 "use client";
+import { submenuTabs } from "@/components/ui/submenu-tabs";
 import { useFilterMemory } from "@/components/filters/filter-memory";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 export function PortalLocalTabs({
@@ -98,7 +99,7 @@ export function PortalLocalTabs({
       <div
         role="tablist"
         aria-label={label}
-        className="tw:flex tw:min-w-0 tw:gap-1 tw:overflow-x-auto tw:border-b tw:border-[#b8cfee] tw:pb-1 tw:dark:border-[#365879]"
+        className={submenuTabs.bar}
       >
         {tabs.map((tab, index) => (
           <button
@@ -134,7 +135,7 @@ export function PortalLocalTabs({
                 buttons.current[target]?.focus();
               }
             }}
-            className="tw:viewport-620:px-1.5 tw:viewport-620:text-xs tw:min-h-10 tw:shrink-0 tw:cursor-pointer tw:rounded-md tw:border-0 tw:bg-transparent tw:px-3 tw:py-2 tw:text-sm tw:font-medium tw:text-[#354f70] tw:aria-selected:bg-[#174983] tw:aria-selected:text-white tw:dark:text-[#c2d5ee] tw:dark:aria-selected:bg-[#174983] tw:dark:aria-selected:text-white tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#215da5]"
+            className={submenuTabs.item + " tw:viewport-620:px-1.5 tw:viewport-620:text-xs"}
           >
             {tab.label}
           </button>

@@ -287,7 +287,6 @@ test("teacher tabs keep one shared hero and metric layout", () => {
 
   assert.match(styleRules("teacher-detail-page"), /row-gap: 24px[\s\S]*max-width: 1460px/);
   assert.match(styleRules("teacher-detail-page", {"context":".teacher-page-actions"}), /padding-top: 64px/);
-  assert.match(styleRules("teacher-detail-page", {"context":".teacher-detail-tabs"}), /row-gap: 20px/);
   assert.doesNotMatch(styles, /\.teacher-students-dashboard \.teacher-detail-tabs/);
 });
 

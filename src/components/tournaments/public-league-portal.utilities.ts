@@ -1,3 +1,4 @@
+import { submenuTabs } from "@/components/ui/submenu-tabs";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -284,20 +285,7 @@ export const viewStyles = {
   "portal_league_week_list": [
     "portal-league-week-list", "tw:grid", "tw:gap-y-[10px]", "tw:gap-x-[10px]",
   ].join(" "),
-  "portal_league_week_tabs": [
-    "portal-league-week-tabs", "tw:flex", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
-    "tw:[overflow-x:auto]", "tw:pt-[1px]", "tw:pr-[1px]", "tw:pb-[3px]",
-    "tw:pl-[1px]", "tw:[scrollbar-width:none]", "tw:[&::-webkit-scrollbar]:hidden", "tw:[&_button]:min-w-[66px]",
-    "tw:[&_button]:min-h-[32px]", "tw:[&_button]:pt-[6px]", "tw:[&_button]:pr-[9px]", "tw:[&_button]:pb-[6px]",
-    "tw:[&_button]:pl-[9px]", "tw:[&_button]:border-t-[length:1px]", "tw:[&_button]:[border-top-style:solid]", "tw:[&_button]:border-t-[color:var(--portal-line,rgb(103_153_194_/_.32))]",
-    "tw:[&_button]:border-r-[length:1px]", "tw:[&_button]:[border-right-style:solid]", "tw:[&_button]:border-r-[color:var(--portal-line,rgb(103_153_194_/_.32))]", "tw:[&_button]:border-b-[length:1px]",
-    "tw:[&_button]:[border-bottom-style:solid]", "tw:[&_button]:border-b-[color:var(--portal-line,rgb(103_153_194_/_.32))]", "tw:[&_button]:border-l-[length:1px]", "tw:[&_button]:[border-left-style:solid]",
-    "tw:[&_button]:border-l-[color:var(--portal-line,rgb(103_153_194_/_.32))]", "tw:[&_button]:rounded-[8px]", "tw:[&_button]:text-[color:var(--portal-ink,#a9c1d1)]", "tw:[&_button]:bg-[color:var(--portal-soft,#0c2037)]",
-    "tw:[&_button]:[background-image:none]", "tw:[&_button]:[font:inherit]", "tw:[&_button]:text-[.66rem]", "tw:[&_button]:font-[800]",
-    "tw:[&_button]:cursor-pointer", "tw:[&_button]:whitespace-nowrap", "tw:[&_button.active]:border-t-[color:var(--portal-line,rgb(73_231_180_/_.66))]", "tw:[&_button.active]:border-r-[color:var(--portal-line,rgb(73_231_180_/_.66))]",
-    "tw:[&_button.active]:border-b-[color:var(--portal-line,rgb(73_231_180_/_.66))]", "tw:[&_button.active]:border-l-[color:var(--portal-line,rgb(73_231_180_/_.66))]", "tw:[&_button.active]:text-[color:var(--portal-ink,#d8e8ff)]", "tw:[&_button.active]:bg-[color:transparent]",
-    "tw:[&_button.active]:[background-image:var(--portal-panel-image,linear-gradient(135deg,_#0d2d5a,_#0b3b4b))]", "tw:[&_button.active]:[box-shadow:var(--portal-shadow,0_3px_16px_rgb(21_60_44_/_0.04))]",
-  ].join(" "),
+  portal_league_week_tabs: "portal-league-week-tabs " + submenuTabs.group,
   "portal_league_week": [
     "portal-league-week", "tw:grid", "tw:[overflow-x:hidden]", "tw:[overflow-y:hidden]",
     "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--portal-line,#d3e4ec)]", "tw:border-r-[length:1px]",

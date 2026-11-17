@@ -1,7 +1,8 @@
+import { submenuTabs } from "@/components/ui/submenu-tabs";
 import { tournamentWorkspace as managementControls } from "@/components/tournaments/tournament-workspace";
 import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
 export const viewStyles = {
-  section_actions_ranking_detail_tabs: "ranking-detail-tabs tw:flex tw:min-w-0 tw:flex-wrap tw:gap-1 tw:rounded-lg tw:border tw:border-[var(--line)] tw:bg-white tw:p-1 tw:viewport-440:grid tw:viewport-440:grid-cols-2",
-  button: (ui.secondary + " tw:justify-center") + " " + managementControls.secondary,
-  button_primary: ("tw:border-[#174983]! tw:bg-[#174983]! tw:text-white! tw:hover:bg-[#174983]!") + " " + managementControls.primary,
+  section_actions_ranking_detail_tabs: "ranking-detail-tabs " + submenuTabs.bar,
+  button: submenuTabs.item,
+  button_primary: submenuTabs.selected,
 } as const;
