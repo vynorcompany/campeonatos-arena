@@ -28,7 +28,9 @@ test("category overview keeps the roster visible and puts configuration behind d
     "the overview must render one category-overview summary",
   );
   assert.match(source, /<CategoryOverviewRoster/);
-  assert.match(source, /counts=\{\{ registrations: competition\?\.pairs\.length/);
+  assert.match(source, /individual \? \["overview", "registrations"\]/);
+  assert.match(source, /<IndividualRegistrationPanel/);
+  assert.match(source, /counts=\{\{ registrations: individual \? category\.registrations\.length : competition\?\.pairs\.length/);
   assert.match(source, /<details[^>]*>[\s\S]*?<summary[^>]*>Configurações da categoria<\/summary>/);
   assert.doesNotMatch(source, /className=\{viewStyles\.league_overview_metric\}/);
   assert.doesNotMatch(source, /<CategoryCompetitionCard/);

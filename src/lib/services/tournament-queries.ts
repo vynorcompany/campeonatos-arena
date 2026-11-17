@@ -266,8 +266,8 @@ export async function getTournamentDetailsById(tournamentId: string, arenaId: st
       },
       ranking: true,
       categories: {
-        include: { competition: { select: { format: true } } },
-        where: { active: true },
+        include: { competition: { select: { format: true } }, _count: { select: { registrations: true } } },
+        where: { active: true, archivedAt: null },
         orderBy: { level: "asc" }
       },
       entries: {

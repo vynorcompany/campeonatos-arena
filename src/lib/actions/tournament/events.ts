@@ -1,4 +1,6 @@
 "use server";
+import { archiveTournamentCategory } from "@/lib/tournaments/category-removal";
+import { withArenaTransaction } from "@/lib/rls";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -105,6 +107,8 @@ export async function createTournamentCategoryAction(formData: FormData) {
   const auth = await requirePermission("tournaments:manage");
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const name = String(formData.get("name") ?? "").trim();
+  const registrationType = String(formData.get("registrationType") ?? "PAIR");
+  if (!["PAIR", "INDIVIDUAL"].includes(registrationType)) throw new Error("Tipo de inscrição inválido.");
   if (!tournamentId || name.length < 3) throw new Error("Informe um nome de categoria com pelo menos 3 caracteres.");
   const tournament = await prisma.tournament.findFirst({
     where: { id: tournamentId, arenaId: auth.arenaId },
@@ -115,6 +119,7 @@ export async function createTournamentCategoryAction(formData: FormData) {
     data: {
       tournamentId: tournament.id,
       name,
+      registrationType,
       level: Math.max(0, ...tournament.categories.map((item) => item.level)) + 1,
       groupCount: tournament.groupCount,
       pairsPerGroup: tournament.pairsPerGroup,
@@ -305,4 +310,28 @@ export async function updateTournamentStatusAction(formData: FormData) {
 
   refreshTournamentRoutes();
   revalidatePath(`/torneios/${tournamentId}`);
+}
+
+export async function removeTournamentCategoryAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await requirePermission("tournaments:manage");
+  const tournamentId = String(formData.get("tournamentId") ?? "");
+  const categoryId = String(formData.get("categoryId") ?? "");
+  const expectedRegistrationCount = Number(formData.get("expectedRegistrationCount") ?? "");
+  if (!tournamentId || !categoryId || !formData.has("expectedRegistrationCount") || !Number.isInteger(expectedRegistrationCount) || expectedRegistrationCount < 0) return { error: "Categoria ou confirmação inválida. Atualize a página.", success: null };
+  let result: Awaited<ReturnType<typeof archiveTournamentCategory>>;
+  try {
+    result = await withArenaTransaction(auth.arenaId, tx => archiveTournamentCategory(tx, {
+      arenaId: auth.arenaId, tournamentId, categoryId,
+      confirmed: formData.get("confirmed") === "on", expectedRegistrationCount, actorId: auth.userId, actorName: auth.userName,
+    }));
+  } catch {
+    return { error: "Não foi possível remover a categoria. Nenhum dado foi alterado. Atualize a página e tente novamente.", success: null };
+  }
+  if (!result.ok) return { error: result.error, success: null };
+  refreshTournamentRoutes();
+  revalidatePath(`/torneios/${tournamentId}`);
+  revalidatePath(`/torneios/${tournamentId}/categorias`);
+  revalidatePath(`/torneios/${tournamentId}/categorias/${categoryId}`);
+  revalidatePath("/inscricao/[slug]", "page");
+  return { error: null, success: "Categoria removida. Histórico e pagamentos preservados." };
 }

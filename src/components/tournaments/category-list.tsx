@@ -1,4 +1,5 @@
 
+import { RemoveCategoryButton } from "./remove-category-button";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./category-list.utilities";
 import Link from "next/link";
@@ -7,6 +8,8 @@ import { EventIcon } from "@/components/tournaments/event-icon";
 type CategoryListItem = {
   id: string;
   name: string;
+  registrationType?: string;
+  registrationCount?: number;
   competition: {
     format: "LEAGUE" | "THREE_GROUPS" | "FOUR_GROUPS" | "SIMPLE" | "TRIO";
     pairCount: number;
@@ -48,28 +51,28 @@ export function CategoryList({
 
       {categories.length ? (
         <div className={viewStyles.t_category_list}>
-          <div className={viewStyles.t_category_table_head}><span>Categoria</span><span>Tipo</span><span>Equipes inscritas</span><span>Status</span><span>Ações</span></div>
+          <div className={viewStyles.t_category_table_head}><span>Categoria</span><span>Tipo</span><span>Inscrições</span><span>Status</span><span>Ações</span></div>
           <>{categories.map((category) => (
             <div className={viewStyles.t_category_row} key={category.id}>
 
               <div className={viewStyles.t_category_name}><strong>{category.name}</strong></div>
               <span className={viewStyles.t_category_format}>
-                {category.competition
+                {category.registrationType === "INDIVIDUAL" ? "Individual · sem jogos" : category.competition
                   ? formatLabels[category.competition.format]
                   : "Pendente"}
               </span>
               <span className={viewStyles.t_category_pairs}>
-                {category.competition
+                {category.registrationType === "INDIVIDUAL" ? `${category.registrationCount ?? 0} atletas` : category.competition
                   ? `${category.competition.pairCount} ${category.competition.format === "TRIO" ? (category.competition.pairCount === 1 ? "trio" : "trios") : (category.competition.pairCount === 1 ? "dupla" : "duplas")}`
                   : "—"}
               </span>
-              <span className={cx(`${viewStyles.t_category_status} ${category.competition ? "active" : "pending"}`)}>{category.competition ? "Ativa" : "Pendente"}</span>
-              <Link
+              <span className={cx(`${viewStyles.t_category_status} ${category.competition ? "active" : "pending"}`)}>{category.registrationType === "INDIVIDUAL" || category.competition ? "Ativa" : "Pendente"}</span>
+              <div className="tw:flex tw:items-center tw:justify-end tw:gap-1"><Link
                 href={`/torneios/${tournamentId}/categorias/${category.id}`}
                 className={viewStyles.t_category_enter}
               >
                 Abrir <EventIcon name="chevron" size={14}/>
-              </Link>
+              </Link><RemoveCategoryButton tournamentId={tournamentId} categoryId={category.id} categoryName={category.name} registrationCount={category.registrationCount ?? 0}/></div>
             </div>
           ))}</>
         </div>

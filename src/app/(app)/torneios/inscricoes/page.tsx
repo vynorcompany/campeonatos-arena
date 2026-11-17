@@ -128,7 +128,7 @@ export default async function TournamentRegistrationsPage({searchParams}:{search
     <div className={viewStyles.stack_md}>
       <h1 className="tw:sr-only">Inscrições</h1><form className={ui.filters} action="/torneios/inscricoes"><label className={`${ui.field} tw:w-full tw:max-w-[320px]`}>Evento<select name="tournamentId" defaultValue={tournament.id}>{events.map(event=><option key={event.id} value={event.id}>{event.name}</option>)}</select></label><label className={`${ui.field} tw:w-full tw:max-w-[300px]`}>Pesquisar dupla<input name="q" defaultValue={filters.q} placeholder="Nome de um dos atletas" type="search"/></label><button type="submit" className={ui.primary}>Aplicar filtros</button></form>
 
-      {tournament.registrationPhase === "REGISTRATIONS" && tournament.categories.some((category:any)=>!category.competition) ? <p className="tw:m-0 tw:rounded tw:bg-[#174983] tw:text-white tw:px-3 tw:py-2 tw:text-xs">Encerre as inscrições para montar o chaveamento.</p>:null}
+      {tournament.registrationPhase === "REGISTRATIONS" && tournament.categories.some((category:any)=>!category.competition && category.registrationType !== "INDIVIDUAL") ? <p className="tw:m-0 tw:rounded tw:bg-[#174983] tw:text-white tw:px-3 tw:py-2 tw:text-xs">Encerre as inscrições para montar o chaveamento.</p>:null}
 
       {conflicts.length ? <details className={ui.panel}><summary className="tw:cursor-pointer tw:text-xs tw:font-medium tw:text-red-700">{conflicts.length} conflitos de agenda</summary><ul className={viewStyles.simple_list}>{conflicts.map(conflict=><li key={`${conflict.playerId}-${conflict.scheduledTime}`} className={viewStyles.simple_item}><strong>{conflict.scheduledTime}</strong><span>{conflict.labels.join(" | ")}</span></li>)}</ul></details>:null}
 
@@ -139,7 +139,7 @@ export default async function TournamentRegistrationsPage({searchParams}:{search
         const confirmedCount = category.registrations.filter((reg: any) => reg.status === "CONFIRMED").length;
         return (
           <details key={category.id} className={ui.list} open><summary className="tw:flex tw:cursor-pointer tw:flex-col tw:items-start tw:justify-between tw:gap-1 tw:sm:flex-row tw:sm:items-center tw:border-b tw:border-[var(--line)] tw:bg-[#174983] tw:text-white tw:px-3 tw:py-2 tw:text-sm tw:font-medium"><span>{category.name}</span><span className="tw:text-xs tw:font-normal">{category.competition ? `${pairs.length} ${category.competition.format === "TRIO" ? "trios ativos" : "duplas ativas"}` : `${confirmedCount} confirmadas · ${category.registrations.length} inscrições`}</span></summary><div className="tw:p-3 tw:grid tw:min-w-0 tw:gap-3">
-            {!category.competition ? <div className="stack-sm tw:[margin-bottom:0.75rem]">
+            {!category.competition && category.registrationType !== "INDIVIDUAL" ? <div className="stack-sm tw:[margin-bottom:0.75rem]">
               <form action={updateTournamentCategoryFormatAction} className={viewStyles.section_actions}>
                 <input type="hidden" name="tournamentId" value={tournament.id} />
                 <input type="hidden" name="categoryId" value={category.id} />
@@ -182,11 +182,11 @@ export default async function TournamentRegistrationsPage({searchParams}:{search
                     {registration.paymentStatus === "REVIEW" ? <ReviewedCheckoutRelease kind="registration" recordId={registration.id} paymentId={registration.mercadoPagoPaymentId} clientName={`${registration.leadName} / ${registration.partnerName}`} canResolve={canResolveReview} /> : registration.paymentStatus === "REFUNDED" || registration.status === "CANCELED" ? <p className={viewStyles.muted}>Pagamento estornado ou inscrição cancelada. A dupla pode fazer uma nova inscrição.</p> : !canEditManualTournamentRegistration(registration) ? <p className={viewStyles.muted}>{registration.status === "CONFIRMED" ? "Dupla confirmada: correções devem preservar seus vínculos com os jogos." : "Inscrição com cobrança online: confira o pagamento antes de alterar os dados."}</p> : <details>
                       <summary className="tw:[cursor:pointer] tw:[color:var(--brand)] tw:font-medium">Editar inscrição</summary>
                       <RegistrationEditForm className={viewStyles.grid_form}>
-                        <input type="hidden" name="registrationId" value={registration.id} />
+                        <input type="hidden" name="registrationId" value={registration.id} /><input type="hidden" name="registrationType" value={category.registrationType ?? "PAIR"}/>
                         <input type="hidden" name="tournamentId" value={tournament.id} />
                         <label className={viewStyles.field}>Categoria
                           <SmartEntitySelect label="Categoria" name="categoryId" defaultValue={registration.categoryId} required>
-                            {tournament.categories.filter((item: any) => (item.competition?.format === "TRIO") === (category.competition?.format === "TRIO")).map((item: any) => (
+                            {tournament.categories.filter((item: any) => (item.registrationType ?? "PAIR") === (category.registrationType ?? "PAIR") && (item.competition?.format === "TRIO") === (category.competition?.format === "TRIO")).map((item: any) => (
                               <option key={item.id} value={item.id}>{item.name}</option>
                             ))}
                           </SmartEntitySelect>
@@ -203,6 +203,7 @@ export default async function TournamentRegistrationsPage({searchParams}:{search
                         <label className={viewStyles.field}>Nascimento atleta 1 (opcional)
                           <input name="leadBirthDate" type="date" defaultValue={registration.leadBirthDate ? new Date(registration.leadBirthDate).toISOString().slice(0, 10) : ""} />
                         </label>
+                        {category.registrationType !== "INDIVIDUAL" ? <>
                         <label className={viewStyles.field}>Atleta 2
                           <input name="partnerName" defaultValue={registration.partnerName} required />
                         </label>
@@ -215,6 +216,7 @@ export default async function TournamentRegistrationsPage({searchParams}:{search
                         <label className={viewStyles.field}>Nascimento atleta 2 (opcional)
                           <input name="partnerBirthDate" type="date" defaultValue={registration.partnerBirthDate ? new Date(registration.partnerBirthDate).toISOString().slice(0, 10) : ""} />
                         </label>
+                        </> : null}
                         {category.competition?.format === "TRIO" ? <><label className={viewStyles.field}>Atleta 3<input name="thirdName" defaultValue={registration.thirdName} required /></label><label className={viewStyles.field}>Telefone atleta 3<PhoneInput name="thirdPhone" defaultValue={registration.thirdPhone} required /></label><label className={viewStyles.field}>CPF atleta 3<input name="thirdCpf" defaultValue={registration.thirdCpf} required /></label><label className={viewStyles.field}>Nascimento atleta 3 (opcional)<input name="thirdBirthDate" type="date" defaultValue={registration.thirdBirthDate ? new Date(registration.thirdBirthDate).toISOString().slice(0,10) : ""} /></label></> : null}
                         <RegistrationPaymentFields amountCents={registration.amountCents} accounts={bankAccounts} />
                         <div className={viewStyles.field_field_submit}>

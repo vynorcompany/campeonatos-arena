@@ -50,6 +50,7 @@ export async function createPublicRegistrationAction(
   const parsed = createPublicRegistrationSchema.safeParse({
     tournamentSlug: formData.get("tournamentSlug"),
     categoryId: formData.get("categoryId"),
+    registrationType: formData.get("registrationType") || "PAIR",
     paymentMethod: formData.get("paymentMethod"),
     leadName: formData.get("leadName"),
     leadEmail: formData.get("leadEmail"),
@@ -77,7 +78,7 @@ export async function createPublicRegistrationAction(
         where: { id: target.id },
         include: {
           categories: {
-            where: { active: true },
+            where: { active: true, archivedAt: null },
             include: { competition: { select: { id: true, format: true, status: true } } },
             orderBy: { level: "asc" }
           }
@@ -94,6 +95,8 @@ export async function createPublicRegistrationAction(
 
       const selectedCategory = tournament.categories.find((category) => category.id === parsed.data.categoryId);
       if (!selectedCategory) throw new Error("Categoria invalida.");
+      const isIndividual = selectedCategory.registrationType === "INDIVIDUAL";
+      if ((selectedCategory.registrationType ?? "PAIR") !== (parsed.data.registrationType ?? "PAIR")) throw new Error("O tipo de inscrição não corresponde à categoria selecionada. Atualize a página.");
       const isTrio = selectedCategory.competition?.format === "TRIO";
       validateRegistrationThird(selectedCategory.competition?.format, parsed.data);
       if (isTrio && selectedCategory.competition?.status !== "DRAFT") throw new Error("As inscrições desta categoria de Trio já foram encerradas.");
@@ -108,13 +111,13 @@ export async function createPublicRegistrationAction(
         }
       });
       if (selectedCategory.maxRegistrations > 0 && occupiedSlots >= selectedCategory.maxRegistrations) {
-        throw new Error("Esta categoria atingiu o limite máximo de duplas inscritas.");
+        throw new Error("Esta categoria atingiu o limite máximo de inscrições.");
       }
 
       // CPF is the athlete identity in public registration. Counts below are
       // intentionally calculated per CPF, so the second and third prices
       // follow the athlete even when they enter with a different partner.
-      const cpfs = [parsed.data.leadCpf, parsed.data.partnerCpf, ...(isTrio ? [parsed.data.thirdCpf] : [])];
+      const cpfs = [parsed.data.leadCpf, ...(!isIndividual ? [parsed.data.partnerCpf] : []), ...(isTrio ? [parsed.data.thirdCpf] : [])];
       const registrations = await tx.publicTournamentRegistration.findMany({
         where: {
           tournamentId: tournament.id,
@@ -130,7 +133,7 @@ export async function createPublicRegistrationAction(
         }
       });
 
-      if (isTrio && registrations.some(item => item.categoryId === selectedCategory.id)) throw new Error("Um dos atletas já está inscrito nesta categoria.");
+      if ((isTrio || isIndividual) && registrations.some(item => item.categoryId === selectedCategory.id)) throw new Error("Um dos atletas já está inscrito nesta categoria.");
       const registrationOrder = await nextTournamentRegistrationOrder(tx, tournament.id);
 
       if (selectedCategory.allowedRegistrationCategoryIds.length) {
@@ -160,7 +163,7 @@ export async function createPublicRegistrationAction(
       };
 
       const leadAmountCents = getPriceByOrder(leadCount + 1, categoryPricing);
-      const partnerAmountCents = getPriceByOrder(partnerCount + 1, categoryPricing);
+      const partnerAmountCents = isIndividual ? 0 : getPriceByOrder(partnerCount + 1, categoryPricing);
       const thirdCount = isTrio ? registrations.filter(item => [item.leadCpf, item.partnerCpf, item.thirdCpf].includes(parsed.data.thirdCpf)).length : 0;
       const thirdAmountCents = isTrio ? getPriceByOrder(thirdCount + 1, categoryPricing) : 0;
       const grossAmountCents = leadAmountCents + partnerAmountCents + thirdAmountCents;

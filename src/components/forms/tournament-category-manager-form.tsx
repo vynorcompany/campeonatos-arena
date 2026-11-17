@@ -1,4 +1,5 @@
 "use client";
+import { RemoveCategoryButton } from "@/components/tournaments/remove-category-button";
 import { viewStyles } from "./tournament-category-manager-form.utilities";
 
 import { useMemo, useState } from "react";
@@ -16,6 +17,8 @@ const initialState: ActionState = {
 };
 
 type ManagedCategory = {
+  id?: string;
+  registrationCount?: number;
   name: string;
   groupCount: number;
   pairsPerGroup: number;
@@ -23,6 +26,7 @@ type ManagedCategory = {
   priceSecondCents: number;
   priceThirdCents: number;
   hasCompetition?: boolean;
+  registrationType?: string;
   standardKey?: string;
   allowedRegistrationStandardKeys?: string[];
   maxRegistrations?: number;
@@ -76,6 +80,7 @@ export function TournamentCategoryManagerForm(
       JSON.stringify(
         categories.map((category) => ({
           name: category.name,
+          registrationType: category.registrationType ?? "PAIR",
           groupCount: category.groupCount,
           pairsPerGroup: category.pairsPerGroup,
           priceFirstCents: Math.round(category.priceFirstCents / 100),
@@ -217,12 +222,12 @@ export function TournamentCategoryManagerForm(
                     : "Aguardando classe, gênero e formato"}
                   </span>
                 </div>
-                {!category.hasCompetition ? <button type="button" className={viewStyles.button_button_small} onClick={() => removeCategory(category.name)}>Remover</button> : null}
+                {category.id ? <RemoveCategoryButton tournamentId={props.tournamentId} categoryId={category.id} categoryName={category.name} registrationCount={category.registrationCount ?? 0} onRemoved={() => setCategories(current => current.filter(item => item.id !== category.id))}/> : <button type="button" className={viewStyles.button_button_small} onClick={() => removeCategory(category.name)}>Remover</button>}
               </div>
               <div className="tournament-category-settings-grid">
-                <label className={viewStyles.tournament_category_standard}>Categoria padrão<select value={category.standardKey ?? ""} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, standardKey: event.target.value, allowedRegistrationStandardKeys: [] } : item))}><option value="">Selecione</option>{TOURNAMENT_CATEGORY_PRESETS.map((preset) => <option value={preset} key={preset}>{preset}</option>)}</select></label>
-                <label className={viewStyles.tournament_category_standard}>Limite máximo de duplas inscritas<input type="number" min="0" step="1" value={category.maxRegistrations ?? 0} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, maxRegistrations: Math.max(0, Number(event.target.value) || 0) } : item))} /><small>Use 0 para não limitar inscrições.</small></label>
-                <label className={viewStyles.tournament_category_standard}>Valor por dupla<div className={viewStyles.currency_input}><span>R$</span><input inputMode="decimal" value={(category.priceFirstCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceFirstCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
+                <label className={viewStyles.tournament_category_standard}>Tipo de inscrição<select value={category.registrationType ?? "PAIR"} disabled={category.hasCompetition} onChange={event => setCategories(current => current.map(item => item.name === category.name ? { ...item, registrationType: event.target.value } : item))}><option value="PAIR">Dupla · dois atletas</option><option value="INDIVIDUAL">Individual · um atleta, sem jogos</option></select></label><label className={viewStyles.tournament_category_standard}>Categoria padrão<select value={category.standardKey ?? ""} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, standardKey: event.target.value, allowedRegistrationStandardKeys: [] } : item))}><option value="">Selecione</option>{TOURNAMENT_CATEGORY_PRESETS.map((preset) => <option value={preset} key={preset}>{preset}</option>)}</select></label>
+                <label className={viewStyles.tournament_category_standard}>Limite máximo de inscrições<input type="number" min="0" step="1" value={category.maxRegistrations ?? 0} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, maxRegistrations: Math.max(0, Number(event.target.value) || 0) } : item))} /><small>Use 0 para não limitar inscrições.</small></label>
+                <label className={viewStyles.tournament_category_standard}>1ª inscrição por atleta<div className={viewStyles.currency_input}><span>R$</span><input inputMode="decimal" value={(category.priceFirstCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceFirstCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
                 <label className={viewStyles.tournament_category_standard}>Valor da 2ª inscrição<div className={viewStyles.currency_input}><span>R$</span><input inputMode="decimal" value={(category.priceSecondCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceSecondCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
                 <label className={viewStyles.tournament_category_standard}>Valor da 3ª inscrição<div className={viewStyles.currency_input}><span>R$</span><input inputMode="decimal" value={(category.priceThirdCents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, priceThirdCents: Math.round(Math.max(0, Number(event.target.value.replace(".", "").replace(",", ".")) || 0) * 100) } : item))} /></div></label>
                 <label className={viewStyles.tournament_category_link_toggle}><input type="checkbox" checked={category.active !== false} onChange={(event) => setCategories((current) => current.map((item) => item.name === category.name ? { ...item, active: event.target.checked } : item))} /><span>Categoria ativa</span></label>

@@ -164,10 +164,17 @@ export async function updateTournamentCategorySettingsAction(formData: FormData)
     formData.get("priceThird"),
   ].map(parseReaisToCents);
   const category = await prisma.tournamentCategory.findFirst({
-    where: { id: categoryId, tournament: { arenaId: auth.arenaId } },
-    select: { id: true, tournamentId: true },
+    where: { id: categoryId, archivedAt: null, tournament: { arenaId: auth.arenaId } },
+    select: { id: true, tournamentId: true, registrationType: true },
   });
   if (!category) throw new Error("Categoria não encontrada.");
+  const registrationType = String(formData.get("registrationType") || category.registrationType);
+  if (!["PAIR", "INDIVIDUAL"].includes(registrationType)) throw new Error("Tipo de inscrição inválido.");
+  if (registrationType !== category.registrationType && (
+    await prisma.publicTournamentRegistration.count({ where: { categoryId: category.id } }) ||
+    await prisma.categoryCompetition.count({ where: { categoryId: category.id } }) ||
+    await prisma.categoryBracket.count({ where: { categoryId: category.id } })
+  )) throw new Error("Esta categoria já possui inscrições ou competição. Crie outra categoria para alterar o tipo de inscrição.");
 
   const allowedStandardKeys = formData
     .getAll("allowedStandardKey")
@@ -185,6 +192,7 @@ export async function updateTournamentCategorySettingsAction(formData: FormData)
   await prisma.tournamentCategory.update({
     where: { id: category.id },
     data: {
+      registrationType,
       maxRegistrations,
       priceFirstCents,
       priceSecondCents,

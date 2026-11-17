@@ -27,6 +27,7 @@ const initialState = {
 type Category = {
   id: string;
   name: string;
+  registrationType?: string;
   competition?: { format: string } | null;
 };
 
@@ -57,6 +58,7 @@ export function PublicRegistrationForm({
   const [state, formAction] = useFormState(createPublicRegistrationAction, initialState);
   const router = useRouter();
   const [categoryId, setCategoryId] = useState("");
+  const individual = categories.find(category => category.id === categoryId)?.registrationType === "INDIVIDUAL";
   const trio = categories.find(category => category.id === categoryId)?.competition?.format === "TRIO";
 
   useEffect(() => {
@@ -81,7 +83,7 @@ export function PublicRegistrationForm({
         <div className={viewStyles.public_reg_steps}>
           <div className={viewStyles.public_reg_step_public_reg_step_done}>
             <span>1</span>
-            <div><strong>{trio ? "Dados do trio" : "Dados da dupla"}</strong><small>{trio ? "Preencha os dados dos três atletas" : "Preencha os dados de atleta 1 e atleta 2"}</small></div>
+            <div><strong>{individual ? "Dados do atleta" : trio ? "Dados do trio" : "Dados da dupla"}</strong><small>{individual ? "Um atleta por inscrição" : trio ? "Preencha os dados dos três atletas" : "Preencha os dados de atleta 1 e atleta 2"}</small></div>
           </div>
           <div className={viewStyles.public_reg_step_public_reg_step_done}>
             <span>2</span>
@@ -89,13 +91,13 @@ export function PublicRegistrationForm({
           </div>
           <div className={cx(`${viewStyles.public_reg_step} ${state?.success ? viewStyles.public_reg_step_active : ""}`)}>
             <span>3</span>
-            <div><strong>Confirmação</strong><small>Após a aprovação do pagamento, sua equipe é confirmada</small></div>
+            <div><strong>Confirmação</strong><small>Após a aprovação do pagamento, a inscrição é confirmada</small></div>
           </div>
         </div>
       </aside>
 
       <form action={formAction} className={viewStyles.public_reg_form_reveal_up}>
-        <input type="hidden" name="tournamentSlug" value={tournamentSlug} />
+        <input type="hidden" name="tournamentSlug" value={tournamentSlug} /><input type="hidden" name="registrationType" value={individual ? "INDIVIDUAL" : "PAIR"}/>
         {responsibleName ? <p className="public-reg-contact">Dúvidas? Fale com {responsibleName}{responsiblePhone ? ` · ${responsiblePhone}` : ""}.</p> : null}
 
         <section className={viewStyles.public_reg_card}>
@@ -137,7 +139,7 @@ export function PublicRegistrationForm({
           </div>
         </section>
 
-        <section className={viewStyles.public_reg_card}>
+        {!individual ? <section className={viewStyles.public_reg_card}>
           <header className={viewStyles.public_reg_card_head}>
             <h3>Atleta 2</h3>
             <p>Dados do segundo atleta da equipe.</p>
@@ -147,11 +149,11 @@ export function PublicRegistrationForm({
             <div className={viewStyles.field}><label htmlFor="partnerPhone">Telefone</label><input id="partnerPhone" name="partnerPhone" required /></div>
             <div className={viewStyles.field}><label htmlFor="partnerCpf">CPF</label><input id="partnerCpf" name="partnerCpf" required /></div>
           </div>
-        </section>
+        </section> : null}
 
         {trio ? <section className={viewStyles.public_reg_card}><header className={viewStyles.public_reg_card_head}><h3>Atleta 3</h3><p>Dados do terceiro atleta do trio. O total da equipe considera a inscrição de cada um dos três atletas.</p></header><div className={viewStyles.public_reg_grid_public_reg_grid_2}><div className={viewStyles.field}><label htmlFor="thirdName">Nome</label><input id="thirdName" name="thirdName" required /></div><div className={viewStyles.field}><label htmlFor="thirdPhone">Telefone</label><input id="thirdPhone" name="thirdPhone" required /></div><div className={viewStyles.field}><label htmlFor="thirdCpf">CPF</label><input id="thirdCpf" name="thirdCpf" required /></div></div></section> : null}
         <BotTrap/>
-        <p className="tw:col-span-full tw:text-sm tw:leading-relaxed tw:text-[var(--muted)]">O CPF identifica o atleta e evita inscrições duplicadas no cálculo dos preços por categoria. Nome e resultados da equipe poderão aparecer na competição. Informe os demais atletas sobre o uso desses dados e consulte as condições da arena antes de continuar.</p>
+        <p className="tw:col-span-full tw:text-sm tw:leading-relaxed tw:text-[var(--muted)]">O CPF identifica o atleta e evita inscrições duplicadas no cálculo dos preços por categoria. {individual ? "Consulte as condições da arena e a política de privacidade antes de continuar." : "Nome e resultados da equipe poderão aparecer na competição. Informe os demais atletas sobre o uso desses dados e consulte as condições da arena antes de continuar."}</p>
         <div className={viewStyles.public_reg_submit}>
           <SubmitButton label="Ir para pagamento" pendingLabel="Criando inscrição..." className={viewStyles.button_button_primary} />
         </div>

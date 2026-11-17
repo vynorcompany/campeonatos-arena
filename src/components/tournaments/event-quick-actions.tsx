@@ -13,7 +13,7 @@ type ActionKey = "categories" | "registrations" | "games" | "public" | "edit";
 type EventQuickActionsProps = {
   tournament: { id: string; name: string; description: string; rules: string };
   publicPageUrl: string;
-  categories: { id: string; name: string; pairCount: number }[];
+  categories: { id: string; name: string; registrationType?: string; pairCount: number }[];
   initialAction?: ActionKey | null;
 };
 
@@ -40,6 +40,7 @@ export function EventQuickActions({ tournament, publicPageUrl, categories, initi
     <header><EventIcon name="bolt" /><h2>Ações rápidas</h2></header>
     {(Object.keys(actionCopy) as ActionKey[]).map((key) => {
       const action = actionCopy[key];
+      if (key === "games" && categories.length > 0 && categories.every(category => category.registrationType === "INDIVIDUAL")) return null;
       if (key === "categories") return <Link href={`/torneios/${tournament.id}/categorias`} className={viewStyles.event_quick_action_button} aria-label={action.title} key={key}>
         <span className={viewStyles.event_quick_action_icon}><EventIcon name={action.icon} /></span><strong>{action.title}</strong><EventIcon name="chevron" />
       </Link>;

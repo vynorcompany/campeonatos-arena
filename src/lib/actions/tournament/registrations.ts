@@ -69,14 +69,15 @@ export async function generateCategoryBracketAction(formData: FormData) {
       throw new Error("Encerre as inscrições do torneio antes de montar o chaveamento.");
     }
     // Serialize generation and schedule edits on the same category row.
-    const categoryRows = await tx.$queryRaw<Array<{ id: string; format?: string }>>`
-      SELECT c."id", cc.format::text AS format FROM "TournamentCategory" c
+    const categoryRows = await tx.$queryRaw<Array<{ id: string; registrationType?: string; format?: string }>>`
+      SELECT c."id", c."registrationType", cc.format::text AS format FROM "TournamentCategory" c
       LEFT JOIN "CategoryCompetition" cc ON cc."categoryId"=c.id
       JOIN "Tournament" t ON t."id" = c."tournamentId"
       WHERE c."id" = ${categoryId} AND c."tournamentId" = ${tournamentId} AND t."arenaId" = ${auth.arenaId}
       FOR UPDATE OF c
     `;
     if (categoryRows.length !== 1) throw new Error("Torneio ou categoria não encontrados nesta arena.");
+    if (categoryRows[0].registrationType === "INDIVIDUAL") throw new Error("Categorias de inscrição individual não possuem jogos.");
     if (categoryRows[0].format === "TRIO") throw new Error("Monte os confrontos do Trio em Eventos → categoria → Grupos, para preservar ida, volta e desempate.");
     const registrations = await tx.publicTournamentRegistration.findMany({
       where: { tournamentId, categoryId, status: "CONFIRMED" },
@@ -218,6 +219,7 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
   const parsed = createManualTournamentRegistrationSchema.safeParse({
     tournamentId: formData.get("tournamentId"),
     categoryId: formData.get("categoryId"),
+    registrationType: formData.get("registrationType") || "PAIR",
     leadPlayerId: formData.get("leadPlayerId"),
     partnerPlayerId: formData.get("partnerPlayerId"),
     thirdPlayerId: formData.get("thirdPlayerId"),
@@ -239,38 +241,42 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
   try {
     result = await withArenaTransaction(auth.arenaId, async (tx): Promise<ActionState> => {
       await lockTournamentRegistrations(tx, parsed.data.tournamentId, auth.arenaId);
-      const categories = await tx.$queryRaw<Array<{ id: string; format?: string; competitionId?: string; competitionStatus?: string }>>`
-        SELECT tc."id", c.format::text AS format, c.id AS "competitionId", c.status AS "competitionStatus" FROM "TournamentCategory" tc
+      const categories = await tx.$queryRaw<Array<{ id: string; registrationType?: string; format?: string; competitionId?: string; competitionStatus?: string; maxRegistrations?: number }>>`
+        SELECT tc."id", tc."registrationType", tc."maxRegistrations", c.format::text AS format, c.id AS "competitionId", c.status AS "competitionStatus" FROM "TournamentCategory" tc
         LEFT JOIN "CategoryCompetition" c ON c."categoryId"=tc.id
-        WHERE tc."id" = ${parsed.data.categoryId} AND tc."tournamentId" = ${parsed.data.tournamentId} AND tc."active" = true
+        WHERE tc."id" = ${parsed.data.categoryId} AND tc."tournamentId" = ${parsed.data.tournamentId} AND tc."active" = true AND tc."archivedAt" IS NULL
         FOR UPDATE OF tc
       `;
       if (categories.length !== 1) return { error: "Categoria inválida ou desativada para este torneio.", success: null };
 
+      if (categories[0].maxRegistrations && await tx.publicTournamentRegistration.count({ where: { categoryId: categories[0].id, status: { not: "CANCELED" } } }) >= categories[0].maxRegistrations) return { error: "Esta categoria atingiu o limite máximo de inscrições.", success: null };
+      const isIndividual = categories[0].registrationType === "INDIVIDUAL";
+      if ((categories[0].registrationType ?? "PAIR") !== (parsed.data.registrationType ?? "PAIR")) return { error: "O tipo de inscrição não corresponde à categoria selecionada.", success: null };
+      const participantCount = isIndividual ? 1 : categories[0].format === "TRIO" ? 3 : 2;
       const isTrio = categories[0].format === "TRIO";
       if (isTrio && categories[0].competitionStatus !== "DRAFT") return { error: "As inscrições do Trio já foram encerradas.", success: null };
-      const requestedIds = [parsed.data.leadPlayerId, parsed.data.partnerPlayerId, ...(parsed.data.thirdPlayerId ? [parsed.data.thirdPlayerId] : [])];
-      if (requestedIds.length !== (isTrio ? 3 : 2) || new Set(requestedIds).size !== requestedIds.length) return { error: isTrio ? "Selecione três atletas diferentes." : "Esta categoria aceita dois atletas diferentes.", success: null };
+      const requestedIds = [parsed.data.leadPlayerId, ...(parsed.data.partnerPlayerId ? [parsed.data.partnerPlayerId] : []), ...(parsed.data.thirdPlayerId ? [parsed.data.thirdPlayerId] : [])];
+      if (requestedIds.length !== participantCount || new Set(requestedIds).size !== requestedIds.length) return { error: isIndividual ? "Selecione somente um participante." : isTrio ? "Selecione três atletas diferentes." : "Esta categoria aceita dois atletas diferentes.", success: null };
 
       const athletes = await tx.player.findMany({
         where: { arenaId: auth.arenaId, active: true, id: { in: requestedIds } },
         select: { id: true, name: true, phone: true, cpf: true, birthDate: true }
       });
-      if (athletes.length !== (isTrio ? 3 : 2) || athletes.some((athlete) => !athlete.phone || !/^\d{11}$/.test(athlete.cpf))) {
+      if (athletes.length !== participantCount || athletes.some((athlete) => !athlete.phone || !/^\d{11}$/.test(athlete.cpf))) {
         return { error: "Atleta não encontrado, inativo ou sem cadastro completo.", success: null };
       }
       const athletesById = new Map(athletes.map((athlete) => [athlete.id, athlete]));
       const lead = athletesById.get(parsed.data.leadPlayerId);
       const partner = athletesById.get(parsed.data.partnerPlayerId);
       const third = parsed.data.thirdPlayerId ? athletesById.get(parsed.data.thirdPlayerId) : undefined;
-      if (!lead || !partner) {
+      if (!lead || (!isIndividual && !partner)) {
         return { error: "Atleta não encontrado, inativo ou sem cadastro completo.", success: null };
       }
 
-      try { validateRegistrationThird(categories[0].format, { leadCpf: lead.cpf, partnerCpf: partner.cpf, thirdName: third?.name, thirdPhone: third?.phone, thirdCpf: third?.cpf }); }
+      try { validateRegistrationThird(categories[0].format, { leadCpf: lead.cpf, partnerCpf: partner?.cpf ?? "", thirdName: third?.name, thirdPhone: third?.phone, thirdCpf: third?.cpf }); }
       catch (error) { return { error: error instanceof Error ? error.message : "Equipe inválida.", success: null }; }
 
-      if (isTrio && await tx.publicTournamentRegistration.count({ where: { categoryId: categories[0].id, tournamentId: parsed.data.tournamentId, status: { not: "CANCELED" }, OR: [{ leadCpf: { in: athletes.map(athlete => athlete.cpf) } }, { partnerCpf: { in: athletes.map(athlete => athlete.cpf) } }, { thirdCpf: { in: athletes.map(athlete => athlete.cpf) } }] } })) return { error: "Um dos atletas já está inscrito nesta categoria.", success: null };
+      if ((isTrio || isIndividual) && await tx.publicTournamentRegistration.count({ where: { categoryId: categories[0].id, tournamentId: parsed.data.tournamentId, status: { not: "CANCELED" }, OR: [{ leadCpf: { in: athletes.map(athlete => athlete.cpf) } }, { partnerCpf: { in: athletes.map(athlete => athlete.cpf) } }, { thirdCpf: { in: athletes.map(athlete => athlete.cpf) } }] } })) return { error: "Um dos atletas já está inscrito nesta categoria.", success: null };
 
       const bankAccountId = parsed.data.paymentStatus === "PAID" && amountCents > 0 ? await requireReceivingBankAccount(tx, auth.arenaId, parsed.data.bankAccountId) : null;
       const registrationOrder = await nextTournamentRegistrationOrder(tx, parsed.data.tournamentId);
@@ -282,10 +288,10 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
           leadPhone: lead.phone,
           leadCpf: lead.cpf,
           leadBirthDate: lead.birthDate,
-          partnerName: partner.name,
-          partnerPhone: partner.phone,
-          partnerCpf: partner.cpf,
-          partnerBirthDate: partner.birthDate,
+          partnerName: partner?.name ?? "",
+          partnerPhone: partner?.phone ?? "",
+          partnerCpf: partner?.cpf ?? "",
+          partnerBirthDate: partner?.birthDate ?? null,
           thirdName: third?.name ?? "", thirdPhone: third?.phone ?? "", thirdCpf: third?.cpf ?? "", thirdBirthDate: third?.birthDate ?? null,
           competitionId: isTrio ? categories[0].competitionId : undefined,
           registrationOrder,
@@ -297,7 +303,7 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
         }
       });
 
-      if (bankAccountId) await recordTournamentRegistrationReceipt(tx, { arenaId: auth.arenaId, registrationId: registration.id, bankAccountId, amountCents, leadName: lead.name, partnerName: partner.name, thirdName: third?.name });
+      if (bankAccountId) await recordTournamentRegistrationReceipt(tx, { arenaId: auth.arenaId, registrationId: registration.id, bankAccountId, amountCents, leadName: lead.name, partnerName: partner?.name ?? "", thirdName: third?.name });
 
       if (parsed.data.paymentStatus === "PAID") {
         await ensureTournamentPairFromRegistration(tx, {
@@ -306,9 +312,9 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
           arenaId: auth.arenaId,
           tournamentId: parsed.data.tournamentId,
           leadName: lead.name,
-          partnerName: partner.name,
+          partnerName: partner?.name ?? "",
           leadPlayerId: lead.id,
-          partnerPlayerId: partner.id
+          partnerPlayerId: partner?.id
         });
       }
       return { error: null, success: "Inscrição manual criada com sucesso." };
@@ -365,6 +371,7 @@ export async function updateTournamentRegistrationAction(
     registrationId: formData.get("registrationId"),
     tournamentId: formData.get("tournamentId"),
     categoryId: formData.get("categoryId"),
+    registrationType: formData.get("registrationType") || "PAIR",
     leadName: formData.get("leadName"),
     leadPhone: formData.get("leadPhone"),
     leadCpf: normalizeCpf(String(formData.get("leadCpf") ?? "")),

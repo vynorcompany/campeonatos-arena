@@ -679,6 +679,8 @@ model Tournament {
 }
 
 model TournamentCategory {
+  registrationType String @default("PAIR")
+  archivedAt DateTime?
   id               String                         @id @default(cuid())
   name             String
   level            Int

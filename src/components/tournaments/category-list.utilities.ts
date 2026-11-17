@@ -13,8 +13,8 @@ export const viewStyles = {
   "t_category_list": [
     "t-category-list", "tw:@container", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:#dfe7f1]",
   ].join(" "),
-  "t_category_table_head": "t-category-table-head tw:grid tw:grid-cols-[minmax(0,1fr)_85px_105px_80px_75px] tw:items-center tw:gap-3 tw:bg-[#174983] tw:px-3 tw:py-2 tw:text-[11px] tw:font-semibold tw:uppercase tw:text-white tw:viewport-760:hidden",
-  "t_category_row": "t-category-row tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)_85px_105px_80px_75px] tw:items-center tw:gap-3 tw:border-b tw:border-[#e3ebf4] tw:px-3 tw:py-2.5 tw:last:border-b-0 tw:viewport-760:grid-cols-[minmax(0,1fr)_auto] tw:viewport-760:[&>a]:col-start-2 tw:viewport-760:[&>a]:row-start-1",
+  "t_category_table_head": "t-category-table-head tw:grid tw:grid-cols-[minmax(0,1fr)_85px_105px_80px_120px] tw:items-center tw:gap-3 tw:bg-[#174983] tw:px-3 tw:py-2 tw:text-[11px] tw:font-semibold tw:uppercase tw:text-white tw:viewport-760:hidden",
+  "t_category_row": "t-category-row tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)_85px_105px_80px_120px] tw:items-center tw:gap-3 tw:border-b tw:border-[#e3ebf4] tw:px-3 tw:py-2.5 tw:last:border-b-0 tw:viewport-760:grid-cols-[minmax(0,1fr)_auto] tw:viewport-760:[&>div:last-child]:col-start-2 tw:viewport-760:[&>div:last-child]:row-start-1",
   "t_category_icon": [
     "t-category-icon", "tw:grid", "tw:w-[38px]", "tw:h-[38px]", "tw:@max-[700px]:[grid-column:1]", "tw:@max-[700px]:[grid-row:1/3]",
     "tw:place-items-center", "tw:rounded-[9px]", "tw:bg-[color:#174983]", "tw:[background-image:none]",

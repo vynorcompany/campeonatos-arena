@@ -28,6 +28,7 @@ export {
 export {
   createTournamentAction,
   createTournamentCategoryAction,
+  removeTournamentCategoryAction,
   finishTournamentAction,
   reopenTournamentAction,
   updateTournamentAction,

@@ -10,6 +10,7 @@ export type TournamentCategoryInput = {
   allowedRegistrationStandardKeys: string[];
   maxRegistrations: number;
   active: boolean;
+  registrationType?: "PAIR" | "INDIVIDUAL";
 };
 
 export function parseCategoryList(
@@ -34,7 +35,9 @@ export function parseCategoryList(
       allowedRegistrationCategoryNames?: string[];
       maxRegistrations?: number | string;
       active?: boolean;
+      registrationType?: string;
     }>;
+    if (parsed.some(item => item.registrationType !== undefined && !["PAIR", "INDIVIDUAL"].includes(item.registrationType))) throw new Error("Tipo de inscrição inválido.");
     const normalized = parsed
       .map((item) => ({
         name: String(item.name ?? "").trim(),
@@ -57,6 +60,7 @@ export function parseCategoryList(
           ? item.allowedRegistrationStandardKeys.map(String).map((key) => key.trim()).filter(Boolean)
           : [],
         maxRegistrations: Number(item.maxRegistrations ?? 0),
+        registrationType: item.registrationType === "INDIVIDUAL" ? "INDIVIDUAL" as const : item.registrationType === "PAIR" ? "PAIR" as const : undefined,
         active: item.active !== false
       }))
       .filter((item) => item.name.length > 0);
@@ -76,6 +80,7 @@ export function parseCategoryList(
       standardKey: item.standardKey,
       allowedRegistrationStandardKeys: item.allowedRegistrationStandardKeys,
       maxRegistrations: Number.isFinite(item.maxRegistrations) ? Math.max(0, Math.trunc(item.maxRegistrations)) : 0,
+      ...(item.registrationType ? { registrationType: item.registrationType } : {}),
       active: item.active
     }));
   }

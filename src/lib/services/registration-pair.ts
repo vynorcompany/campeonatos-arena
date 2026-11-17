@@ -16,6 +16,7 @@ export async function ensureTournamentPairFromRegistration(
     partnerPlayerId?: string;
   }
 ) {
+  if (input.registrationId && await tx.publicTournamentRegistration.count({ where: { id: input.registrationId, tournamentId: input.tournamentId, tournament: { arenaId: input.arenaId }, category: { archivedAt: { not: null } } } })) return;
   if (input.thirdCpf && input.registrationId && await ensureRegistrationTrio(tx, input.arenaId, input.registrationId)) return;
   const leadName = input.leadName.trim();
   const partnerName = input.partnerName.trim();
