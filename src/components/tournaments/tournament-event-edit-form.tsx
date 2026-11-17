@@ -62,7 +62,7 @@ export function TournamentEventEditForm({
         />
       </div>
       <input type="hidden" name="onlinePaymentEnabledPresent" value="true"/>
-      <label className={viewStyles.field_form_full + " tw:flex tw:items-center tw:gap-2"}><input type="checkbox" name="onlinePaymentEnabled" defaultChecked={tournament.onlinePaymentEnabled ?? true}/>Pagamento online</label>
+      <label className="tw:col-span-full tw:flex tw:items-center tw:justify-start tw:gap-2 tw:text-xs tw:text-[#354f70]"><input className="tw:size-4! tw:min-h-0! tw:w-4! tw:shrink-0" type="checkbox" name="onlinePaymentEnabled" defaultChecked={tournament.onlinePaymentEnabled ?? true}/>Pagamento online</label>
       <footer className={viewStyles.field_field_submit_form_full}>
         {onCancel ? <button type="button" className={viewStyles.button_secondary} onClick={onCancel}>Cancelar</button> : null}
         <SubmitButton
