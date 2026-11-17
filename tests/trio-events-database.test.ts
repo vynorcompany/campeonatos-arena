@@ -25,7 +25,7 @@ test("Trio group and knockout encounters enforce formations, aggregate results, 
       require(name: string) {
         if (name === "server-only") return {};
         if (name === "@/lib/prisma") return { prisma: runtime };
-        if (name === "@/lib/rls") return { setArenaRlsContext: (tx: any, id: string) => tx.$executeRaw`SELECT set_config('app.arena_id', ${id}, true)` };
+        if (name === "@/lib/rls") return { withArenaTransaction: scope, setArenaRlsContext: (tx: any, id: string) => tx.$executeRaw`SELECT set_config('app.arena_id', ${id}, true)` };
         if (name.startsWith("@/")) return load("src/" + name.slice(2) + ".ts");
         return require(name);
       },
@@ -68,6 +68,28 @@ test("Trio group and knockout encounters enforce formations, aggregate results, 
     await assert.rejects(lifecycle.createCategoryCompetition(arenas[0], { categoryId: bracketCategory.id, class: "5ª", gender: "MASCULINO", format: "TRIO", rankingId: null, isPublic: true }), /já possui chaveamento/);
     assert.equal(await admin.categoryCompetition.count({where:{categoryId:bracketCategory.id}}),0);
     assert.deepEqual(await admin.categoryBracket.findUniqueOrThrow({where:{id:existingBracket.id},include:{matches:true}}),existingBracket);
+    const creation = load("src/lib/tournaments/create-category.ts");
+    const parse = (registrationType: string, extra = {}) => creation.newTournamentCategorySchema.parse({ tournamentId: publicEvent.id, name: `Nova categoria ${registrationType}`, registrationType, class: "5ª", gender: "MASCULINO", isPublic: true, ...extra });
+    const beforeCategories = await admin.tournamentCategory.findMany({ where: { tournamentId: publicEvent.id }, orderBy: { level: "asc" } });
+    assert.equal(creation.newTournamentCategorySchema.safeParse({ ...parse("TRIO"), class: "" }).success, false);
+    assert.equal(creation.newTournamentCategorySchema.safeParse({ ...parse("TRIO"), gender: "" }).success, false);
+    const denied = await creation.createTournamentCategory(arenas[1], parse("TRIO"));
+    assert.match(denied.error, /nesta arena/);
+    assert.equal(await admin.tournamentCategory.count({ where: { tournamentId: publicEvent.id } }), beforeCategories.length);
+    for (const type of ["TRIO", "PAIR", "INDIVIDUAL"]) {
+      const created = await creation.createTournamentCategory(arenas[0], parse(type));
+      assert.ok(created.categoryId);
+      const persisted = await admin.tournamentCategory.findUniqueOrThrow({ where: { id: created.categoryId }, include: { competition: true } });
+      assert.equal(persisted.registrationType, type === "TRIO" ? "PAIR" : type);
+      if (type === "TRIO") {
+        assert.equal(persisted.competition?.format, "TRIO");
+        assert.equal(persisted.competition?.isPublic, true);
+        assert.equal(persisted.class, "5ª");
+        assert.equal(persisted.gender, "MASCULINO");
+      } else assert.equal(persisted.competition, null);
+      assert.equal(persisted.priceFirstCents, publicEvent.priceFirstCents);
+    }
+    assert.deepEqual(await admin.tournamentCategory.findMany({ where: { id: { in: beforeCategories.map(c => c.id) } }, orderBy: { level: "asc" } }), beforeCategories);
     const draw = load("src/lib/services/category-competition/draw.ts"), service = load("src/lib/services/category-trio.ts"), matches = load("src/lib/services/category-competition/matches.ts");
     await draw.generateCategoryDraw(arenas[0], competition.id); await draw.publishCategoryDraw(arenas[0], competition.id);
     const group = await admin.categoryMatch.findMany({ where: { competitionId: competition.id, stage: "GROUP" }, orderBy: { roundOrder: "asc" }, include: { homePair: { include: { players: { orderBy: { slot: "asc" } } } }, awayPair: { include: { players: { orderBy: { slot: "asc" } } } } } });

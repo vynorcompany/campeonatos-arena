@@ -1,4 +1,5 @@
 "use server";
+import { createTournamentCategory, newTournamentCategorySchema } from "@/lib/tournaments/create-category";
 import { archiveTournamentCategory } from "@/lib/tournaments/category-removal";
 import { withArenaTransaction } from "@/lib/rls";
 import { revalidatePath } from "next/cache";
@@ -107,31 +108,19 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
 
 export async function createTournamentCategoryAction(formData: FormData) {
   const auth = await requirePermission("tournaments:manage");
-  const tournamentId = String(formData.get("tournamentId") ?? "");
-  const name = String(formData.get("name") ?? "").trim();
-  const registrationType = String(formData.get("registrationType") ?? "PAIR");
-  if (!["PAIR", "INDIVIDUAL"].includes(registrationType)) throw new Error("Tipo de inscrição inválido.");
-  if (!tournamentId || name.length < 3) throw new Error("Informe um nome de categoria com pelo menos 3 caracteres.");
-  const tournament = await prisma.tournament.findFirst({
-    where: { id: tournamentId, arenaId: auth.arenaId },
-    select: { id: true, groupCount: true, pairsPerGroup: true, priceFirstCents: true, priceSecondCents: true, priceThirdCents: true, categories: { select: { level: true } } },
+  const parsed = newTournamentCategorySchema.safeParse({
+    tournamentId: formData.get("tournamentId"),
+    name: formData.get("name"),
+    registrationType: formData.get("registrationType") ?? "PAIR",
+    class: String(formData.get("class") ?? ""),
+    gender: String(formData.get("gender") ?? ""),
+    isPublic: formData.get("isPublic") === "on",
   });
-  if (!tournament) throw new Error("Torneio não encontrado.");
-  const category = await prisma.tournamentCategory.create({
-    data: {
-      tournamentId: tournament.id,
-      name,
-      registrationType,
-      level: Math.max(0, ...tournament.categories.map((item) => item.level)) + 1,
-      groupCount: tournament.groupCount,
-      pairsPerGroup: tournament.pairsPerGroup,
-      priceFirstCents: tournament.priceFirstCents,
-      priceSecondCents: tournament.priceSecondCents,
-      priceThirdCents: tournament.priceThirdCents,
-    },
-  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  const result = await createTournamentCategory(auth.arenaId, parsed.data);
+  if ("error" in result) return { error: result.error };
   refreshTournamentRoutes();
-  redirect(`/torneios/${tournament.id}/categorias/${category.id}`);
+  redirect(`/torneios/${result.tournamentId}/categorias/${result.categoryId}`);
 }
 
 export async function finishTournamentAction(formData: FormData) {
