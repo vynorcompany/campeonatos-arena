@@ -52,11 +52,11 @@ export const viewStyles = {
   "league_cycle_card_heading": "league-cycle-card-heading tw:flex tw:items-center tw:gap-2 tw:[&_h2]:m-0 tw:[&_h2]:text-base tw:[&_h2]:font-medium",
   "button_button_secondary": tws.secondary,
   "category_overview_category_detail_hero": "category-overview category-detail-hero tw:grid tw:min-w-0 tw:gap-3 tw:border-b tw:border-[var(--line)] tw:pb-3",
-  "category_overview_head": "tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:border-b tw:border-[#d5dfeb] tw:pb-3 tw:[&_h2]:m-0 tw:[&_h2]:text-base tw:[&_h3]:m-0 tw:[&_h3]:text-base tw:[&_h3]:font-medium",
+  "category_overview_head": "tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:[&_h2]:m-0 tw:[&_h2]:text-base tw:[&_h3]:m-0 tw:[&_h3]:text-base tw:[&_h3]:font-medium",
   "stack_xs": [
     "stack-xs", "tw:grid", "tw:gap-y-[6px]", "tw:gap-x-[6px]",
   ].join(" "),
-  "category_overview_title_row": "category-overview-title-row tw:flex tw:flex-wrap tw:items-center tw:gap-3 tw:[&_h1]:m-0 tw:[&_h1]:text-[22px] tw:[&_h1]:font-semibold",
+  "category_overview_title_row": "category-overview-title-row tw:flex tw:flex-wrap tw:items-center tw:gap-3 tw:[&_h1]:m-0 tw:[&_h1]:text-lg tw:[&_h1]:font-medium",
   "category_overview_context_muted": "tw:m-0 tw:text-[13px] tw:leading-relaxed tw:text-[#465c75]",
   "category_overview_metrics": "category-overview-metrics tw:m-0 tw:flex tw:flex-wrap tw:gap-x-8 tw:gap-y-3 tw:border-y tw:border-[#d5dfeb] tw:py-3 tw:[&_div]:flex tw:[&_div]:items-baseline tw:[&_div]:gap-2 tw:[&_dt]:text-[13px] tw:[&_dd]:m-0 tw:[&_dd]:text-lg tw:[&_dd]:font-semibold",
   "category_overview_action": "category-overview-action tw:flex tw:justify-end",

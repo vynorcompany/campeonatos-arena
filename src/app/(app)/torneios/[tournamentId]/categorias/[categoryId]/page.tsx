@@ -1,3 +1,4 @@
+import { CategoryOverviewSettings } from "@/components/tournaments/category-overview-settings";
 import { IndividualRegistrationPanel } from "@/components/tournaments/individual-registration-panel";
 import { CategoryOverviewRoster } from "@/components/tournaments/category-overview-roster";
 import { tournamentWorkspace as categoryUi } from "@/components/tournaments/tournament-workspace";
@@ -18,7 +19,6 @@ import { LeagueCategorySettingsDialog } from "@/components/tournaments/league-ca
 import { TournamentCategorySettingsForm } from "@/components/tournaments/tournament-category-settings-form";
 import { LeagueIcon } from "@/components/tournaments/league-icon";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
-import { StatusBadge } from "@/components/tournaments/status-badge";
 import { TournamentDetailLayout } from "@/components/tournaments/tournament-detail-layout";
 import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs";
 import { requireModuleView } from "@/lib/auth/guards";
@@ -38,6 +38,8 @@ type CategoryPageProps = {
   }>;
   searchParams?: Promise<{ tab?: string; sort?: string; status?: string; player?: string; reopened?: string }>;
 };
+
+const overviewStatusLabels: Record<string,string> = { DRAFT:"Rascunho", READY_FOR_DRAW:"Pronto para sorteio", GROUPS_DEFINED:"Grupos definidos", MATCHES_DEFINED:"Jogos definidos", PUBLISHED:"Publicado", IN_PROGRESS:"Em andamento", FINISHED:"Finalizado", REGISTRATIONS:"Inscrições", EDITING:"Editando", LIVE:"Acontecendo" };
 
 const validTabs: TournamentTabKey[] = [
   "overview",
@@ -412,7 +414,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
         counts={{ registrations: individual ? category.registrations.length : competition?.pairs.length ?? 0, games: `${completedMatchCount}/${competition?.matches.length ?? 0}` }}
       >
         {tab === "overview" ? (
-          individual ? <div className="tw:grid tw:min-w-0 tw:gap-4"><div className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-between tw:gap-3"><div><h1 className="tw:m-0 tw:text-lg tw:font-semibold tw:text-[#174983]">{category.name}</h1><p className="tw:m-0 tw:mt-1 tw:text-xs tw:text-[#465c75]">Inscrição individual · um atleta · evento sem jogos</p></div><Link className={categoryUi.primary} href={`/torneios/${params.tournamentId}/categorias/${category.id}?tab=registrations`}>Gerenciar inscrições</Link></div><TournamentCategorySettingsForm category={{ ...category, registrationTypeLocked: category._count.registrations > 0 || Boolean(competition) }} standardCategories={standardCategories}/></div> : competition?.format === "LEAGUE" ? (
+          individual ? <div className="tw:grid tw:min-w-0 tw:gap-4"><header className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-start tw:justify-between tw:gap-3"><div><h1 className="tw:m-0 tw:text-lg tw:font-medium tw:text-[#202c3c]">{category.name}</h1><p className="tw:m-0 tw:mt-2 tw:text-xs tw:text-[#465c75]">Individual · sem jogos · {category.registrations.length} inscrições</p></div><span className="tw:text-xs tw:text-[#087443]">{category.active ? "Ativa" : "Inativa"}</span></header><section className="tw:grid tw:min-w-0 tw:gap-3 tw:rounded-md tw:border tw:border-[#e1e4e9] tw:p-4"><header className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2"><h2 className="tw:m-0 tw:text-base tw:font-medium">Inscrições</h2><Link className={categoryUi.primary} href={`/torneios/${params.tournamentId}/categorias/${category.id}?tab=registrations`}>Gerenciar</Link></header><div className={categoryUi.list}><div className={categoryUi.head + " tw:grid-cols-[minmax(0,1fr)_110px]"}><span>Participante</span><span>Situação</span></div>{category.registrations.length ? category.registrations.map(registration=><div key={registration.id} className={categoryUi.row + " tw:grid-cols-[minmax(0,1fr)_110px] tw:viewport-480:grid-cols-1"}><span className="tw:break-words">{registration.leadName}</span><span className={registration.status === "CANCELED" ? "tw:text-xs tw:text-[#a02119]" : "tw:text-xs tw:text-[#087443]"}>{registration.status === "CONFIRMED" ? "Confirmada" : registration.status === "CANCELED" ? "Cancelada" : "Pendente"}</span></div>) : <p className={categoryUi.empty}>Nenhum atleta inscrito.</p>}</div></section><CategoryOverviewSettings first={category.priceFirstCents} second={category.priceSecondCents} third={category.priceThirdCents} limit={category.maxRegistrations}><TournamentCategorySettingsForm category={{ ...category, registrationTypeLocked: category._count.registrations > 0 || Boolean(competition) }} standardCategories={standardCategories}/></CategoryOverviewSettings></div> : competition?.format === "LEAGUE" ? (
           <div className={viewStyles.league_overview_dashboard}>
             {searchParams?.reopened === "1" && competition.leagueCycles[0]?.status === "OPEN"
               && competition.leagueCycles[0]?.referenceMonth === currentReferenceMonth
@@ -427,7 +429,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
                     <LeagueCategorySettingsDialog category={{ id: category.id, name: category.name, class: category.class, gender: category.gender, leagueTier: resolveLeagueTier(category.name, competition.leagueTier), registrationFeeCents: competition.registrationFeeCents }} />
                   </div>
                 </div>
-                <div className={viewStyles.league_overview_status}><StatusBadge status={competition.status} /></div>
+                <div className={viewStyles.league_overview_status + " tw:text-xs tw:text-[#465c75]"}>{overviewStatusLabels[competition.status] ?? competition.status}</div>
               </header>
 
               <p className={viewStyles.league_overview_context}>
@@ -440,8 +442,9 @@ export default async function CategoryPage(props: CategoryPageProps) {
               </div>
             </article>
             <CategoryOverviewRoster pairs={competition.pairs} groups={competition.groups} registrationsHref={`/torneios/${params.tournamentId}/categorias/${category.id}?tab=registrations`} />
+            {isPublicTournament ? <CategoryOverviewSettings first={category.priceFirstCents} second={category.priceSecondCents} third={category.priceThirdCents} limit={category.maxRegistrations}><TournamentCategorySettingsForm category={{...category, competitionFormat: competition.format, registrationTypeLocked: true}} standardCategories={standardCategories}/></CategoryOverviewSettings> : null}
             <details className={categoryUi.panel}>
-             <summary className="tw:cursor-pointer tw:text-xs tw:text-[var(--muted)]">Configurações da categoria</summary>
+             <summary className="tw:cursor-pointer tw:text-xs tw:text-[var(--muted)]">Premiação e ciclo da Liga</summary>
              <p className="tw:m-0 tw:text-xs tw:text-[var(--muted)]">Ranking geral: {competition.feedsGeneralRanking ? "Ativo" : "Inativo"}</p>
              <div className={viewStyles.league_overview_bottom}>
               <section className={viewStyles.league_prize_card} aria-labelledby="league-prize-title">
@@ -486,13 +489,13 @@ export default async function CategoryPage(props: CategoryPageProps) {
             }))} /> : null}
           </div>
           ) : (
-          <div className="stack-sm">
+          <div className="tw:grid tw:min-w-0 tw:gap-4">
                 <article id={`category-${category.id}`} className={viewStyles.category_overview_category_detail_hero}>
               <div className={viewStyles.category_overview_head}>
                 <div className={viewStyles.stack_xs}>
                   <div className={viewStyles.category_overview_title_row}><h1>{category.name}</h1>{competition ? <CategoryPublicVisibilityForm competitionId={competition.id} isPublic={competition.isPublic} /> : null}</div>
                 </div>
-                <StatusBadge status={competition?.status ?? "DRAFT"} />
+                <span className="tw:text-xs tw:font-normal tw:text-[#465c75]">{overviewStatusLabels[competition?.status ?? "DRAFT"] ?? competition?.status}</span>
               </div>
 
               <p className={viewStyles.category_overview_context_muted}>
@@ -518,7 +521,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
             {competition ? <><CategoryOverviewRoster pairs={competition.pairs} groups={competition.groups} trio={competition.format === "TRIO"} registrationsHref={`/torneios/${params.tournamentId}/categorias/${category.id}?tab=registrations`} /><p className="tw:m-0 tw:text-xs tw:text-[var(--muted)]">Ranking geral: {competition.feedsGeneralRanking ? "Ativo" : "Inativo"}</p></> : null}
             {!competition && isPublicTournament && !individual && canManage ? <section className={categoryUi.panel} aria-labelledby="category-format-title"><h2 id="category-format-title" className="tw:m-0 tw:text-base tw:font-medium tw:text-[#174983]">Formato de jogos</h2><p className="tw:m-0 tw:text-xs tw:text-[#465c75]">Escolha Trio para inscrever três atletas por equipe.</p>{category._count.registrations > 0 ? <p role="status" className="tw:m-0 tw:text-xs tw:text-[#945000]">Esta categoria já possui inscrições. Elas não serão convertidas para trio; crie uma nova categoria para esse formato.</p> : <CategoryCompetitionForm categoryId={category.id} categoryName={category.name} pairRankings={pairRankings} defaultFormat=""/>}</section> : null}
             {isPublicTournament ? (
-              <article className={viewStyles.section_card}>
+              <CategoryOverviewSettings first={category.priceFirstCents} second={category.priceSecondCents} third={category.priceThirdCents} limit={category.maxRegistrations}>
                 <TournamentCategorySettingsForm
                   category={{
                     id: category.id,
@@ -535,7 +538,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
                   }}
                   standardCategories={standardCategories}
                 />
-              </article>
+              </CategoryOverviewSettings>
             ) : !competition ? (
               <article className={viewStyles.section_card}>
                 <CategoryCompetitionForm
