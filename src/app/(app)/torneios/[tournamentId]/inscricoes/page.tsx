@@ -1,3 +1,4 @@
+import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
 import { TournamentRegistrationRow } from "@/components/tournaments/tournament-registration-row";
 import { ReceiveOnsiteRegistrationButton } from "@/components/tournaments/receive-onsite-registration-button";
 
@@ -41,7 +42,7 @@ export default async function TournamentRegistrationsPage(
   const canResolveReview = canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
 
   return <main className="tw:grid tw:w-full tw:min-w-0 tw:max-w-none tw:gap-3">
-    <header className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><h1 className="tw:sr-only">Inscrições</h1><Link href={`/torneios/${tournament.id}`} className={viewStyles.button}>Voltar ao torneio</Link></header>
+    <header className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><h1 className="tw:sr-only">Inscrições</h1><Link href={`/torneios/${tournament.id}`} className={ui.primary}>Voltar ao torneio</Link></header>
     <section className="tw:min-w-0">
       <form method="get" className="tw:mb-3 tw:grid tw:min-w-0 tw:grid-cols-[minmax(200px,300px)_minmax(140px,220px)_minmax(140px,200px)_auto] tw:items-end tw:justify-start tw:gap-2 tw:[&_:is(input,select)]:min-h-8! tw:[&_:is(input,select)]:rounded-md tw:[&_:is(input,select)]:border tw:[&_:is(input,select)]:border-[#bccbde] tw:[&_:is(input,select)]:bg-white tw:[&_:is(input,select)]:px-2 tw:[&_:is(input,select)]:py-1.5 tw:[&_:is(input,select)]:text-xs tw:[&_:is(input,select)]:text-[#202c3c] tw:viewport-760:grid-cols-2 tw:viewport-480:grid-cols-1">
         <label className="tw:grid tw:min-w-0 tw:gap-1 tw:text-xs tw:text-[#354f70]">Participante<input aria-label="Buscar atleta ou equipe" name="q" defaultValue={searchParams?.q} placeholder="Nome do atleta ou equipe"/></label>
@@ -51,7 +52,7 @@ export default async function TournamentRegistrationsPage(
       </form>
       <div className="tw:min-w-0 tw:overflow-visible tw:rounded-md tw:border tw:border-[#cbd9e9]"><table className="tw:w-full tw:table-fixed tw:border-collapse tw:text-left tw:viewport-760:block"><colgroup className="tw:viewport-760:hidden"><col className="tw:w-[38%]"/><col className="tw:w-[13%]"/><col className="tw:w-[14%]"/><col className="tw:w-[20%]"/><col className="tw:w-[15%]"/></colgroup><thead className="tw:bg-[#174983] tw:text-xs tw:font-normal tw:text-white tw:viewport-760:hidden"><tr className="tw:[&>th]:px-3 tw:[&>th]:py-2 tw:[&>th]:font-normal"><th>Participante / Categoria</th><th>Valor</th><th>Situação</th><th>Pagamento</th><th className="tw:text-right">Ações</th></tr></thead><tbody className="tw:viewport-760:block">
 
-        {registrations.length ? registrations.map((registration, index) => {
+        {registrations.length ? registrations.map((registration) => {
           const underReview = registration.paymentStatus === "REVIEW";
           const canceled = registration.status === "CANCELED" || registration.paymentStatus === "REFUNDED";
           const confirmed = registration.status === "CONFIRMED";

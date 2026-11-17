@@ -122,7 +122,7 @@ export function PublicRegistrationForm({
           <div className={viewStyles.field}><label htmlFor="thirdCpf">CPF</label><CpfInput id="thirdCpf" name="thirdCpf" required/></div>
         </div></section> : null}
         <BotTrap/>
-        <p className={viewStyles.privacy_notice}>{individual ? "Consulte as condições da arena e a política de privacidade." : "Consulte as condições da arena e a política de privacidade."}</p>
+        <p className={viewStyles.privacy_notice}>Consulte as condições da arena e a política de privacidade.</p>
         {!individual ? <details className={viewStyles.privacy_notice}><summary>Uso dos dados da equipe</summary><p>Nome e resultados da equipe poderão aparecer na competição. Informe os demais atletas sobre o uso desses dados.</p>{trio ? <p>O total da equipe considera a inscrição de cada um dos três atletas.</p> : null}</details> : null}
     {!onlinePaymentEnabled && rules.trim() ? <details open className={viewStyles.regulation}><summary id="event-regulation-title" className="tw:cursor-pointer tw:text-sm tw:text-[#174983]">Regulamento</summary><p>{rules}</p></details> : null}
       </div>
