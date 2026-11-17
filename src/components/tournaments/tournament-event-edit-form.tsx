@@ -14,6 +14,7 @@ const initialState: ActionState = {
 };
 
 type TournamentEventEditFormProps = {
+  onCancel?: () => void;
   tournament: {
     id: string;
     name: string;
@@ -23,7 +24,7 @@ type TournamentEventEditFormProps = {
 };
 
 export function TournamentEventEditForm({
-  tournament,
+  tournament, onCancel,
 }: TournamentEventEditFormProps) {
   const [state, formAction] = useFormState(updateTournamentAction, initialState);
 
@@ -44,7 +45,7 @@ export function TournamentEventEditForm({
         <textarea
           id="event-description"
           name="description"
-          rows={7}
+          rows={3}
           defaultValue={tournament.description}
         />
       </div>
@@ -54,18 +55,19 @@ export function TournamentEventEditForm({
           id="event-rules"
           name="rules"
           className={viewStyles.event_rules_editor}
-          rows={12}
+          rows={6}
           defaultValue={tournament.rules}
           placeholder="Insira o regulamento que será exibido na página pública."
         />
       </div>
-      <div className={viewStyles.field_field_submit_form_full}>
+      <footer className={viewStyles.field_field_submit_form_full}>
+        {onCancel ? <button type="button" className={viewStyles.button_secondary} onClick={onCancel}>Cancelar</button> : null}
         <SubmitButton
           label="Salvar evento"
           pendingLabel="Salvando..."
           className={viewStyles.button_button_primary}
         />
-      </div>
+      </footer>
       {state.error ? <p className={viewStyles.form_error_form_full}>{state.error}</p> : null}
       {state.success ? (
         <p className={viewStyles.form_success_form_full}>{state.success}</p>

@@ -20,7 +20,7 @@ export const viewStyles = {
     "tw:bg-[color:#ffffff]", "tw:[background-image:none]", "tw:text-[color:#075bcc]", "tw:text-[.78rem]",
     "tw:font-[750]", "tw:[&_.event-icon]:text-[color:#1b72da]",
   ].join(" "),
-  "button": (sharedUtilities.button) + " " + managementControls.secondary,
+  "button": managementControls.secondary,
   "tournament_delete_action": [
     "tournament-delete-action", "tw:relative", "tw:inline-flex", "tw:[&_.safe-action-confirmation]:absolute",
     "tw:[&_.safe-action-confirmation]:z-[30]", "tw:[&_.safe-action-confirmation]:top-[calc(100%_+_8px)]", "tw:[&_.safe-action-confirmation]:right-[0]", "tw:viewport-600:[&_.safe-action-confirmation]:right-[auto]",
@@ -83,5 +83,5 @@ export const viewStyles = {
   "event_side_column": "event-side-column tw:grid tw:min-w-0 tw:gap-3",
   "event_information": "event-information tw:grid tw:min-w-0 tw:gap-3 tw:rounded-md tw:border tw:border-[#d4e0ee] tw:bg-[#ffffff] tw:p-3 tw:[&_h2]:m-0 tw:[&_h2]:text-sm tw:[&_h2]:font-medium tw:[&_header]:flex tw:[&_header]:items-center tw:[&_header]:gap-2 tw:[&_dl]:m-0 tw:[&_dl]:grid tw:[&_dl]:gap-2 tw:[&_dl>div]:flex tw:[&_dl>div]:justify-between tw:[&_dl>div]:gap-3 tw:[&_dt]:text-[11px] tw:[&_dt]:text-[#526781] tw:[&_dd]:m-0 tw:[&_dd]:text-xs tw:[&_dd]:text-right",
   "tournament_status_form": "tournament-status-form tw:grid tw:min-w-0 tw:gap-2 tw:border-b tw:border-[#d4e0ee] tw:pb-3 tw:[&_label]:grid tw:[&_label]:gap-1 tw:[&_label]:text-xs tw:[&_select]:h-9! tw:[&_select]:min-h-9! tw:[&_select]:text-xs!",
-  "button_button_small": (sharedUtilities.buttonButtonSmall) + " " + managementControls.secondary,
+  "button_button_small": managementControls.secondary,
 } as const;
