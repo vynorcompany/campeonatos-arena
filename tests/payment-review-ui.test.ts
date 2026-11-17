@@ -54,7 +54,8 @@ test("portal bloqueia nova cobran√ßa quando o pagamento anterior exige concilia√
   assert.match(publicRegistration, /if \(savedPayment\.count !== 1\)/);
   const registrations = read("src/app/(app)/torneios/[tournamentId]/inscricoes/page.tsx");
   assert.match(registrations, /searchParams\?\.status === "REVIEW"/);
-  assert.match(registrations, /searchParams\?\.status === "PENDING"\) return item\.status === "PENDING_PAYMENT" && item\.paymentStatus !== "REVIEW"/);
+  assert.match(registrations, /searchParams\?\.status === "PENDING"\) return item\.paymentStatus !== "REVIEW" && \(item\.status === "PENDING_PAYMENT"/);
+  assert.match(registrations, /item\.paymentProvider === "PAY_ON_SITE" && item\.status === "CONFIRMED" && item\.paymentStatus === "PENDING"/);
   assert.match(registrations, /underReview \? <ReviewedCheckoutRelease kind="registration"/);
   assert.match(registrations, /canceled \? <p className=\{viewStyles\.muted\}>Pagamento estornado/);
   const legacyRegistrations = read("src/app/(app)/torneios/inscricoes/page.tsx");

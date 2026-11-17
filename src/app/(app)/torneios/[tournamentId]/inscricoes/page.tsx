@@ -1,3 +1,4 @@
+import { ReceiveOnsiteRegistrationButton } from "@/components/tournaments/receive-onsite-registration-button";
 
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { cx } from "@/lib/ui/classes";
@@ -34,7 +35,7 @@ export default async function TournamentRegistrationsPage(
     if (searchParams?.status === "CONFIRMED") return item.status === "CONFIRMED";
     if (searchParams?.status === "REVIEW") return item.paymentStatus === "REVIEW";
     if (searchParams?.status === "CANCELED") return item.status === "CANCELED";
-    if (searchParams?.status === "PENDING") return item.status === "PENDING_PAYMENT" && item.paymentStatus !== "REVIEW";
+    if (searchParams?.status === "PENDING") return item.paymentStatus !== "REVIEW" && (item.status === "PENDING_PAYMENT" || (item.paymentProvider === "PAY_ON_SITE" && item.status === "CONFIRMED" && item.paymentStatus === "PENDING"));
     return true;
   });
   const canResolveReview = canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
@@ -53,9 +54,11 @@ export default async function TournamentRegistrationsPage(
           const underReview = registration.paymentStatus === "REVIEW";
           const canceled = registration.status === "CANCELED" || registration.paymentStatus === "REFUNDED";
           const confirmed = registration.status === "CONFIRMED";
+          const canReceiveOnsite = registration.paymentProvider === "PAY_ON_SITE" && confirmed && registration.paymentStatus === "PENDING" && canPerformPermission("finance:receivable:settle", auth.arenaRole, auth.systemRole, auth.editPermissions);
           return <details key={registration.id} className={viewStyles.tournament_registration_row}>
-            <summary><span className={viewStyles.registration_order}>{index + 1}</span><div><strong>{[registration.leadName, registration.partnerName, registration.thirdName].filter(Boolean).join(" / ")}</strong><small>{registration.category.name}</small></div><span>{money.format(registration.amountCents / 100)}</span><span className={cx(confirmed ? viewStyles.status_confirmed : viewStyles.status_pending)}>{underReview ? "Pagamento em análise" : canceled ? registration.paymentStatus === "REFUNDED" ? "Cancelada após estorno" : "Cancelada" : confirmed ? "Confirmada" : "Pagamento pendente"}</span></summary>
-            {underReview ? <ReviewedCheckoutRelease kind="registration" recordId={registration.id} paymentId={registration.mercadoPagoPaymentId} clientName={`${registration.leadName} / ${registration.partnerName}`} canResolve={canResolveReview} /> : canceled ? <p className={viewStyles.muted}>Pagamento estornado ou cancelado. A dupla pode fazer uma nova inscrição.</p> : !canEditManualTournamentRegistration(registration) ? <p className={viewStyles.muted}>{confirmed ? "Dupla confirmada: correções devem preservar seus vínculos com os jogos." : "Inscrição com cobrança online: confira o pagamento antes de alterar os dados."}</p> :
+            <summary><span className={viewStyles.registration_order}>{index + 1}</span><div><strong>{[registration.leadName, registration.partnerName, registration.thirdName].filter(Boolean).join(" / ")}</strong><small>{registration.category.name}</small></div><span>{money.format(registration.amountCents / 100)}</span><span className={cx(confirmed ? viewStyles.status_confirmed : viewStyles.status_pending)}>{underReview ? "Pagamento em análise" : canceled ? registration.paymentStatus === "REFUNDED" ? "Cancelada após estorno" : "Cancelada" : confirmed ? registration.paymentStatus === "PAID" ? "Confirmada · Pago" : registration.paymentProvider === "PAY_ON_SITE" ? "Confirmada · Pagamento no local" : "Confirmada" : "Pagamento pendente"}</span></summary>
+            {canReceiveOnsite ? <div className="tw:flex tw:justify-end tw:py-2"><ReceiveOnsiteRegistrationButton registrationId={registration.id} accounts={bankAccounts}/></div> : null}
+            {underReview ? <ReviewedCheckoutRelease kind="registration" recordId={registration.id} paymentId={registration.mercadoPagoPaymentId} clientName={`${registration.leadName} / ${registration.partnerName}`} canResolve={canResolveReview} /> : canceled ? <p className={viewStyles.muted}>Pagamento estornado ou cancelado. É possível fazer uma nova inscrição.</p> : registration.paymentProvider === "PAY_ON_SITE" || !canEditManualTournamentRegistration(registration) ? <p className={viewStyles.muted}>{confirmed ? "Inscrição confirmada: correções devem preservar seus vínculos com o evento." : "Inscrição com cobrança online: confira o pagamento antes de alterar os dados."}</p> :
               <RegistrationEditForm className={viewStyles.tournament_registration_edit}>
                 <input type="hidden" name="registrationId" value={registration.id} /><input type="hidden" name="registrationType" value={registration.category.registrationType}/><input type="hidden" name="tournamentId" value={tournament.id} />
                 <label>Categoria<SmartEntitySelect label="Categoria" name="categoryId" defaultValue={registration.categoryId}>{tournament.categories.filter(category => category.registrationType === registration.category.registrationType && (category.competition?.format === "TRIO") === (registration.category.competition?.format === "TRIO")).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SmartEntitySelect></label>

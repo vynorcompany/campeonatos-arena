@@ -1,7 +1,7 @@
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 
 export const viewStyles = {
-  public_reg_success_page: "public-reg-success-page tw:grid tw:min-h-dvh tw:place-items-center tw:bg-white tw:p-6 tw:viewport-600:p-3 tw:dark:bg-[#07111f]",
+  public_reg_success_page: "public-reg-success-page tw:min-[1024px]:max-[1536px]:[zoom:0.8] tw:grid tw:min-h-dvh tw:place-items-center tw:bg-white tw:p-6 tw:viewport-600:p-3 tw:dark:bg-[#07111f]",
   public_reg_success_card: "public-reg-success-card tw:grid tw:w-full tw:min-w-0 tw:max-w-[680px] tw:gap-4 tw:rounded-xl tw:border tw:border-[var(--line)] tw:bg-white tw:p-6 tw:text-[#231f20] tw:viewport-600:p-4 tw:dark:border-[#33455c] tw:dark:bg-[#0d1b2c] tw:dark:text-white tw:[&_h1]:m-0 tw:[&_h1]:text-2xl tw:[&_h1]:font-semibold tw:[&>p]:m-0 tw:[&>p]:text-sm tw:[&>p]:leading-relaxed tw:[&>p]:text-[#52627a] tw:dark:[&>p]:text-[#b8c8dc]",
   eyebrow: "eyebrow tw:text-xs! tw:font-semibold tw:tracking-wide tw:text-[#174983]! tw:dark:text-white!",
   public_reg_success_summary: "public-reg-success-summary tw:grid tw:min-w-0 tw:grid-cols-2 tw:gap-3 tw:rounded-lg tw:border tw:border-[var(--line)] tw:bg-white tw:p-3 tw:viewport-600:grid-cols-1 tw:dark:border-[#33455c] tw:dark:bg-[#0d1b2c] tw:[&>div]:grid tw:[&>div]:min-w-0 tw:[&>div]:content-start tw:[&>div]:gap-1 tw:[&_span]:text-xs tw:[&_span]:text-[#52627a] tw:dark:[&_span]:text-[#b8c8dc] tw:[&_strong]:break-words tw:[&_strong]:text-sm tw:[&>div:last-child:nth-child(odd)]:col-span-2 tw:viewport-600:[&>div:last-child:nth-child(odd)]:col-span-1",

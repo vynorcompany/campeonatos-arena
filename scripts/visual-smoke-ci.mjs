@@ -1348,8 +1348,18 @@ async function main() {
     });
     if(!pickedPublicCategory.result.value) throw new Error("A busca de categoria pública não exibiu a opção selecionável.");
     await pause(100);
+    // Browser input events exercise React masks and native validation.
+    for (const [name, value] of Object.entries(publicFormValues)) {
+      const selector = `form:has(input[name=tournamentSlug]) input[name="${name}"]`;
+      const focused = await send("Runtime.evaluate", {
+        expression: `(() => { const input=document.querySelector(${JSON.stringify(selector)}); if (!input) return false; input.focus(); input.select(); return true; })()`,
+        returnByValue: true,
+      });
+      if (!focused.result.value) throw new Error(`Campo público ${name} ausente.`);
+      await send("Input.insertText", { text: value });
+    }
     const publicFormPrepared = await send("Runtime.evaluate", {
-      expression: `(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); if (!form) return false; for (const [name, value] of Object.entries(${JSON.stringify(publicFormValues)})) { const input = form.querySelector('input[name=' + name + ']'); if (!input) return false; input.value = value; input.dispatchEvent(new Event('input', { bubbles: true })); } return new FormData(form).get('categoryId') === ${JSON.stringify(publicCategory.id)} && form.checkValidity(); })()`,
+      expression: `(() => { const form=document.querySelector('form:has(input[name=tournamentSlug])'); return Boolean(form && new FormData(form).get('categoryId') === ${JSON.stringify(publicCategory.id)} && form.checkValidity()); })()`,
       returnByValue: true,
     });
     if (!publicFormPrepared.result.value) throw new Error("O formulário público fictício não aceitou os dados da dupla.");

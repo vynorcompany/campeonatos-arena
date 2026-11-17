@@ -87,3 +87,13 @@ test("boleto envia CPF ou CNPJ numérico sem trocar a identificação do pagador
  for(const document of ["52998224725","12345678000190"]){await create({...input,payerCpf:document} as PaymentInput);const payer=requests.at(-1)!.body.payer as {identification:{type:string;number:string}};assert.equal(payer.identification.number,document);assert.equal(payer.identification.type,document.length===14?"CNPJ":"CPF");}
  await assert.rejects(create({...input,payerCpf:"00000000E08G12"} as PaymentInput),/alfanumérico/);assert.equal(requests.length,2,"documento alfanumérico não deve ser truncado ou enviado como CPF");
 });
+
+
+test("hosted registration checkout collects buyer data without fabricating a payer email", async () => {
+  const requests: Array<{ body: Record<string, any>; headers: Record<string, string> }> = [];
+  await loadPaymentRequests(requests).createHostedCheckout({ arenaId: "arena-a", amountCents: 8000, description: "Day use", payerEmail: "", externalReference: "registration-no-email", paymentTypes: { pix: true, creditCard: false } });
+  assert.equal(requests.length, 1);
+  assert.equal(Object.hasOwn(requests[0].body, "payer"), false);
+  assert.equal(requests[0].body.items[0].unit_price, 80);
+  assert.ok(requests[0].body.payment_methods.excluded_payment_types.some((item: { id: string }) => item.id === "credit_card"));
+});

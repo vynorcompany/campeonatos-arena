@@ -47,6 +47,7 @@ type TournamentFormProps = {
   defaultPublicSlug?: string;
   defaultRegistrationPhase?: string;
   defaultShowInEventRadar?: boolean;
+  defaultOnlinePaymentEnabled?: boolean;
   defaultCreationMode?: "MANUAL" | "PUBLIC";
   defaultGroupCount?: number;
   defaultPairsPerGroup?: number;
@@ -80,6 +81,7 @@ export function TournamentForm({
   defaultPublicSlug = "",
   defaultRegistrationPhase = "REGISTRATIONS",
   defaultShowInEventRadar = false,
+  defaultOnlinePaymentEnabled = true,
   defaultCreationMode = "MANUAL",
   defaultGroupCount = 4,
   defaultPairsPerGroup = 3,
@@ -133,6 +135,8 @@ export function TournamentForm({
           <div className={viewStyles.field}><label htmlFor="creationMode">Origem das inscrições</label><select id="creationMode" name="creationMode" defaultValue={defaultCreationMode}><option value="MANUAL">Somente inscrições manuais</option><option value="PUBLIC">Aceitar inscrições pelo link público</option></select></div>
           <div className={viewStyles.field}><label htmlFor="registrationPhase">Fase do evento</label><select id="registrationPhase" name="registrationPhase" defaultValue={defaultRegistrationPhase}><option value="REGISTRATIONS">Inscrições abertas</option><option value="EDITING">Configuração</option><option value="LIVE">Em andamento</option><option value="FINISHED">Finalizado</option></select></div>
           <div className={viewStyles.field_form_full_tournament_public_slug}><label htmlFor="publicSlug">Link público do torneio</label><div><span aria-hidden="true">/inscricao/</span><input id="publicSlug" name="publicSlug" type="text" placeholder="open-arena-agosto" value={publicSlug} onChange={(event) => { setSlugEdited(true); setPublicSlug(slugify(event.target.value)); }} pattern="(?:[a-z0-9]|-)+" required /></div><p>Gerado a partir do nome; você pode personalizá-lo com letras minúsculas, números e hífens.</p></div>
+          <input type="hidden" name="onlinePaymentEnabledPresent" value="true"/>
+          <label className={viewStyles.tournament_radar_setting_form_full}><input name="onlinePaymentEnabled" type="checkbox" defaultChecked={defaultOnlinePaymentEnabled}/><span aria-hidden="true"/><div><strong>Pagamento online</strong><p>Desative para receber as inscrições com pagamento no local.</p></div></label>
           <label className={viewStyles.tournament_radar_setting_form_full}><input name="showInEventRadar" type="checkbox" defaultChecked={defaultShowInEventRadar} /><span aria-hidden="true" /><div><strong>Exibir no Radar de Eventos</strong><p>Atletas de outras arenas poderão encontrar este torneio e abrir a inscrição.</p></div></label>
         </div>
       </EventEditorSection>

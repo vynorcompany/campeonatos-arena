@@ -30,6 +30,7 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
     publicSlug: formData.get("publicSlug"),
     registrationPhase: formData.get("registrationPhase"),
     showInEventRadar: formData.get("showInEventRadar") === "on",
+    onlinePaymentEnabled: formData.has("onlinePaymentEnabledPresent") ? formData.get("onlinePaymentEnabled") === "on" : undefined,
     groupCount: formData.get("groupCount"),
     pairsPerGroup: formData.get("pairsPerGroup"),
     priceFirstCents: formData.get("priceFirstCents"),
@@ -78,6 +79,7 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
         registrationPhase: parsed.data.registrationPhase,
         status: parsed.data.registrationPhase === "FINISHED" ? "FINISHED" : parsed.data.registrationPhase === "EDITING" ? "DRAFT" : "PUBLISHED",
         showInEventRadar: parsed.data.showInEventRadar,
+        onlinePaymentEnabled: parsed.data.onlinePaymentEnabled ?? true,
         groupCount: categories[0]?.groupCount ?? parsed.data.groupCount,
         pairsPerGroup: categories[0]?.pairsPerGroup ?? parsed.data.pairsPerGroup,
         priceFirstCents,
@@ -175,7 +177,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
       };
     }
 
-    const updated = await prisma.tournament.updateMany({
+    const updated = await withArenaTransaction(auth.arenaId, tx => tx.tournament.updateMany({
       where: {
         id: eventParsed.data.tournamentId,
         arenaId: auth.arenaId,
@@ -184,8 +186,9 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
         name: eventParsed.data.name,
         description: eventParsed.data.description,
         rules: eventParsed.data.rules,
+        ...(formData.has("onlinePaymentEnabledPresent") ? { onlinePaymentEnabled: formData.get("onlinePaymentEnabled") === "on" } : {}),
       },
-    });
+    }));
 
     if (!updated.count) {
       return { error: "Evento não encontrado.", success: null };
@@ -214,6 +217,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
     publicSlug: formData.get("publicSlug"),
     registrationPhase: formData.get("registrationPhase"),
     showInEventRadar: formData.get("showInEventRadar") === "on",
+    onlinePaymentEnabled: formData.has("onlinePaymentEnabledPresent") ? formData.get("onlinePaymentEnabled") === "on" : undefined,
     groupCount: formData.get("groupCount"),
     pairsPerGroup: formData.get("pairsPerGroup"),
     priceFirstCents: formData.get("priceFirstCents"),
@@ -252,6 +256,7 @@ export async function updateTournamentAction(_: ActionState, formData: FormData)
       creationMode: parsed.data.creationMode,
       registrationPhase: parsed.data.registrationPhase,
       showInEventRadar: parsed.data.showInEventRadar,
+      onlinePaymentEnabled: parsed.data.onlinePaymentEnabled,
       groupCount: categories[0]?.groupCount ?? parsed.data.groupCount,
       pairsPerGroup: categories[0]?.pairsPerGroup ?? parsed.data.pairsPerGroup,
       priceFirstCents,

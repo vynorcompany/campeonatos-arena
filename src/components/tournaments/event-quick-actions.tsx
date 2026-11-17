@@ -11,7 +11,7 @@ import { TournamentEventEditForm } from "@/components/tournaments/tournament-eve
 type ActionKey = "categories" | "registrations" | "games" | "public" | "edit";
 
 type EventQuickActionsProps = {
-  tournament: { id: string; name: string; description: string; rules: string };
+  tournament: { id: string; name: string; description: string; rules: string; onlinePaymentEnabled?: boolean };
   publicPageUrl: string;
   categories: { id: string; name: string; registrationType?: string; pairCount: number }[];
   initialAction?: ActionKey | null;

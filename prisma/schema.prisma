@@ -387,6 +387,7 @@ model Player {
   super12PairPlayers        Super12PairPlayer[]
   whatsAppConversations     WhatsAppConversation[]
   privacyRequests           PrivacyRequest[]
+  publicRegistrationsLed    PublicTournamentRegistration[] @relation("RegistrationLeadPlayer")
   erasedContactReferences   ErasedContactReference[]
 
   @@index([arenaId, active])
@@ -640,6 +641,7 @@ model Tournament {
   creationMode        String                         @default("MANUAL")
   status              String                         @default("DRAFT")
   registrationPhase   String                         @default("REGISTRATIONS")
+  onlinePaymentEnabled Boolean                       @default(true)
   showInEventRadar    Boolean                        @default(false)
   groupCount          Int                            @default(2)
   pairsPerGroup       Int                            @default(3)
@@ -710,6 +712,8 @@ model TournamentCategory {
 
 model PublicTournamentRegistration {
   id                   String                 @id @default(cuid())
+  leadPlayerId         String?
+  leadPlayer           Player? @relation("RegistrationLeadPlayer", fields: [leadPlayerId], references: [id], onDelete: SetNull)
   leadName             String
   leadPhone            String
   leadCpf              String
@@ -753,6 +757,7 @@ model PublicTournamentRegistration {
   @@index([tournamentId, createdAt])
   @@index([categoryId, createdAt])
   @@index([leadCpf, createdAt])
+  @@index([leadPlayerId])
   @@index([partnerCpf, createdAt])
   @@index([competitionId, createdAt])
   @@index([tournamentId, status, holdExpiresAt], map: "PubReg_tournament_status_hold_idx")
