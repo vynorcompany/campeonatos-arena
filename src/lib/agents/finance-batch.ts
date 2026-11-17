@@ -21,7 +21,7 @@ export async function performBatch(tx:Prisma.TransactionClient,key:{id:string,ar
  await tx.$queryRaw`SELECT id FROM "AgentApiKey" WHERE id=${key.id} AND "arenaId"=${key.arenaId} FOR UPDATE`;
  const active=await tx.agentApiKey.findFirst({where:{id:key.id,arenaId:key.arenaId,revokedAt:null,expiresAt:{gt:new Date()}}});
  if(!active?.scopes.includes("finance:write"))throw new AgentAccessError("Permissão de escrita revogada.",403);
- if(body.items.some(i=>i.action==="settle"||i.action==="create"&&i.entry.status==="PAID")&&!active.scopes.includes("finance:settle"))throw new AgentAccessError("Permissão de baixa necessária.",403);
+ if(body.items.some(i=>i.action!=="create"||i.entry.status==="PAID")&&!active.scopes.includes("finance:settle"))throw new AgentAccessError("Permissão de baixa necessária.",403);
  const entityId=`${key.id}:${requestId}`,digest=createHash("sha256").update(JSON.stringify(body)).digest("hex");
  const prior=await tx.auditEvent.findFirst({where:{arenaId:key.arenaId,actorId:key.id,action:"AGENT_FINANCE_BATCH",entityId}});
  if(prior){const d=prior.details as {digest:string,receipt:Prisma.JsonObject};if(d.digest!==digest)throw new AgentAccessError("Chave já usada com outros dados.",409);return d.receipt;}
