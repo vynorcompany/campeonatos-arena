@@ -17,3 +17,7 @@ Todo novo menu ou página deve seguir o padrão visual existente do sistema: com
 ## Campos de entidades
 
 Campos de cliente, fornecedor e categorias de cadastro devem oferecer pesquisa e criação no contexto, usando SmartEntitySelect ou um seletor equivalente. Preserve o identificador canônico no formulário e valide permissões e arena no servidor. Em filtros públicos e seleções restritas a vínculos existentes (como responsável entre participantes), permita pesquisa e mantenha a criação no fluxo autorizado de inclusão. Enumerações estáticas não são categorias de cadastro.
+
+## Submenus horizontais
+
+Reutilize `submenuTabs` de `src/components/ui/submenu-tabs.ts` na navegação por abas. Os itens não têm fundo nos estados normal, hover ou selecionado; uma linha azul na base identifica a seleção, com texto em peso normal e foco de teclado visível. Preserve a semântica de navegação ou tablist e os comportamentos de URL, permissões e teclado. Esse padrão não substitui botões de ação, filtros, calendários, paginação ou a navegação principal lateral/inferior.

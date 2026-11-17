@@ -1,8 +1,9 @@
+import { submenuTabs } from "@/components/ui/submenu-tabs";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
   "stack_md": [
-    "stack-md", "tw:[max-width:1240px]", "tw:[margin:0_auto]", "tw:[padding:24px]", "tw:viewport-560:p-4",
+    "stack-md", "tw:[max-width:1180px]", "tw:[margin:0_auto]", "tw:[padding:24px]", "tw:bg-[#f7f8fa]", "tw:viewport-560:p-4",
     "tw:grid", "tw:gap-y-[18px]", "tw:gap-x-[18px]", "tw:[&_>_*:nth-child(1)]:[animation-delay:40ms]",
     "tw:[&_>_*:nth-child(2)]:[animation-delay:100ms]", "tw:[&_>_*:nth-child(3)]:[animation-delay:160ms]", "tw:[&_>_*:nth-child(4)]:[animation-delay:220ms]", "tw:[&_>_.section-card:last-child]:border-b-[length:1px]",
     "tw:[&_>_.section-card:last-child]:[border-bottom-style:solid]", "tw:[&_>_.section-card:last-child]:border-b-[color:var(--line)]",
@@ -13,22 +14,7 @@ export const viewStyles = {
   ].join(" "),
   "eyebrow": sharedUtilities.eyebrow,
   "muted": sharedUtilities.muted,
-  "public_tournament_tabs": [
-    "public-tournament-tabs", "tw:flex", "tw:flex-wrap", "tw:viewport-600:grid", "tw:viewport-600:grid-cols-2",
-    "tw:gap-y-[8px]", "tw:gap-x-[8px]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
-    "tw:border-b-[color:#dbe5f1]", "tw:pb-[12px]", "tw:viewport-600:pb-[10px]", "tw:[&_a]:inline-flex",
-    "tw:[&_a]:items-center", "tw:[&_a]:min-h-[38px]", "tw:[&_a]:pt-[0]", "tw:[&_a]:pr-[14px]",
-    "tw:[&_a]:pb-[0]", "tw:[&_a]:pl-[14px]", "tw:[&_a]:border-t-[length:1px]", "tw:[&_a]:[border-top-style:solid]",
-    "tw:[&_a]:border-t-[color:#cfdaea]", "tw:[&_a]:border-r-[length:1px]", "tw:[&_a]:[border-right-style:solid]", "tw:[&_a]:border-r-[color:#cfdaea]",
-    "tw:[&_a]:border-b-[length:1px]", "tw:[&_a]:[border-bottom-style:solid]", "tw:[&_a]:border-b-[color:#cfdaea]", "tw:[&_a]:border-l-[length:1px]",
-    "tw:[&_a]:[border-left-style:solid]", "tw:[&_a]:border-l-[color:#cfdaea]", "tw:[&_a]:rounded-[4px]", "tw:[&_a]:bg-[color:#215da5]", "tw:[&_a]:text-white",
-    "tw:[&_a]:text-[.86rem]", "tw:[&_a]:font-[650]", "tw:[&_a]:[text-decoration:none]", "tw:[&_a:hover]:border-t-[color:var(--brand)]",
-    "tw:[&_a:hover]:border-r-[color:var(--brand)]", "tw:[&_a:hover]:border-b-[color:var(--brand)]", "tw:[&_a:hover]:border-l-[color:var(--brand)]", "tw:[&_a:hover]:bg-[color:#174983]",
-    "tw:[&_a:hover]:[background-image:none]", "tw:[&_a:hover]:text-white", "tw:[&_a.is-active]:border-t-[color:var(--brand)]", "tw:[&_a.is-active]:border-r-[color:var(--brand)]",
-    "tw:[&_a.is-active]:border-b-[color:var(--brand)]", "tw:[&_a.is-active]:border-l-[color:var(--brand)]", "tw:[&_a.is-active]:bg-[color:#103b6c]", "tw:[&_a.is-active]:underline", "tw:[&_a.is-active]:decoration-2", "tw:[&_a.is-active]:underline-offset-4", "tw:[&_a.is-active:hover]:bg-[color:#0a2955]", "tw:[&_a.is-active]:[background-image:none]",
-    "tw:[&_a.is-active]:text-white", "tw:viewport-600:[&_a]:justify-center", "tw:viewport-600:[&_a]:min-w-0",
-    "tw:viewport-600:[&_a]:pr-[8px]", "tw:viewport-600:[&_a]:pl-[8px]", "tw:viewport-600:[&_a]:text-[.8rem]",
-  ].join(" "),
+  public_tournament_tabs: "public-tournament-tabs " + submenuTabs.group,
   "section_card_public_tournament_content": [
     "section-card", "public-tournament-content", "tw:pt-[22px]", "tw:pr-[0]",
     "tw:pb-[22px]", "tw:pl-[0]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",

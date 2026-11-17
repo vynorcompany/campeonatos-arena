@@ -1,3 +1,4 @@
+import { AthletePortalWordmark } from "@/components/athlete-portal-wordmark";
 import { PublicTrioMatches } from "@/components/tournaments/public-trio-matches";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
@@ -67,13 +68,8 @@ export default async function PublicRegistrationPage(
 
   return (
     <main className={viewStyles.stack_md}>
-      <header className={viewStyles.page_header}>
-        <div className={viewStyles.stack_xs}>
-
-          <h1 className="tw:m-0 tw:text-3xl tw:font-semibold tw:text-[#174983] tw:viewport-560:text-2xl">{tournament.name}</h1>
-          <p className={viewStyles.muted}>{tournament.description || "Acompanhe o torneio e faça sua inscrição."}</p>
-        </div>
-      </header>
+      <header className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:pb-1"><Link href="/portal" aria-label="Portal do Atleta" className="tw:[&_text]:fill-[#174983]!"><AthletePortalWordmark compact/></Link><span className="tw:flex tw:min-w-0 tw:items-center tw:gap-2 tw:text-xs tw:text-[#465c75]">{tournament.arena.logoUrl ? <img src={tournament.arena.logoUrl} alt="" className="tw:size-8 tw:object-contain"/> : null}{tournament.arena.name}</span></header>
+      <section className="tw:relative tw:isolate tw:flex tw:min-h-36 tw:min-w-0 tw:items-end tw:overflow-hidden tw:rounded-lg tw:bg-[#10243f] tw:p-7 tw:text-white tw:viewport-560:p-5" aria-label={tournament.name}><img src="/portal-padel-hero.webp" alt="" className="tw:absolute tw:inset-0 tw:-z-20 tw:h-full tw:w-full tw:object-cover tw:object-center"/><div className="tw:absolute tw:inset-0 tw:-z-10 tw:bg-[linear-gradient(90deg,rgba(14,41,76,.97),rgba(14,41,76,.4))]"/><div className="tw:min-w-0"><h1 className="tw:m-0 tw:break-words tw:text-[28px] tw:font-medium tw:leading-tight tw:viewport-560:text-2xl">{tournament.name}</h1>{tournament.description ? <p className="tw:m-0 tw:mt-2 tw:max-w-[65ch] tw:whitespace-pre-line tw:text-sm tw:text-[#e0eaf6]">{tournament.description}</p> : null}</div></section>
       <nav className={viewStyles.public_tournament_tabs} aria-label="Navegação do torneio">
         {availablePublicTabs.map((tab) => <Link aria-current={activeTab === tab.id ? "page" : undefined} className={cx(activeTab === tab.id ? "is-active" : "")} href={`/inscricao/${tournament.publicSlug}${tab.id === "inscricao" ? "" : `?tab=${tab.id}`}`} key={tab.id}>{tab.label}</Link>)}
       </nav>

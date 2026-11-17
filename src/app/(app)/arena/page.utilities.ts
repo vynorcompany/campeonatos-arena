@@ -1,3 +1,4 @@
+import { submenuTabs } from "@/components/ui/submenu-tabs";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -7,9 +8,9 @@ export const viewStyles = {
     "tw:gap-y-[22px]", "tw:viewport-760:gap-y-[14px]", "tw:gap-x-[22px]", "tw:viewport-760:gap-x-[14px]",
     "tw:[align-items:start]",
   ].join(" "),
-  arena_settings_nav: "arena-settings-nav tw:sticky tw:top-5 tw:grid tw:min-w-0 tw:gap-1 tw:rounded-lg tw:border tw:border-[var(--line)] tw:bg-white tw:p-2 tw:viewport-760:static tw:viewport-760:grid-cols-2",
-  arena_settings_nav_link: "arena-settings-nav-link is-active tw:flex tw:min-h-10 tw:items-center tw:rounded-md tw:bg-[#1e5ea8] tw:px-3 tw:py-2 tw:text-sm tw:font-semibold tw:text-white tw:no-underline tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#1e5ea8]",
-  arena_settings_nav_link_2: "arena-settings-nav-link tw:flex tw:min-h-10 tw:items-center tw:rounded-md tw:px-3 tw:py-2 tw:text-sm tw:font-semibold tw:text-[#174983] tw:no-underline tw:hover:bg-[#1e5ea8] tw:hover:text-white tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#1e5ea8]",
+  arena_settings_nav: "arena-settings-nav tw:sticky tw:top-5 tw:grid tw:min-w-0 tw:gap-1 tw:bg-transparent tw:p-0 tw:viewport-760:static tw:viewport-760:grid-cols-2",
+  arena_settings_nav_link: "arena-settings-nav-link " + submenuTabs.item + " tw:justify-start",
+  arena_settings_nav_link_2: "arena-settings-nav-link " + submenuTabs.item + " tw:justify-start",
   "arena_settings_content": [
     "arena-settings-content", "tw:min-w-[0]",
   ].join(" "),

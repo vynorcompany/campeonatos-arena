@@ -1,8 +1,8 @@
 "use client";
+import { submenuTabs } from "@/components/ui/submenu-tabs";
 import { useId, useState, type ReactNode, type KeyboardEvent } from "react";
 import { cx } from "@/lib/ui/classes";
 import { EventIcon } from "@/components/tournaments/event-icon";
-import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 export function ProductEditorTabs({
   panels,
   initialTab,
@@ -36,11 +36,11 @@ export function ProductEditorTabs({
     document.getElementById(`${id}-tab-${panels[next].id}`)?.focus();
   }
   return (
-    <div className="tw:grid tw:min-w-0 tw:items-start tw:gap-4 tw:md:grid-cols-[176px_minmax(0,1fr)]">
+    <div className="tw:grid tw:min-w-0 tw:items-start tw:gap-4 ">
       <div
         role="tablist"
         aria-label="Edição do produto"
-        className="tw:grid tw:min-w-0 tw:grid-cols-2 tw:gap-1 tw:rounded-md tw:border tw:border-[#d4e0ee] tw:bg-[#f5f8fc] tw:p-1.5 tw:md:sticky tw:md:top-4 tw:md:flex tw:md:flex-col"
+        className={submenuTabs.bar}
       >
         {panels.map((panel, index) => (
           <button
@@ -53,7 +53,7 @@ export function ProductEditorTabs({
             tabIndex={active === panel.id ? 0 : -1}
             onClick={() => select(panel.id)}
             onKeyDown={(event) => onKey(event, index)}
-            className={cx(active === panel.id ? ui.primary : ui.secondary, "tw:shrink-0 tw:justify-start! tw:gap-2! tw:whitespace-nowrap tw:w-full!", active !== panel.id && "tw:border-transparent! tw:bg-transparent!")}
+            className={submenuTabs.item}
           >
             <EventIcon name={panel.id === "dados" ? "edit" : panel.id === "composicao" ? "sliders" : panel.id === "estoque" ? "clipboard" : "info"}/>{panel.label}
           </button>
@@ -66,7 +66,7 @@ export function ProductEditorTabs({
           id={`${id}-panel-${panel.id}`}
           aria-labelledby={`${id}-tab-${panel.id}`}
           hidden={active !== panel.id}
-          className={active === panel.id ? "tw:min-w-0 tw:rounded-md tw:border tw:border-[#d4e0ee] tw:bg-white tw:p-4 tw:md:col-start-2 tw:md:row-start-1 tw:[&_section]:border-0! tw:[&_section]:shadow-none! tw:[&_section]:p-0!" : "tw:hidden"}
+          className={active === panel.id ? "tw:min-w-0 tw:rounded-md tw:border tw:border-[#d4e0ee] tw:bg-white tw:p-4  tw:[&_section]:border-0! tw:[&_section]:shadow-none! tw:[&_section]:p-0!" : "tw:hidden"}
         >
           {panel.content}
         </div>

@@ -1,3 +1,4 @@
+import { submenuTabs } from "@/components/ui/submenu-tabs";
 import { managementControls } from "@/components/ui/management-controls";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
@@ -32,20 +33,15 @@ export const viewStyles = {
     "tw:[&_.teacher-page-actions_.status-badge]:[background-image:none]", "tw:[&_.teacher-page-actions_.status-badge]:text-[.82rem]", "tw:[&_.teacher-archive-form_.button]:min-h-[40px]", "tw:[&_.teacher-archive-form_.button]:[padding-inline:15px]",
     "tw:[&_.teacher-archive-form_.button]:border-t-[color:#ffaeae]", "tw:[&_.teacher-archive-form_.button]:border-r-[color:#ffaeae]", "tw:[&_.teacher-archive-form_.button]:border-b-[color:#ffaeae]", "tw:[&_.teacher-archive-form_.button]:border-l-[color:#ffaeae]",
     "tw:[&_.teacher-archive-form_.button]:rounded-[7px]", "tw:[&_.teacher-archive-form_.button]:bg-[color:#fff]", "tw:[&_.teacher-archive-form_.button]:[background-image:none]", "tw:[&_.teacher-archive-form_.button]:text-[color:#ec3c3c]",
-    "tw:[&_.teacher-archive-form_.button]:[box-shadow:none]", "tw:[&_.teacher-detail-tabs]:gap-y-[20px]", "tw:viewport-760:[&_.teacher-detail-tabs]:gap-y-[0]", "tw:[&_.teacher-detail-tabs]:gap-x-[20px]",
-    "tw:viewport-760:[&_.teacher-detail-tabs]:gap-x-[0]", "tw:[&_.teacher-detail-tabs]:pb-[0]", "tw:[&_.teacher-detail-tabs]:border-t-[color:#e0e8f1]", "tw:[&_.teacher-detail-tabs]:border-r-[color:#e0e8f1]",
-    "tw:[&_.teacher-detail-tabs]:border-b-[color:#e0e8f1]", "tw:[&_.teacher-detail-tabs]:border-l-[color:#e0e8f1]", "tw:[&_.teacher-detail-tabs_a]:pt-[12px]", "tw:viewport-760:[&_.teacher-detail-tabs_a]:pt-[10px]",
-    "tw:[&_.teacher-detail-tabs_a]:pr-[17px]", "tw:viewport-760:[&_.teacher-detail-tabs_a]:pr-[12px]", "tw:[&_.teacher-detail-tabs_a]:pb-[14px]", "tw:viewport-760:[&_.teacher-detail-tabs_a]:pb-[12px]",
-    "tw:[&_.teacher-detail-tabs_a]:pl-[17px]", "tw:viewport-760:[&_.teacher-detail-tabs_a]:pl-[12px]", "tw:[&_.teacher-detail-tabs_a]:text-[color:#61718a]", "tw:[&_.teacher-detail-tabs_a]:text-[.9rem]",
-    "tw:viewport-760:[&_.teacher-detail-tabs_a]:text-[.78rem]", "tw:[&_.teacher-detail-tabs_a.is-active]:border-t-[color:#1464e4]", "tw:[&_.teacher-detail-tabs_a.is-active]:border-r-[color:#1464e4]", "tw:[&_.teacher-detail-tabs_a.is-active]:border-b-[color:#1464e4]",
-    "tw:[&_.teacher-detail-tabs_a.is-active]:border-l-[color:#1464e4]", "tw:[&_.teacher-detail-tabs_a.is-active]:text-white", "tw:[&_.teacher-detail-metrics]:gap-y-[16px]", "tw:[&_.teacher-detail-metrics]:gap-x-[16px]",
+    "tw:[&_.teacher-archive-form_.button]:[box-shadow:none]",
+      "tw:[&_.teacher-detail-metrics]:gap-y-[16px]", "tw:[&_.teacher-detail-metrics]:gap-x-[16px]",
     "tw:[&_.teacher-detail-metrics_article]:flex", "tw:[&_.teacher-detail-metrics_article]:items-center", "tw:[&_.teacher-detail-metrics_article]:gap-y-[13px]", "tw:[&_.teacher-detail-metrics_article]:gap-x-[13px]",
     "tw:[&_.teacher-detail-metrics_article]:min-h-[92px]", "tw:[&_.teacher-detail-metrics_article]:pt-[14px]", "tw:[&_.teacher-detail-metrics_article]:pr-[14px]", "tw:[&_.teacher-detail-metrics_article]:pb-[14px]",
     "tw:[&_.teacher-detail-metrics_article]:pl-[14px]", "tw:[&_.teacher-detail-metrics_article]:border-t-[color:#dce6f1]", "tw:[&_.teacher-detail-metrics_article]:border-r-[color:#dce6f1]", "tw:[&_.teacher-detail-metrics_article]:border-b-[color:#dce6f1]",
     "tw:[&_.teacher-detail-metrics_article]:border-l-[color:#dce6f1]", "tw:[&_.teacher-detail-metrics_article]:rounded-[13px]", "tw:[&_.teacher-detail-metrics_article]:[box-shadow:0_6px_16px_rgb(13_50_96_/_.035)]", "tw:[&_.teacher-detail-metrics_article_>_div]:grid",
     "tw:[&_.teacher-detail-metrics_article_>_div]:gap-y-[3px]", "tw:[&_.teacher-detail-metrics_article_>_div]:gap-x-[3px]", "tw:[&_.teacher-detail-metrics_article_>_div]:min-w-[0]", "tw:[&_.teacher-detail-metrics_span:not(.teacher-detail-metric-icon)]:text-[color:#697992]",
     "tw:[&_.teacher-detail-metrics_span:not(.teacher-detail-metric-icon)]:text-[.82rem]", "tw:viewport-760:[&_.teacher-detail-metrics_span:not(.teacher-detail-metric-icon)]:text-[.69rem]", "tw:[&_.teacher-detail-metrics_strong]:text-[color:#111d3a]", "tw:[&_.teacher-detail-metrics_strong]:text-[1.45rem]",
-    "tw:viewport-760:[&_.teacher-detail-metrics_strong]:text-[1.15rem]", "tw:viewport-760:[&_.teacher-detail-tabs]:[overflow-x:auto]", "tw:viewport-760:[&_.teacher-detail-tabs_a]:[flex:0_0_auto]", "tw:viewport-760:[&_.teacher-detail-metrics]:grid-cols-[repeat(2,_minmax(0,_1fr))]",
+    "tw:viewport-760:[&_.teacher-detail-metrics_strong]:text-[1.15rem]",   "tw:viewport-760:[&_.teacher-detail-metrics]:grid-cols-[repeat(2,_minmax(0,_1fr))]",
     "tw:[&_.teacher-detail-metrics_article_>_div_>_span]:leading-[1.2]", "tw:[&_.teacher-detail-metrics_article_>_div_>_strong]:leading-[1.1]", "tw:[&_.teacher-detail-metric-icon]:w-[50px]", "tw:viewport-760:[&_.teacher-detail-metric-icon]:w-[38px]",
     "tw:[&_.teacher-detail-metric-icon]:h-[50px]", "tw:viewport-760:[&_.teacher-detail-metric-icon]:h-[38px]", "tw:[&_.teacher-detail-metric-icon]:text-[1.45rem]", "tw:viewport-760:[&_.teacher-detail-metric-icon]:text-[1.1rem]",
   ].join(" "),
@@ -151,7 +147,7 @@ export const viewStyles = {
     "tw:viewport-600:[&_.safe-action-confirmation]:left-[0]",
   ].join(" "),
   "button_button_danger_button_small": (sharedUtilities.buttonButtonDangerButtonSmall) + " " + managementControls.danger,
-  "teacher_detail_tabs": "teacher-detail-tabs tw:flex tw:min-w-0 tw:flex-wrap tw:gap-1 tw:border-b tw:border-[var(--line)] tw:pb-2 tw:[&_a]:rounded-md tw:[&_a]:px-3 tw:[&_a]:py-2 tw:[&_a]:text-xs tw:[&_a]:font-medium tw:[&_a]:text-[#174983] tw:[&_a[aria-current=page]]:bg-[#174983] tw:[&_a[aria-current=page]]:text-white tw:[&_a:hover]:underline",
+  teacher_detail_tabs: submenuTabs.group,
   "teacher_detail_metrics": "teacher-detail-metrics tw:grid tw:grid-cols-2 tw:gap-2 tw:md:grid-cols-3 tw:xl:grid-cols-6 tw:[&_article]:flex tw:[&_article]:min-w-0 tw:[&_article]:items-center tw:[&_article]:gap-2 tw:[&_article]:rounded-lg tw:[&_article]:border tw:[&_article]:border-[var(--line)] tw:[&_article]:bg-white tw:[&_article]:p-3 tw:[&_article>div]:grid tw:[&_article>div]:gap-1 tw:[&_article>div>span]:text-[11px] tw:[&_article>div>span]:text-[var(--muted)] tw:[&_strong]:text-xl tw:[&_strong]:font-medium",
   "teacher_detail_metric_icon": "teacher-detail-metric-icon tw:text-[#1e5ea8] tw:[&_svg]:size-4 tw:shrink-0",
   "teacher_detail_metric_icon_2": "teacher-detail-metric-icon-2 tw:text-[#1e5ea8] tw:[&_svg]:size-4 tw:shrink-0",

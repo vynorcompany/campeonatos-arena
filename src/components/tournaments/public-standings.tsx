@@ -1,3 +1,4 @@
+import { submenuTabs } from "@/components/ui/submenu-tabs";
 
 import { PortalTeacherWorkspace } from "@/components/teachers/portal-teacher-workspace";
 import { FilterMemoryProvider } from "@/components/filters/filter-memory";
@@ -181,7 +182,7 @@ const mobilePortalSkin = [
   "tw:viewport-700:dark:[&_.portal-rule_strong]:text-[#eaf3ff]!",
   "tw:viewport-700:dark:[&_.portal-rule_p]:text-[#a4b3c8]!",
 ].join(" ");
-const mobilePortalTabs = "tw:mx-4 tw:mt-3 tw:flex tw:flex-wrap tw:gap-1 tw:border-b tw:border-[#d8e5e9] tw:pb-1 tw:dark:border-[#2a4161] tw:[&_a]:shrink-0 tw:[&_a]:rounded-md tw:[&_a]:border tw:[&_a]:border-transparent tw:[&_a]:px-3 tw:[&_a]:py-3 tw:[&_a]:text-xs tw:[&_a]:font-medium tw:[&_a]:text-[#606874] tw:[&_a]:no-underline tw:dark:[&_a]:text-[#a4b3c8] tw:[&_a.active]:border-[#174983] tw:[&_a.active]:bg-[#174983] tw:[&_a.active]:text-white tw:dark:[&_a.active]:text-white";
+const mobilePortalTabs = submenuTabs.group + " tw:mx-4 tw:mt-3";
 
 export function PublicStandings({
   data,

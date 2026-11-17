@@ -1,13 +1,14 @@
+import { submenuTabs } from "@/components/ui/submenu-tabs";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 const panel = "tw:min-w-0 tw:rounded-lg tw:border tw:border-[var(--line)] tw:bg-white tw:p-3";
-const tab = "tw:flex tw:min-w-28 tw:shrink-0 tw:items-center tw:gap-2 tw:rounded-md tw:border tw:border-[var(--line)] tw:border-l-4 tw:bg-white tw:px-3 tw:py-2 tw:text-sm tw:font-medium tw:text-[#17345c] tw:no-underline tw:[&_i]:size-2 tw:[&_i]:rounded-full tw:[&_span]:ml-auto tw:[&_span]:text-[10px] tw:[&_span]:font-normal";
+const tab = submenuTabs.item + " tw:[&_i]:size-2 tw:[&_i]:rounded-full tw:[&_span]:text-[10px]";
 export const viewStyles = {
  agenda_config_page: "agenda-config-page tw:grid tw:min-w-0 tw:gap-3 tw:text-sm tw:[&_input]:min-w-0 tw:[&_select]:min-w-0 tw:[&_select]:h-8 tw:[&_input]:h-8 tw:[&_select]:rounded-md tw:[&_input]:rounded-md tw:[&_select]:border tw:[&_input]:border tw:[&_select]:border-[var(--line)] tw:[&_input]:border-[var(--line)] tw:[&_select]:px-2 tw:[&_input]:px-2 tw:[&_select]:text-xs tw:[&_input]:text-xs tw:[&_input[type=checkbox]]:h-auto tw:[&_input[type=color]]:w-full",
  agenda_config_online_control: "agenda-config-online-control " + "tw:flex tw:justify-end tw:[&_.agenda-online-settings-trigger]:static",
  agenda_config_toolbar: "agenda-config-toolbar " + panel + " tw:flex tw:flex-wrap tw:items-center tw:gap-3",
- agenda_court_tabs: "agenda-court-tabs " + "tw:flex tw:min-w-0 tw:flex-1 tw:gap-2 tw:overflow-x-auto tw:pb-1 tw:viewport-620:basis-full",
+ agenda_court_tabs: "agenda-court-tabs " + submenuTabs.bar + " tw:flex-1 tw:viewport-620:basis-full",
  agenda_court_tab: tab,
- agenda_court_tab_agenda_court_tab_active: tab + " tw:border-[#215da5] tw:bg-[#edf4fc]",
+ agenda_court_tab_agenda_court_tab_active: tab + " " + submenuTabs.selected,
  agenda_court_tabs_empty: ui.empty,
  agenda_create_court_inline: "agenda-create-court-inline " + "tw:flex tw:min-w-0 tw:flex-wrap tw:gap-2 tw:[&_input]:w-40",
  agenda_court_workspace: "agenda-court-workspace " + "tw:grid tw:min-w-0 tw:gap-3",

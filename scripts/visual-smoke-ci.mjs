@@ -1312,7 +1312,7 @@ async function main() {
         throw new Error(`${viewport.name}: formulário público do torneio fictício incompleto.`);
       }
       const formLayout = await send("Runtime.evaluate", {
-        expression: "(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); const trap = form?.querySelector('input[name=contactWebsite]'); const controls = [...(form?.querySelectorAll('input:not([type=hidden]), select, button[type=submit]') ?? [])].filter(control => control.name !== 'contactWebsite' && control.getAttribute('aria-hidden') !== 'true'); return { width: innerWidth, trapProtected: Boolean(trap?.closest('[aria-hidden=true]') && trap.tabIndex === -1), controls: controls.map(control => { const rect = control.getBoundingClientRect(); return { name: control.getAttribute('name') ?? (control.getAttribute('role') === 'combobox' ? control.id : null), left: rect.left, right: rect.right, width: rect.width }; }) }; })()",
+        expression: "(() => { const form = document.querySelector('form:has(input[name=tournamentSlug])'); const trap = form?.querySelector('input[name=contactWebsite]'); const controls = [...(form?.querySelectorAll('input:not([type=hidden]), select, button[type=submit]') ?? [])].filter(control => control.name !== 'contactWebsite' && control.getAttribute('aria-hidden') !== 'true' && control.getClientRects().length > 0); return { width: innerWidth, trapProtected: Boolean(trap?.closest('[aria-hidden=true]') && trap.tabIndex === -1), controls: controls.map(control => { const rect = control.getBoundingClientRect(); return { name: control.getAttribute('name') ?? (control.getAttribute('role') === 'combobox' ? control.id : null), left: rect.left, right: rect.right, width: rect.width }; }) }; })()",
         returnByValue: true,
       });
       const expectedPublicControls = [null, "categoryId", "paymentMethod", "leadName", "leadEmail", "leadPhone", "leadCpf", "partnerName", "partnerPhone", "partnerCpf"].sort();
@@ -1325,7 +1325,7 @@ async function main() {
       });
       const tabRects = tabsLayout.result.value.links;
       const rows = new Set(tabRects.map((tab) => Math.round(tab.top)));
-      if (tabRects.length !== 4 || tabRects.some((tab) => tab.width < 70 || tab.left < -1 || tab.right > viewport.width + 1) ||
+      if (tabRects.length !== 4 || tabRects.some((tab) => tab.width < 40 || tab.left < -1 || tab.right > viewport.width + 1) ||
           rows.size !== (viewport.name === "desktop" ? 1 : 2)) {
         throw new Error(`${viewport.name}: abas públicas cortadas ou sem hierarquia responsiva: ${JSON.stringify(tabsLayout.result.value)}`);
       }
@@ -1353,7 +1353,7 @@ async function main() {
       returnByValue: true,
     });
     if (!publicFormPrepared.result.value) throw new Error("O formulário público fictício não aceitou os dados da dupla.");
-    await send("Runtime.evaluate", { expression: "document.querySelector('form:has(input[name=tournamentSlug]) button[type=submit]')?.click()" });
+    await send("Runtime.evaluate", { expression: "[...document.querySelectorAll('form:has(input[name=tournamentSlug]) button[type=submit]')].find(button => button.getClientRects().length > 0)?.click()" });
     let confirmedPublicRegistration;
     for (let attempt = 0; attempt < 100; attempt += 1) {
       confirmedPublicRegistration = await db.publicTournamentRegistration.findFirst({ where: { tournamentId: publicTournament.id, leadCpf: publicFormValues.leadCpf } });

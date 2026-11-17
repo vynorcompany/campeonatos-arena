@@ -1,3 +1,4 @@
+import { submenuTabs } from "@/components/ui/submenu-tabs";
 import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
@@ -25,17 +26,7 @@ export const viewStyles = {
     "tw:[&_.form-error]:text-[color:#a32121]!", "tw:[&_.form-message-success]:text-[color:#075d48]!",
     "tw:dark:[&_.form-message-success]:text-[color:#b9ffe5]!", "tw:dark:[&_.form-error]:text-[color:#ffaaa3]!",
   ].join(" "),
-  "public_client_auth_tabs": [
-    "public-client-auth-tabs", "tw:grid", "tw:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:gap-y-[6px]",
-    "tw:gap-x-[6px]", "tw:pt-[4px]", "tw:pr-[4px]", "tw:pb-[4px]",
-    "tw:pl-[4px]", "tw:rounded-[var(--radius-control)]", "tw:bg-[color:#dfeef4]", "tw:[background-image:none]",
-    "tw:[&_button]:min-h-[33px]", "tw:[&_button]:border-t-[length:0]", "tw:[&_button]:[border-top-style:none]", "tw:[&_button]:border-t-[color:currentColor]",
-    "tw:[&_button]:border-r-[length:0]", "tw:[&_button]:[border-right-style:none]", "tw:[&_button]:border-r-[color:currentColor]", "tw:[&_button]:border-b-[length:0]",
-    "tw:[&_button]:[border-bottom-style:none]", "tw:[&_button]:border-b-[color:currentColor]", "tw:[&_button]:border-l-[length:0]", "tw:[&_button]:[border-left-style:none]",
-    "tw:[&_button]:border-l-[color:currentColor]", "tw:[&_button]:rounded-[calc(var(--radius-control)_-_2px)]", "tw:[&_button]:bg-[color:transparent]", "tw:[&_button]:[background-image:none]",
-    "tw:[&_button]:text-[color:#46637b]", "tw:[&_button]:text-[.77rem]", "tw:[&_button]:font-[750]", "tw:[&_button]:cursor-pointer",
-    "tw:[&_button.active]:bg-[color:#fff]", "tw:[&_button.active]:[background-image:none]", "tw:[&_button.active]:text-[color:#075d48]", "tw:[&_button.active]:[box-shadow:0_2px_5px_rgb(11_70_99_/_.12)]",
-  ].join(" "),
+  public_client_auth_tabs: "public-client-auth-tabs tw:dark:[--portal-ink:#eaf3ff] tw:dark:[--portal-accent:#a5bcdc] " + submenuTabs.group,
   "field": sharedUtilities.field,
   "public_client_auth_forgot": [
     "public-client-auth-forgot", "tw:w-[fit-content]", "tw:mt-[-2px]", "tw:mr-[0]",
