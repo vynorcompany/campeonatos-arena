@@ -50,15 +50,15 @@ export function EventQuickActions({ tournament, publicPageUrl, categories, initi
       if (key === "games") return <Link href={`/torneios/${tournament.id}/jogos`} className={viewStyles.event_quick_action_button} aria-label={action.title} key={key}>
         <span className={viewStyles.event_quick_action_icon}><EventIcon name={action.icon} /></span><strong>{action.title}</strong><EventIcon name="chevron" />
       </Link>;
+      if (key === "public") return <Link href={publicPageUrl} target="_blank" rel="noopener noreferrer" className={viewStyles.event_quick_action_button} key={key}><span className={viewStyles.event_quick_action_icon}><EventIcon name="globe" /></span><strong>{action.title}</strong><EventIcon name="external" /></Link>;
       return <button type="button" className={viewStyles.event_quick_action_button} aria-label={action.title} key={key} onClick={() => setActiveAction(key)}>
         <span className={viewStyles.event_quick_action_icon}><EventIcon name={action.icon} /></span>
         <strong>{action.title}</strong><EventIcon name="chevron" />
       </button>;
     })}
 
-    <Modal title={activeCopy?.title ?? "Evento"} width="tw:max-w-[720px]" open={Boolean(activeAction && activeCopy)} onClose={close} tone="management-strong">
-      {activeAction === "public" ? <div className={viewStyles.event_action_public_page}><Link href={publicPageUrl} target="_blank" rel="noreferrer" className={viewStyles.button_button_primary}><EventIcon name="external" />Abrir página pública</Link></div> : null}
-      {activeAction === "edit" ? <TournamentEventEditForm tournament={tournament} /> : null}
+    <Modal title={activeCopy?.title ?? "Evento"} width="tw:max-w-[720px]" open={activeAction === "edit"} fixedSize={false} onClose={close} tone="management-strong">
+      {activeAction === "edit" ? <TournamentEventEditForm tournament={tournament} onCancel={close} /> : null}
     </Modal>
   </section>;
 }
