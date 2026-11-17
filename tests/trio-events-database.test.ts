@@ -57,6 +57,17 @@ test("Trio group and knockout encounters enforce formations, aggregate results, 
     await assert.rejects(load("src/lib/services/category-competition/lifecycle.ts").createCategoryCompetition(arenas[0], { categoryId: legacyCategory.id, class: "", gender: "", format: "TRIO", rankingId: null, isPublic: true }), /já possui inscrições de duplas/);
     assert.equal(await admin.categoryCompetition.count({ where: { categoryId: legacyCategory.id } }), 0);
     assert.equal((await admin.publicTournamentRegistration.findUniqueOrThrow({ where: { id: legacyRegistration.id } })).amountCents, 20000);
+    const publicEvent = await admin.tournament.create({ data: { arenaId: arenas[0], name: "Evento público Trio QA", creationMode: "PUBLIC" } });
+    const publicCategory = await admin.tournamentCategory.create({ data: { tournamentId: publicEvent.id, name: "Trio público", level: 1, priceFirstCents: 2500 } });
+    const lifecycle = load("src/lib/services/category-competition/lifecycle.ts");
+    const publicTrio = await lifecycle.createCategoryCompetition(arenas[0], { categoryId: publicCategory.id, class: "5ª", gender: "MASCULINO", format: "TRIO", rankingId: null, isPublic: true });
+    assert.equal(publicTrio.format, "TRIO"); assert.equal(publicTrio.status, "DRAFT"); assert.equal(publicTrio.isPublic, true);
+    assert.equal((await admin.tournamentCategory.findUniqueOrThrow({where:{id:publicCategory.id}})).priceFirstCents, 2500);
+    const bracketCategory = await admin.tournamentCategory.create({ data: { tournamentId: publicEvent.id, name: "Chave preservada", level: 2 } });
+    const existingBracket = await admin.categoryBracket.create({ data: { tournamentId: publicEvent.id, categoryId: bracketCategory.id, matches: { create: { label: "Final existente", roundOrder: 1, stage: "FINAL", status: "FINISHED", courtName: "Quadra QA" } } }, include: { matches: true } });
+    await assert.rejects(lifecycle.createCategoryCompetition(arenas[0], { categoryId: bracketCategory.id, class: "5ª", gender: "MASCULINO", format: "TRIO", rankingId: null, isPublic: true }), /já possui chaveamento/);
+    assert.equal(await admin.categoryCompetition.count({where:{categoryId:bracketCategory.id}}),0);
+    assert.deepEqual(await admin.categoryBracket.findUniqueOrThrow({where:{id:existingBracket.id},include:{matches:true}}),existingBracket);
     const draw = load("src/lib/services/category-competition/draw.ts"), service = load("src/lib/services/category-trio.ts"), matches = load("src/lib/services/category-competition/matches.ts");
     await draw.generateCategoryDraw(arenas[0], competition.id); await draw.publishCategoryDraw(arenas[0], competition.id);
     const group = await admin.categoryMatch.findMany({ where: { competitionId: competition.id, stage: "GROUP" }, orderBy: { roundOrder: "asc" }, include: { homePair: { include: { players: { orderBy: { slot: "asc" } } } }, awayPair: { include: { players: { orderBy: { slot: "asc" } } } } } });

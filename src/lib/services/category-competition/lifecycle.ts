@@ -69,6 +69,8 @@ export async function createCategoryCompetition(
       throw new Error("Esta categoria já possui uma competição.");
     }
 
+    if (input.format === "TRIO" && await tx.categoryBracket.count({ where: { categoryId: category.id } })) throw new Error("Esta categoria já possui chaveamento. Crie uma nova categoria para o Trio para preservar os jogos existentes.");
+
     if (input.format === "TRIO" && await tx.publicTournamentRegistration.count({ where: { categoryId: category.id, status: { not: "CANCELED" } } })) throw new Error("Esta categoria já possui inscrições de duplas. Crie uma nova categoria para o Trio.");
 
     await tx.tournamentCategory.update({

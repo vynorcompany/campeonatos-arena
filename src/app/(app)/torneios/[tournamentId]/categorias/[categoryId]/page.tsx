@@ -516,13 +516,15 @@ export default async function CategoryPage(props: CategoryPageProps) {
               </div>
             </article>
             {competition ? <><CategoryOverviewRoster pairs={competition.pairs} groups={competition.groups} trio={competition.format === "TRIO"} registrationsHref={`/torneios/${params.tournamentId}/categorias/${category.id}?tab=registrations`} /><p className="tw:m-0 tw:text-xs tw:text-[var(--muted)]">Ranking geral: {competition.feedsGeneralRanking ? "Ativo" : "Inativo"}</p></> : null}
-            {!competition && isPublicTournament ? (
+            {!competition && isPublicTournament && !individual && canManage ? <section className={categoryUi.panel} aria-labelledby="category-format-title"><h2 id="category-format-title" className="tw:m-0 tw:text-base tw:font-medium tw:text-[#174983]">Formato de jogos</h2><p className="tw:m-0 tw:text-xs tw:text-[#465c75]">Escolha Trio para inscrever três atletas por equipe.</p>{category._count.registrations > 0 ? <p role="status" className="tw:m-0 tw:text-xs tw:text-[#945000]">Esta categoria já possui inscrições. Elas não serão convertidas para trio; crie uma nova categoria para esse formato.</p> : <CategoryCompetitionForm categoryId={category.id} categoryName={category.name} pairRankings={pairRankings} defaultFormat=""/>}</section> : null}
+            {isPublicTournament ? (
               <article className={viewStyles.section_card}>
                 <TournamentCategorySettingsForm
                   category={{
                     id: category.id,
                     name: category.name,
                     registrationType: category.registrationType,
+                    competitionFormat: competition?.format,
                     registrationTypeLocked: category._count.registrations > 0 || Boolean(competition),
                     maxRegistrations: category.maxRegistrations,
                     priceFirstCents: category.priceFirstCents,
