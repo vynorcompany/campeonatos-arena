@@ -1,4 +1,5 @@
 import "server-only";
+import { CategoryCompetitionConfigurationError } from "@/lib/tournament-category/configuration-error";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildPlacementAwards, buildPlacementStages } from "@/lib/tournament-category/ranking";
@@ -14,7 +15,7 @@ export async function createCategoryCompetition(
     let rankingId: string | null = null;
     let feedsGeneralRanking = false;
 
-    if (input.format === "TRIO" && input.rankingId) throw new Error("O Trio não utiliza ranking de duplas. Deixe o ranking vazio.");
+    if (input.format === "TRIO" && input.rankingId) throw new CategoryCompetitionConfigurationError("O Trio não utiliza ranking de duplas. Deixe o ranking vazio.");
     if (input.rankingId) {
       const rankingRows = await tx.$queryRaw<
         Array<{
@@ -33,12 +34,12 @@ export async function createCategoryCompetition(
       `;
       const ranking = rankingRows[0];
       if (!ranking) {
-        throw new Error("Selecione um ranking de duplas válido para esta arena.");
+        throw new CategoryCompetitionConfigurationError("Selecione um ranking de duplas válido para esta arena.");
       }
       const expectedModel =
         input.format === "LEAGUE" ? "LEAGUE" : "KNOCKOUT";
       if (ranking.model !== expectedModel) {
-        throw new Error(
+        throw new CategoryCompetitionConfigurationError(
           `Selecione um ranking do modelo ${
             expectedModel === "LEAGUE" ? "Liga" : "Mata-mata"
           } para este formato.`,
@@ -62,16 +63,16 @@ export async function createCategoryCompetition(
       },
     });
     if (!category) {
-      throw new Error("Categoria não encontrada nesta arena.");
+      throw new CategoryCompetitionConfigurationError("Categoria não encontrada nesta arena.");
     }
-    if (category.registrationType === "INDIVIDUAL") throw new Error("Esta categoria aceita inscrições individuais para evento sem jogos.");
+    if (category.registrationType === "INDIVIDUAL") throw new CategoryCompetitionConfigurationError("Esta categoria aceita inscrições individuais para evento sem jogos.");
     if (category.competition) {
-      throw new Error("Esta categoria já possui uma competição.");
+      throw new CategoryCompetitionConfigurationError("Esta categoria já possui uma competição.");
     }
 
-    if (input.format === "TRIO" && await tx.categoryBracket.count({ where: { categoryId: category.id } })) throw new Error("Esta categoria já possui chaveamento. Crie uma nova categoria para o Trio para preservar os jogos existentes.");
+    if (input.format === "TRIO" && await tx.categoryBracket.count({ where: { categoryId: category.id } })) throw new CategoryCompetitionConfigurationError("Esta categoria já possui chaveamento. Crie uma nova categoria para o Trio para preservar os jogos existentes.");
 
-    if (input.format === "TRIO" && await tx.publicTournamentRegistration.count({ where: { categoryId: category.id, status: { not: "CANCELED" } } })) throw new Error("Esta categoria já possui inscrições de duplas. Crie uma nova categoria para o Trio.");
+    if (input.format === "TRIO" && await tx.publicTournamentRegistration.count({ where: { categoryId: category.id, status: { not: "CANCELED" } } })) throw new CategoryCompetitionConfigurationError("Esta categoria já possui inscrições de duplas. Crie uma nova categoria para o Trio.");
 
     await tx.tournamentCategory.update({
       where: { id: category.id },
