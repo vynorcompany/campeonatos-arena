@@ -1,7 +1,7 @@
+import { TournamentRegistrationRow } from "@/components/tournaments/tournament-registration-row";
 import { ReceiveOnsiteRegistrationButton } from "@/components/tournaments/receive-onsite-registration-button";
 
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
-import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -40,24 +40,23 @@ export default async function TournamentRegistrationsPage(
   });
   const canResolveReview = canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
 
-  return <main className={viewStyles.tournament_management_page_stack_md}>
+  return <main className="tw:grid tw:w-full tw:min-w-0 tw:max-w-none tw:gap-3">
     <header className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><h1 className="tw:sr-only">Inscrições</h1><Link href={`/torneios/${tournament.id}`} className={viewStyles.button}>Voltar ao torneio</Link></header>
-    <section className={viewStyles.section_card}>
-      <form className={viewStyles.tournament_registration_filters} method="get">
-        <input aria-label="Buscar atleta ou dupla" name="q" defaultValue={searchParams?.q} placeholder="Buscar atleta ou dupla" />
-        <SmartEntitySelect createKind="tournament-category" contextId={tournament.id} label="Categoria" aria-label="Filtrar por categoria" name="category" defaultValue={searchParams?.category ?? ""}><option value="">Todas as categorias</option>{tournament.categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</SmartEntitySelect>
-        <select aria-label="Filtrar por status" name="status" defaultValue={searchParams?.status ?? ""}><option value="">Todos os status</option><option value="PENDING">Pagamento pendente</option><option value="REVIEW">Em análise</option><option value="CONFIRMED">Confirmadas</option><option value="CANCELED">Canceladas</option></select>
-        <button className={viewStyles.button} type="submit">Filtrar</button>
+    <section className="tw:min-w-0">
+      <form method="get" className="tw:mb-3 tw:grid tw:min-w-0 tw:grid-cols-[minmax(200px,300px)_minmax(140px,220px)_minmax(140px,200px)_auto] tw:items-end tw:justify-start tw:gap-2 tw:[&_:is(input,select)]:min-h-8! tw:[&_:is(input,select)]:rounded-md tw:[&_:is(input,select)]:border tw:[&_:is(input,select)]:border-[#bccbde] tw:[&_:is(input,select)]:bg-white tw:[&_:is(input,select)]:px-2 tw:[&_:is(input,select)]:py-1.5 tw:[&_:is(input,select)]:text-xs tw:[&_:is(input,select)]:text-[#202c3c] tw:viewport-760:grid-cols-2 tw:viewport-480:grid-cols-1">
+        <label className="tw:grid tw:min-w-0 tw:gap-1 tw:text-xs tw:text-[#354f70]">Participante<input aria-label="Buscar atleta ou equipe" name="q" defaultValue={searchParams?.q} placeholder="Nome do atleta ou equipe"/></label>
+        <div className="tw:grid tw:min-w-0 tw:gap-1 tw:text-xs tw:text-[#354f70]"><label htmlFor="registration-category-filter">Categoria</label><SmartEntitySelect id="registration-category-filter" createKind="tournament-category" contextId={tournament.id} label="Categoria" name="category" defaultValue={searchParams?.category ?? ""}><option value="">Todas as categorias</option>{tournament.categories.map(category=><option value={category.id} key={category.id}>{category.name}</option>)}</SmartEntitySelect></div>
+        <label className="tw:grid tw:min-w-0 tw:gap-1 tw:text-xs tw:text-[#354f70]">Situação<select name="status" defaultValue={searchParams?.status ?? ""}><option value="">Todos os status</option><option value="PENDING">Pagamento pendente</option><option value="REVIEW">Em análise</option><option value="CONFIRMED">Confirmadas</option><option value="CANCELED">Canceladas</option></select></label>
+        <button className="tw:min-h-8 tw:w-fit tw:rounded tw:border-0 tw:bg-[#215da5] tw:px-3 tw:py-1.5 tw:text-xs tw:font-normal tw:text-white tw:hover:bg-[#174983]" type="submit">Filtrar</button>
       </form>
-      <div className={viewStyles.tournament_registration_list}>
+      <div className="tw:min-w-0 tw:overflow-visible tw:rounded-md tw:border tw:border-[#cbd9e9]"><table className="tw:w-full tw:table-fixed tw:border-collapse tw:text-left tw:viewport-760:block"><colgroup className="tw:viewport-760:hidden"><col className="tw:w-[38%]"/><col className="tw:w-[13%]"/><col className="tw:w-[14%]"/><col className="tw:w-[20%]"/><col className="tw:w-[15%]"/></colgroup><thead className="tw:bg-[#174983] tw:text-xs tw:font-normal tw:text-white tw:viewport-760:hidden"><tr className="tw:[&>th]:px-3 tw:[&>th]:py-2 tw:[&>th]:font-normal"><th>Participante / Categoria</th><th>Valor</th><th>Situação</th><th>Pagamento</th><th className="tw:text-right">Ações</th></tr></thead><tbody className="tw:viewport-760:block">
+
         {registrations.length ? registrations.map((registration, index) => {
           const underReview = registration.paymentStatus === "REVIEW";
           const canceled = registration.status === "CANCELED" || registration.paymentStatus === "REFUNDED";
           const confirmed = registration.status === "CONFIRMED";
           const canReceiveOnsite = registration.paymentProvider === "PAY_ON_SITE" && confirmed && registration.paymentStatus === "PENDING" && canPerformPermission("finance:receivable:settle", auth.arenaRole, auth.systemRole, auth.editPermissions);
-          return <details key={registration.id} className={viewStyles.tournament_registration_row}>
-            <summary><span className={viewStyles.registration_order}>{index + 1}</span><div><strong>{[registration.leadName, registration.partnerName, registration.thirdName].filter(Boolean).join(" / ")}</strong><small>{registration.category.name}</small></div><span>{money.format(registration.amountCents / 100)}</span><span className={cx(confirmed ? viewStyles.status_confirmed : viewStyles.status_pending)}>{underReview ? "Pagamento em análise" : canceled ? registration.paymentStatus === "REFUNDED" ? "Cancelada após estorno" : "Cancelada" : confirmed ? registration.paymentStatus === "PAID" ? "Confirmada · Pago" : registration.paymentProvider === "PAY_ON_SITE" ? "Confirmada · Pagamento no local" : "Confirmada" : "Pagamento pendente"}</span></summary>
-            {canReceiveOnsite ? <div className="tw:flex tw:justify-end tw:py-2"><ReceiveOnsiteRegistrationButton registrationId={registration.id} accounts={bankAccounts}/></div> : null}
+          return <TournamentRegistrationRow key={registration.id} name={[registration.leadName, registration.partnerName, registration.thirdName].filter(Boolean).join(" / ")} category={registration.category.name} amount={money.format(registration.amountCents / 100)} canceled={canceled} pending={registration.paymentStatus === "PENDING" || underReview} situation={canceled ? "Cancelada" : confirmed ? "Confirmada" : "Pendente"} payment={underReview ? "Em análise" : registration.paymentStatus === "REFUNDED" ? "Estornado" : registration.paymentStatus === "PAID" ? "Pago" : canceled ? "Cancelado" : registration.paymentProvider === "PAY_ON_SITE" ? "Pagamento no local" : "Pagamento pendente"} actions={canReceiveOnsite ? <ReceiveOnsiteRegistrationButton registrationId={registration.id} accounts={bankAccounts}/> : null}>
             {underReview ? <ReviewedCheckoutRelease kind="registration" recordId={registration.id} paymentId={registration.mercadoPagoPaymentId} clientName={`${registration.leadName} / ${registration.partnerName}`} canResolve={canResolveReview} /> : canceled ? <p className={viewStyles.muted}>Pagamento estornado ou cancelado. É possível fazer uma nova inscrição.</p> : registration.paymentProvider === "PAY_ON_SITE" || !canEditManualTournamentRegistration(registration) ? <p className={viewStyles.muted}>{confirmed ? "Inscrição confirmada: correções devem preservar seus vínculos com o evento." : "Inscrição com cobrança online: confira o pagamento antes de alterar os dados."}</p> :
               <RegistrationEditForm className={viewStyles.tournament_registration_edit}>
                 <input type="hidden" name="registrationId" value={registration.id} /><input type="hidden" name="registrationType" value={registration.category.registrationType}/><input type="hidden" name="tournamentId" value={tournament.id} />
@@ -76,9 +75,9 @@ export default async function TournamentRegistrationsPage(
                 <RegistrationPaymentFields amountCents={registration.amountCents} accounts={bankAccounts} />
                 <SubmitButton label="Salvar alterações" pendingLabel="Salvando..." className={viewStyles.button_button_primary} />
               </RegistrationEditForm>}
-          </details>;
-        }) : <p className={viewStyles.muted}>Nenhuma inscrição corresponde aos filtros.</p>}
-      </div>
+          </TournamentRegistrationRow>;
+        }) : <tr><td colSpan={5} className="tw:p-4 tw:text-sm tw:text-[#465c75]">Nenhuma inscrição corresponde aos filtros.</td></tr>}
+      </tbody></table></div>
     </section>
   </main>;
 }
