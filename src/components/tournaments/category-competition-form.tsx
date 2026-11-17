@@ -2,6 +2,7 @@
 import { viewStyles } from "./category-competition-form.utilities";
 
 import { useRef, useState } from "react";
+import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import {
   createCategoryCompetitionAction,
@@ -21,16 +22,18 @@ type CategoryCompetitionFormProps = {
   categoryId: string;
   categoryName: string;
   pairRankings: PairRankingOption[];
+  defaultFormat?: string;
 };
 
 export function CategoryCompetitionForm({
   categoryId,
   categoryName,
   pairRankings,
+  defaultFormat = "LEAGUE",
 }: CategoryCompetitionFormProps) {
-  const [format, setFormat] = useState("LEAGUE");
+  const [format, setFormat] = useState(defaultFormat);
   return (
-    <form action={createCategoryCompetitionAction} className={viewStyles.grid_form}>
+    <SafeActionForm action={createCategoryCompetitionAction} className={viewStyles.grid_form + " tw:grid-cols-[repeat(3,minmax(0,220px))]! tw:justify-start tw:viewport-760:grid-cols-1!"} successMessage="Formato de jogos configurado." >
       <input type="hidden" name="categoryId" value={categoryId} />
 
       <div className={viewStyles.field_form_full}>
@@ -67,7 +70,8 @@ export function CategoryCompetitionForm({
 
       <div className={viewStyles.field}>
         <label htmlFor={`format-${categoryId}`}>Formato</label>
-        <select id={`format-${categoryId}`} name="format" value={format} onChange={event => setFormat(event.target.value)}>
+        <select id={`format-${categoryId}`} name="format" required value={format} onChange={event => setFormat(event.target.value)}>
+          {!defaultFormat ? <option value="">Selecione o formato</option> : null}
           <option value="LEAGUE">Liga</option>
           <option value="TRIO">Trio (3 atletas por equipe)</option>
           <option value="THREE_GROUPS">3 grupos</option>
@@ -76,15 +80,15 @@ export function CategoryCompetitionForm({
         </select>
       </div>
 
-      <div className={viewStyles.field}>
+      {format === "LEAGUE" ? <div className={viewStyles.field}>
         <label htmlFor={`league-tier-${categoryId}`}>Nível da Liga</label>
         <select id={`league-tier-${categoryId}`} name="leagueTier" defaultValue="A" disabled={format !== "LEAGUE"}>
           <option value="A">Liga A</option>
           <option value="B">Liga B</option>
         </select>
-      </div>
+      </div> : null}
 
-      <div className={viewStyles.field}>
+      {format && format !== "TRIO" ? <div className={viewStyles.field}>
         <label htmlFor={`ranking-${categoryId}`}>Ranking de duplas</label>
         <select id={`ranking-${categoryId}`} name="rankingId" defaultValue="" disabled={format === "TRIO"}>
           <option value="">Sem ranking</option>
@@ -94,14 +98,14 @@ export function CategoryCompetitionForm({
             </option>
           ))}
         </select>
-      </div>
+      </div> : null}
 
       <p className={viewStyles.muted_form_full}>
         {format === "TRIO" ? "Cada confronto tem ida e volta; em caso de empate, um terceiro jogo. Escolha duas formações diferentes por equipe. As formações reiniciam em cada confronto." : "O Ranking Geral será alimentado conforme a configuração do ranking selecionado."}
       </p>
 
-      <label className={viewStyles.field_form_full_2}>
-        <input type="checkbox" name="isPublic" />
+      <label className="tw:col-span-full tw:flex tw:items-center tw:gap-2 tw:text-xs tw:text-[#354f70]">
+        <input className="tw:size-4! tw:min-h-0! tw:w-4! tw:shrink-0" type="checkbox" name="isPublic" />
         <span>Exibir na página pública</span>
       </label>
 
@@ -112,7 +116,7 @@ export function CategoryCompetitionForm({
           className={viewStyles.button_button_primary}
         />
       </div>
-    </form>
+    </SafeActionForm>
   );
 }
 

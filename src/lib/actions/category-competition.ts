@@ -1,5 +1,6 @@
 "use server";
 
+import { CategoryCompetitionConfigurationError } from "@/lib/tournament-category/configuration-error";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -69,12 +70,19 @@ export async function createCategoryCompetitionAction(formData: FormData) {
     isPublic: formData.get("isPublic"),
   });
   if (!parsed.success) {
-    throw new Error(invalidInputMessage(parsed.error));
+    return { error: invalidInputMessage(parsed.error) };
   }
 
-  const result = await createCategoryCompetition(auth.arenaId, parsed.data);
-  refreshCategoryCompetitionRoutes();
-  return result;
+  try {
+    const result = await createCategoryCompetition(auth.arenaId, parsed.data);
+    refreshCategoryCompetitionRoutes();
+    return result;
+  } catch (error) {
+    if (error instanceof CategoryCompetitionConfigurationError) {
+      return { error: error.message };
+    }
+    throw error;
+  }
 }
 
 export async function addManualPairAction(formData: FormData) {
