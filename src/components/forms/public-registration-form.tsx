@@ -32,6 +32,9 @@ type Category = {
   id: string;
   name: string;
   registrationType?: string;
+  priceFirstCents?: number;
+  priceSecondCents?: number;
+  priceThirdCents?: number;
   competition?: { format: string } | null;
 };
 
@@ -48,6 +51,9 @@ export function PublicRegistrationForm({
   categories,
   arenaSlug,
   onlinePaymentEnabled = true,
+  rules = "",
+  earlyDiscountCents = 0,
+  earlyDiscountUntil = null,
   responsibleName = "", responsiblePhone = ""
 }: {
   tournamentSlug: string;
@@ -55,6 +61,9 @@ export function PublicRegistrationForm({
   arenaName: string;
   arenaSlug?: string;
   onlinePaymentEnabled?: boolean;
+  rules?: string;
+  earlyDiscountCents?: number;
+  earlyDiscountUntil?: string | null;
   arenaLogoUrl: string;
   responsibleName?: string;
   responsiblePhone?: string;
@@ -62,7 +71,12 @@ export function PublicRegistrationForm({
   const [state, formAction] = useFormState(createPublicRegistrationAction, initialState);
   const router = useRouter();
   const [categoryId, setCategoryId] = useState(categories.length === 1 ? categories[0].id : "");
-  const individual = categories.find(category => category.id === categoryId)?.registrationType === "INDIVIDUAL";
+  const selectedCategory = categories.find(category => category.id === categoryId);
+  const individual = selectedCategory?.registrationType === "INDIVIDUAL";
+  const formatPersonPrice = (cents: number) => cents === 0 ? "Gratuita" : (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const personPrices = selectedCategory && selectedCategory.priceFirstCents != null ? [selectedCategory.priceFirstCents, selectedCategory.priceSecondCents ?? selectedCategory.priceFirstCents, selectedCategory.priceThirdCents ?? selectedCategory.priceFirstCents] : null;
+  const discountActive = earlyDiscountCents > 0 && (!earlyDiscountUntil || new Date(earlyDiscountUntil).getTime() >= Date.now());
+  const hasPriceTiers = personPrices && new Set(personPrices).size > 1;
   const trio = categories.find(category => category.id === categoryId)?.competition?.format === "TRIO";
 
   useEffect(() => {
@@ -83,7 +97,9 @@ export function PublicRegistrationForm({
         <h2>Sua inscrição</h2>
         <div className={viewStyles.field}><label htmlFor="categoryId">Categoria</label><SmartEntitySelect label="Categoria" id="categoryId" name="categoryId" value={categoryId} onChange={event => setCategoryId(event.target.value)} className={viewStyles.public_reg_select} required><option value="">Selecione</option>{categories.map(category => <option key={category.id} value={category.id}>{formatCategoryName(category.name)}</option>)}</SmartEntitySelect></div>
         {onlinePaymentEnabled ? <div className={viewStyles.field}><label htmlFor="paymentMethod">Pagamento</label><select id="paymentMethod" name="paymentMethod" defaultValue="PIX" required><option value="PIX">PIX</option><option value="CARD">Cartão</option></select></div> : <p className={viewStyles.payment_notice}>Pagamento no local</p>}
-        <dl className={viewStyles.summary_values}><div><dt>Modalidade</dt><dd>{individual ? "Individual" : trio ? "Trio" : categoryId ? "Dupla" : "Selecione a categoria"}</dd></div><div><dt>Valor</dt><dd>{state.amountCents != null ? (state.amountCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "A calcular"}</dd></div></dl>
+        <dl className={viewStyles.summary_values}><div><dt>Modalidade</dt><dd>{individual ? "Individual" : trio ? "Trio" : categoryId ? "Dupla" : "Selecione a categoria"}</dd></div>{!onlinePaymentEnabled ? <div><dt>Por pessoa</dt><dd>{!selectedCategory ? "Selecione a categoria" : personPrices ? formatPersonPrice(personPrices[0]) : "A calcular"}</dd></div> : <div><dt>Valor</dt><dd>{state.amountCents != null ? (state.amountCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "A calcular"}</dd></div>}</dl>
+        {!onlinePaymentEnabled && hasPriceTiers && personPrices ? <div className={viewStyles.price_tiers}><p>Preço por pessoa, conforme suas inscrições no evento:</p><dl>{personPrices.map((price,index)=><div key={index}><dt>{index === 2 ? "3ª inscrição em diante" : `${index + 1}ª inscrição`}</dt><dd>{formatPersonPrice(price)}</dd></div>)}</dl></div> : null}
+        {!onlinePaymentEnabled && discountActive ? <p className={viewStyles.payment_notice}>Desconto de até {formatPersonPrice(earlyDiscountCents)} no total da inscrição{earlyDiscountUntil ? ` até ${new Date(earlyDiscountUntil).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}` : ""}. Os valores por pessoa acima são os preços base.</p> : null}
         <div className={viewStyles.desktop_submit}>{onlinePaymentEnabled ? <p className={viewStyles.payment_notice}>Se houver cobrança, a vaga ficará reservada por 1 hora e será confirmada após a aprovação.</p> : null}<SubmitButton label={onlinePaymentEnabled ? "Ir para pagamento" : "Confirmar inscrição"} pendingLabel="Criando inscrição..." className={viewStyles.button_button_primary}/></div>
       </aside>
       <div className={viewStyles.athlete_fields}>
@@ -106,6 +122,7 @@ export function PublicRegistrationForm({
         <BotTrap/>
         <p className={viewStyles.privacy_notice}>{individual ? "Consulte as condições da arena e a política de privacidade antes de continuar." : "O CPF identifica o atleta e evita inscrições duplicadas no cálculo dos preços por categoria. Consulte as condições da arena e a política de privacidade antes de continuar."}</p>
         {!individual ? <details className={viewStyles.privacy_notice}><summary>Uso dos dados da equipe</summary><p>Nome e resultados da equipe poderão aparecer na competição. Informe os demais atletas sobre o uso desses dados.</p>{trio ? <p>O total da equipe considera a inscrição de cada um dos três atletas.</p> : null}</details> : null}
+    {!onlinePaymentEnabled && rules.trim() ? <section className={viewStyles.regulation} aria-labelledby="event-regulation-title"><h2 id="event-regulation-title">Regulamento</h2><p>{rules}</p></section> : null}
       </div>
       <div className={viewStyles.mobile_submit}>{onlinePaymentEnabled ? <p className={viewStyles.payment_notice}>Se houver cobrança, a vaga ficará reservada por 1 hora e será confirmada após a aprovação.</p> : null}<SubmitButton label={onlinePaymentEnabled ? "Ir para pagamento" : "Confirmar inscrição"} pendingLabel="Criando inscrição..." className={viewStyles.button_button_primary}/></div>
       {state?.error ? <p role="alert" className={viewStyles.form_error_form_full}>{state.error}</p> : null}
