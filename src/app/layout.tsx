@@ -1,7 +1,10 @@
+import { headers } from "next/headers";
+import { PortalPwaProvider } from "@/components/portal/portal-pwa-provider";
+import { isPortalPwaPath, portalPwaEnabled } from "@/lib/portal/pwa-policy";
 import { Suspense } from "react";
 import { NotificationTarget } from "@/components/notifications/notification-target";
 import { documentUtilities } from "./document.utilities";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "@/app/globals.css";
 import { env } from "@/lib/env";
 import { SystemUpdateNotice } from "@/components/system-update-notice";
@@ -10,7 +13,7 @@ import { releaseRevision } from "@/lib/release-version";
 // A fresh request nonce is required for the framework bootstrap and hydration scripts.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
   metadataBase: env.appUrl ? new URL(env.appUrl) : undefined,
   title: "Arena Padel Manager",
   description: "Sistema online para gestão de campeonatos, duplas, grupos e jogos da arena.",
@@ -20,10 +23,23 @@ export const metadata: Metadata = {
   }
 };
 
+export async function generateMetadata(): Promise<Metadata> {
+  const pathname = (await headers()).get("x-portal-pathname") ?? "";
+  if (!portalPwaEnabled() || !isPortalPwaPath(pathname)) return baseMetadata;
+  return { ...baseMetadata, title: "Portal do Atleta", manifest: "/portal/manifest.webmanifest", appleWebApp: { capable: true, title: "Portal do Atleta", statusBarStyle: "default" }, applicationName: "Portal do Atleta" };
+}
+
+export async function generateViewport(): Promise<Viewport> {
+  const pathname = (await headers()).get("x-portal-pathname") ?? "";
+  return portalPwaEnabled() && isPortalPwaPath(pathname)
+    ? { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#174983" }
+    : { width: "device-width", initialScale: 1 };
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={documentUtilities}>
-      <body>{children}<Suspense fallback={null}><NotificationTarget /></Suspense><SystemUpdateNotice initialRevision={releaseRevision(process.env.RAILWAY_GIT_COMMIT_SHA)} /></body>
+      <body><PortalPwaProvider enabled={portalPwaEnabled()}>{children}</PortalPwaProvider><Suspense fallback={null}><NotificationTarget /></Suspense><SystemUpdateNotice initialRevision={releaseRevision(process.env.RAILWAY_GIT_COMMIT_SHA)} /></body>
     </html>
   );
 }

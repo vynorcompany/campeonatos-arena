@@ -2,6 +2,7 @@
 export function contentSecurityPolicy({ nonce, development = false } = {}) {
   if (nonce !== undefined && !/^[A-Za-z0-9+/]{22,}={0,2}$/.test(nonce)) throw new Error('Invalid CSP nonce.');
   return [
+    "worker-src 'self'", "manifest-src 'self'",
     "default-src 'self'", "base-uri 'self'", "object-src 'none'", "frame-ancestors 'none'", "form-action 'self'",
     "img-src 'self' data: blob: https:", "media-src 'self' blob: https:", "font-src 'self' data: https:",
     // Calculated layout styles remain supported; script execution is independently restricted.
