@@ -35,7 +35,7 @@ async function render(category: any) {
 const registration = { id: "registration", categoryId: "category", leadName: "Athlete One", partnerName: "Athlete Two", leadPlayerId: "one", partnerPlayerId: "two", status: "CONFIRMED", paymentStatus: "PENDING", paymentProvider: "PAY_ON_SITE", amountCents: 7500 };
 const category = { id: "category", name: "Category", registrationType: "PAIR", registrations: [registration], competition: null };
 test("general registrations distinguish confirmation from onsite unpaid and settled payments", async () => {
- for (const [paymentStatus, expected] of [["PENDING", /local/i], ["PAID", /^Pago$/], ["REVIEW", /análise/i], ["REFUNDED", /Estornado/i]]) {
+ for (const [paymentStatus, expected] of [["PENDING", /local/i], ["PAID", /^Pago$/], ["REVIEW", /análise/i], ["REFUNDED", /Estornado/i]] as const) {
   const rows = await render({ ...category, registrations: [{ ...registration, paymentStatus }] });
   assert.equal(rows.length, 1);
   assert.match(rows[0].payment, expected);
