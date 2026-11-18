@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 
 import { resolve } from "node:path";
 import test from "node:test";
+import { getPortalDueUrgency } from "../src/lib/portal/financial-status";
 import { isOverdue, type Account } from "@/components/finance/accounts-ledger-parts";
 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
@@ -18,7 +19,9 @@ test("client portal marks open receivables past their due date as overdue", () =
   assert.match(home, /settlements: \{ select: \{ amountCents: true, interestCents: true, discountCents: true \} \}/);
   assert.match(home, /getOutstandingCents/);
   assert.match(home, /futureEntries/);
-  assert.match(home, /entry\.dueDate && entry\.dueDate < today/);
+  const today = new Date(2026, 10, 18);
+  assert.equal(getPortalDueUrgency(new Date(2026, 10, 17), today), "overdue");
+  assert.equal(getPortalDueUrgency(today, today, "OVERDUE"), "soon");
   assert.match(home, /em atraso/);
   assert.match(home, /financialStatus: overdue \? "overdue" : due \|\| hasOpenComanda \? "pending" : "active"/);
   assert.match(portal, /status===\"overdue\"/);
