@@ -120,3 +120,27 @@ test("projected expenses count only unpaid balances and unmaterialized recurrenc
   assert.equal(card.value,new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(120));
   assert.equal(card.tone,"negative");
 });
+
+
+test("expense card always reports confirmed cash payments, including partials, regardless of dashboard view", () => {
+  const settlement = (id: string, amountCents: number, day: string) => ({ id, amountCents, interestCents: 0, discountCents: 0, paidAt: date(day), paymentMethod: "PIX" });
+  const data: any = {
+    entries: [
+      entry({ id: "unpaid", type: "EXPENSE", amountCents: 90000 }),
+      entry({ id: "paid", type: "EXPENSE", status: "PAID", amountCents: 10000, dueDate: date("2025-12-20"), paidAt: date("2026-01-12") }),
+      entry({ id: "partial", type: "EXPENSE", amountCents: 20000, settlements: [settlement("jan", 3000, "2026-01-15"), settlement("feb", 2000, "2026-02-01")] }),
+      entry({ id: "paid-outside", type: "EXPENSE", status: "PAID", paidAt: date("2026-02-01") }),
+      entry({ id: "void", type: "EXPENSE", status: "VOIDED", paidAt: date("2026-01-10"), settlements: [settlement("void", 50000, "2026-01-10")] }),
+      entry({ id: "income", status: "PAID", paidAt: date("2026-01-10") }),
+    ],
+    previousEntries: [entry({ id: "previous-unpaid", type: "EXPENSE", dueDate: date("2025-12-10"), amountCents: 80000 }), entry({ id: "previous-paid", type: "EXPENSE", status: "PAID", amountCents: 10000, paidAt: date("2025-12-10"), dueDate: date("2025-11-10") })],
+    recurrences: [], occurrences: [], courts: [], lessons: [], portalAccounts: [], saleGroups: [], products: [], previousReservations: 0,
+  };
+  for (const view of ["caixa", "competencia"] as const) {
+    const card = buildDashboardAnalytics(data, from, to, to, view, { from: new Date("2025-12-01T00:00:00"), to: new Date("2025-12-31T23:59:59.999") }).cards.find(card => card.id === "expense")!;
+    assert.equal(card.value, new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(130));
+    assert.deepEqual(card.items.map(item => item.id), ["paid", "partial:jan"]);
+    assert.equal(card.comparison?.percent, 30);
+    assert.equal(card.caption, "Pagamentos confirmados no período");
+  }
+});
