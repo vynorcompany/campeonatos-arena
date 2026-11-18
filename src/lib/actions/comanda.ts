@@ -1,4 +1,5 @@
 "use server";
+import { lockTournamentRegistrationEntriesForReceipt, syncTournamentRegistrationAfterReceipt } from "@/lib/tournaments/registration-receivable";
 import { createCardInstallmentEntries } from "@/lib/finance/card-installment-service";
 import { customizedCardInstallments } from "@/lib/finance/card-installments";
 import { ingredientChoicesSchema } from "@/lib/products/composition";
@@ -301,6 +302,7 @@ export async function finishComandaAction(formData: FormData) {
   }
   const installmentTotalCents = installmentPayments.reduce((sum, payment) => sum + payment.amountCents, 0);
   const whatsappIds = await withArenaTransaction(auth.arenaId, async (tx) => {
+    if (parsed.data.debtIds.length) await lockTournamentRegistrationEntriesForReceipt(tx, auth.arenaId, parsed.data.debtIds);
     const owner = await tx.comanda.findFirst({ where: { id: parsed.data.comandaId, arenaId: auth.arenaId, status: "OPEN" }, select: { playerId: true } });
     if (owner?.playerId) await tx.$queryRaw`SELECT id FROM "Player" WHERE id = ${owner.playerId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     await tx.$queryRaw`SELECT id FROM "Comanda" WHERE id = ${parsed.data.comandaId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
@@ -324,7 +326,7 @@ export async function finishComandaAction(formData: FormData) {
     const paymentTotalCents = parsed.data.payments.reduce((total, payment) => total + payment.amountCents, 0);
     const selectedDebts = comanda.playerId && debtIdsToSettle.length ? await tx.financialEntry.findMany({
       where: selectedComandaDebtWhere(auth.arenaId, debtIdsToSettle),
-      select: { id: true, playerId: true, amountCents: true, onlinePaymentId: true, onlinePaymentUrl: true, onlinePaymentClaimMethod: true, onlinePaymentClaimedAt: true, notes: true, onlinePaymentItems: { select: { checkout: { select: { status: true, mercadoPagoPaymentId: true, checkoutUrl: true } } } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } }, scheduleParticipant: { select: { playerId: true } }, sale: { select: { comanda: { select: { playerId: true } } } } }
+      select: { id: true, source: true, playerId: true, amountCents: true, onlinePaymentId: true, onlinePaymentUrl: true, onlinePaymentClaimMethod: true, onlinePaymentClaimedAt: true, notes: true, onlinePaymentItems: { select: { checkout: { select: { status: true, mercadoPagoPaymentId: true, checkoutUrl: true } } } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } }, scheduleParticipant: { select: { playerId: true } }, sale: { select: { comanda: { select: { playerId: true } } } } }
     }) : [];
     if (selectedDebts.length !== debtIdsToSettle.length || selectedDebts.some((debt) => comandaDebtOwnerId(debt) !== comanda.playerId)) throw new Error("Um dos débitos selecionados não está disponível para este cliente.");
     if (selectedDebts.some(debt => Boolean(debt.onlinePaymentId || debt.onlinePaymentUrl || debt.onlinePaymentClaimMethod || debt.onlinePaymentClaimedAt) || debt.notes.includes("[MP_REVIEW:") || debt.onlinePaymentItems.some(({ checkout }) => ["PENDING", "REVIEW", "PAID"].includes(checkout.status) || (checkout.status === "FAILED" && Boolean(checkout.mercadoPagoPaymentId || checkout.checkoutUrl))))) throw new Error("Um dos débitos possui pagamento online emitido ou em análise. Confira e concilie a cobrança antes de quitá-lo na comanda.");
@@ -430,6 +432,7 @@ export async function finishComandaAction(formData: FormData) {
       ]);
       if (outstandingCents === 0) {
         await tx.financialEntry.update({ where: { id: debt.id }, data: { status: "PAID", paidAt: now } });
+        if (debt.source === "TOURNAMENT_REGISTRATION") await syncTournamentRegistrationAfterReceipt(tx, auth.arenaId, debt.id);
       }
     }
     for (const allocation of allocations.filter(part => part.outstandingCents > 0)) {
@@ -459,6 +462,7 @@ export async function finishComandaAction(formData: FormData) {
   revalidatePath("/home");
   revalidatePath("/financeiro/lancamentos");
   revalidatePath("/financeiro/contas-a-receber");
+  revalidatePath("/torneios", "layout");
   revalidatePath("/painel");
   revalidatePath("/pdv/caixa");
   revalidatePath("/relatorios/caixa");

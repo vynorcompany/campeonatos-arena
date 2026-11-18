@@ -1,3 +1,4 @@
+import * as registrationReceivables from "../src/lib/tournaments/registration-receivable";
 import * as serviceBookingRules from "../src/lib/calendar/service-booking-rules";
 import * as composition from "../src/lib/products/composition";
 import { consumeProductStock } from "../src/lib/products/stock-aggregates";
@@ -35,7 +36,7 @@ test("serviços respeitam as duas visibilidades, isolamento e permissões; coman
     const actor = await admin.user.findUniqueOrThrow({ where: { id: "goal-test" } });
     const auth = { arenaId: arena.id, userId: actor.id, userName: actor.name };
     const transact = (arenaId: string, operation: (tx: Prisma.TransactionClient) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return operation(tx); });
-    const mocks = { "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock }, "@/lib/comandas/portal-orders": portalOrders, "@/lib/products/service-pricing": servicePricing, "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/calendar/service-booking-rules": serviceBookingRules, "@/lib/calendar/standard-services": { STANDARD_SERVICES }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requireModuleEdit: async () => { if (!allowed) throw new Error("Sem permissão"); return auth; }, requirePermission: async () => auth }, "@/lib/rls": { withArenaTransaction: transact }, "@/lib/arena-database": { arenaDatabase: () => ({}) }, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents } };
+    const mocks = { "@/lib/tournaments/registration-receivable": registrationReceivables, "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock }, "@/lib/comandas/portal-orders": portalOrders, "@/lib/products/service-pricing": servicePricing, "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/calendar/service-booking-rules": serviceBookingRules, "@/lib/calendar/standard-services": { STANDARD_SERVICES }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requireModuleEdit: async () => { if (!allowed) throw new Error("Sem permissão"); return auth; }, requirePermission: async () => auth }, "@/lib/rls": { withArenaTransaction: transact }, "@/lib/arena-database": { arenaDatabase: () => ({}) }, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents } };
     const services = load("../src/lib/actions/services.ts", mocks);
     for (const agenda of [false, true]) for (const commands of [false, true]) {
       const name = `Serviço QA ${randomUUID()}`;

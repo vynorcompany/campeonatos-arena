@@ -1,3 +1,4 @@
+import { cancelTournamentRegistrationReceivable } from "@/lib/tournaments/registration-receivable";
 import { recordTournamentRegistrationReceipt } from "@/lib/tournaments/registration-receipt";
 import { readBoundedJson, RequestBodyTooLargeError } from "@/lib/http/json-body";
 import { NextResponse } from "next/server";
@@ -397,6 +398,7 @@ export async function POST(request: Request) {
           where: { id: registration.id },
           data: { status: "CANCELED", paymentStatus: "REVIEW", mercadoPagoPaymentId: String(payment.id ?? paymentId), paymentReference: String(payment.id ?? paymentId) }
         });
+        await cancelTournamentRegistrationReceivable(tx, registration.tournament.arenaId, registration.id);
         await tx.arenaNotification.create({ data: { arenaId: registration.tournament.arenaId, type: "ONLINE_PAYMENT_REVIEW", title: "Pagamento após o prazo da inscrição", message: `O pagamento ${String(payment.id ?? paymentId)} foi aprovado após o prazo da inscrição ${registration.id}. A dupla não foi confirmada; confira a cobrança e o estorno no Mercado Pago.`, href: `/torneios/${registration.tournament.id}/inscricoes` } });
         return;
       }

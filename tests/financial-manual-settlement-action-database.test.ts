@@ -1,3 +1,4 @@
+import { ensureTournamentRegistrationReceivable } from "../src/lib/tournaments/registration-receivable";
 import { readFileSync } from "./helpers/domain-source";
 import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import { calculateBankAccountBalanceCents } from "../src/lib/finance/bank-balance";
@@ -30,6 +31,7 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
   const runtime = new PrismaClient({ datasources: { db: { url: runtimeUrl.toString() } } });
   const entryIds: string[] = [];
   let checkoutId = "";
+  let eventId = "";
   const bankIds: string[] = [];
   try {
     const arenaA = await admin.arena.findUniqueOrThrow({ where: { slug: "arena-teste-goal" }, select: { id: true } });
@@ -147,9 +149,22 @@ test("baixa manual exige valor real, quita vencidos e não aceita lote parcialme
     assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: pending.id } })).status, "PAID");
     assert.equal(await admin.financialSettlement.count({ where: { financialEntryId: { in: [overdue.id, pending.id] } } }), 3);
     await assert.rejects(settleBulk([pending.id, foreign.id]), /Uma ou mais contas não estão disponíveis/);
+
+    const event = await admin.tournament.create({ data: { arenaId: arenaA.id, name: "Recebimento local QA" } }); eventId = event.id;
+    const category = await admin.tournamentCategory.create({ data: { tournamentId: event.id, name: "Individual", level: 1, registrationType: "INDIVIDUAL" } });
+    const local = await admin.publicTournamentRegistration.create({ data: { tournamentId: event.id, categoryId: category.id, registrationOrder: 1, leadName: "Cliente QA", leadPhone: "42999990000", leadCpf: "", partnerName: "", partnerPhone: "", partnerCpf: "", amountCents: 1000, status: "CONFIRMED", paymentStatus: "PENDING", paymentProvider: "PAY_ON_SITE" } });
+    const debt = await runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaA.id}, true)`; return ensureTournamentRegistrationReceivable(tx, arenaA.id, local.id); });
+    assert.ok(debt); entryIds.push(debt.id);
+    await settle(debt.id, "4,00");
+    assert.equal((await admin.publicTournamentRegistration.findUniqueOrThrow({ where: { id: local.id } })).paymentStatus, "PENDING", "partial receipt does not confirm full payment");
+    await settleBulk([debt.id]);
+    assert.equal((await admin.publicTournamentRegistration.findUniqueOrThrow({ where: { id: local.id } })).paymentStatus, "PAID");
+    assert.equal(await admin.financialEntry.count({ where: { arenaId: arenaA.id, source: "TOURNAMENT_REGISTRATION", externalReference: local.id } }), 1);
+    await assert.rejects(settle(debt.id, "10,00"), /inscrição.*já foi encerrada/);
   } finally {
     if (checkoutId) await admin.onlinePaymentCheckout.delete({ where: { id: checkoutId } });
     if (entryIds.length) await admin.financialEntry.deleteMany({ where: { id: { in: entryIds } } });
+    if (eventId) await admin.tournament.delete({ where: { id: eventId } });
     if (bankIds.length) await admin.bankAccount.deleteMany({ where: { id: { in: bankIds } } });
     await runtime.$disconnect();
     await admin.$disconnect();

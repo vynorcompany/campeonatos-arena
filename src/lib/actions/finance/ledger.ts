@@ -1,4 +1,5 @@
 "use server";
+import { lockTournamentRegistrationEntriesForReceipt, syncTournamentRegistrationAfterReceipt } from "@/lib/tournaments/registration-receivable";
 import { boletoPayerDocument } from "@/lib/payments/boleto-payer";
 import { entryAdjustedAmount, entryAdjustmentNotes } from "@/lib/finance/entry-adjustments";
 import { splitCardEntry } from "@/lib/finance/split-card-entry";
@@ -173,6 +174,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
     if (!entry) throw new Error("Lançamento não encontrado ou estornado.");
     assertFinancialEntryPermission(auth, entry.type, "edit");
     assertRecordVersion(recordVersion(entry.updatedAt), expectedUpdatedAt.toISOString());
+    if (entry.source === "TOURNAMENT_REGISTRATION" && amountCents !== entry.amountCents) throw new Error("Altere o valor da inscrição em Eventos para manter o financeiro sincronizado.");
     if (entry.source === "AGENCY_SUBSCRIPTION") throw new Error("Esta fatura é gerenciada pela agência e não pode ser alterada aqui.");
     await assertFinancialEntryRelationsBelongToArena(tx, auth.arenaId, {
       bankAccountId: parsed.data.bankAccountId,
@@ -292,6 +294,7 @@ export async function generateFinancialEntryOnlineChargeAction(formData: FormDat
   if (!parsed.success) return { error: "Dados da cobrança inválidos." };
   const entry = await withArenaTransaction(auth.arenaId, (tx) => tx.financialEntry.findFirst({ where: { id: parsed.data.entryId, arenaId: auth.arenaId, type: "REVENUE", status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } }, include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } } }));
   if (!entry) return { error: "Lançamento a receber não encontrado ou já quitado." };
+  if (entry.source === "TOURNAMENT_REGISTRATION") return { error: "A cobrança desta inscrição é gerenciada em Eventos. Não emita uma segunda cobrança pelo financeiro." };
   if (hasExistingOnlineCharge(entry)) return { error: "Este lançamento já possui uma cobrança online. Use ‘Ver cobrança’ no lançamento para consultá-la antes de emitir outra." };
   const playerId = entry.billingPlayerId ?? entry.playerId;
   if (!playerId) return { error: "Associe este lançamento a um cliente cadastrado antes de gerar a cobrança online." };
@@ -364,6 +367,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
   const expectedUpdatedAt = expectedRecordDate(formData.get("expectedUpdatedAt"));
   if (!expectedUpdatedAt) return { error: staleRecordMessage };
   try { await withArenaTransaction(auth.arenaId, async (tx) => {
+    await lockTournamentRegistrationEntriesForReceipt(tx, auth.arenaId, [parsed.data.entryId]);
     await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${parsed.data.entryId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const entry = await tx.financialEntry.findFirst({
       where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { in: ["PENDING", "OVERDUE", "PARTIAL"] } },
@@ -435,6 +439,7 @@ export async function settleFinancialEntryAction(formData: FormData) {
         paymentMethod: usingBalance ? "CREDIT_BALANCE" : parsed.data.paymentMethod
       }
     });
+    await syncTournamentRegistrationAfterReceipt(tx, auth.arenaId, entry.id);
     if (surplusCents > 0 && creditPlayerId) {
       await tx.clientBalanceMovement.create({ data: { arenaId: auth.arenaId, playerId: creditPlayerId, kind: "MONEY", amountCents: surplusCents, reason: `Excedente recebido na conta ${entry.id}.` } });
       const creditEntry = await tx.financialEntry.create({ data: { arenaId: auth.arenaId, playerId: creditPlayerId, bankAccountId, type: "INCOME", category: "CREDITO_DE_CLIENTE", description: `Crédito por excedente da conta ${entry.id}`, amountCents: surplusCents, status: "PAID", paidAt, paymentMethod: usingBalance ? "CREDIT_BALANCE" : parsed.data.paymentMethod } });
@@ -469,6 +474,7 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
   let settledCount = 0;
   try { settledCount = await withArenaTransaction(auth.arenaId, async (tx) => {
     const entryIds = [...new Set(parsed.data.entryIds)];
+    await lockTournamentRegistrationEntriesForReceipt(tx, auth.arenaId, entryIds);
     await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE "arenaId" = ${auth.arenaId} AND id IN (${Prisma.join(entryIds)}) ORDER BY id FOR UPDATE`;
     const entries = await tx.financialEntry.findMany({
       where: { arenaId: auth.arenaId, id: { in: entryIds }, status: { in: ["PENDING", "OVERDUE"] }, source: { not: "AGENCY_SUBSCRIPTION" } },
@@ -497,6 +503,7 @@ export async function settleFinancialEntriesBulkAction(formData: FormData) {
         notes: "Baixa em massa registrada manualmente."
       } });
       await tx.financialEntry.update({ where: { id: entry.id }, data: { status: "PAID", paidAt, paymentMethod: parsed.data.paymentMethod, bankAccountId } });
+      await syncTournamentRegistrationAfterReceipt(tx, auth.arenaId, entry.id);
       count += 1;
     }
     return count;

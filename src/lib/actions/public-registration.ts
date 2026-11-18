@@ -1,4 +1,5 @@
 "use server";
+import { ensureTournamentRegistrationReceivable, cancelTournamentRegistrationReceivable } from "@/lib/tournaments/registration-receivable";
 import { resolveIndividualRegistrationClient, registrationNameKey } from "@/lib/tournaments/individual-registration-client";
 import { sameBrazilianPhone } from "@/lib/phone";
 import { validateRegistrationThird } from "@/lib/tournaments/trio-registration";
@@ -214,12 +215,15 @@ export async function createPublicRegistrationAction(
         }
       });
 
+      await ensureTournamentRegistrationReceivable(tx, tournament.arenaId, registration.id);
       if (amountCents > 0 && tournament.onlinePaymentEnabled === false) {
         await ensureTournamentPairFromRegistration(tx, { registrationId: registration.id, arenaId: tournament.arenaId, tournamentId: tournament.id, leadName: registration.leadName, partnerName: registration.partnerName, leadCpf: registration.leadCpf, partnerCpf: registration.partnerCpf, thirdCpf: registration.thirdCpf });
       }
       return { registration, amountCents, tournamentName: tournament.name, arenaId: tournament.arenaId, onlinePaymentEnabled: tournament.onlinePaymentEnabled !== false };
     });
 
+    revalidatePath("/financeiro/contas-a-receber");
+    revalidatePath("/torneios/inscricoes");
     if (!result.onlinePaymentEnabled && result.amountCents > 0) {
       revalidatePath(`/inscricao/${parsed.data.tournamentSlug}`);
       return { error: null, success: "Inscrição confirmada. Pagamento no local.", amountCents: result.amountCents, registrationId: result.registration.id };
@@ -271,10 +275,13 @@ export async function createPublicRegistrationAction(
       // O provedor pode ter criado a cobrança antes de uma falha de rede.
       // Guarde a inscrição cancelada: um callback tardio ainda poderá ser
       // identificado pela referência e encaminhado para revisão/estorno.
-      await withArenaTransaction(result.arenaId, (tx) => tx.publicTournamentRegistration.updateMany({
-        where: { id: result.registration.id, tournamentId: result.registration.tournamentId, status: "PENDING_PAYMENT", paymentStatus: "PENDING", mercadoPagoPaymentId: "" },
-        data: { status: "CANCELED", paymentProvider: "MERCADO_PAGO_FAILED" }
-      }));
+      await withArenaTransaction(result.arenaId, async (tx) => {
+        const canceled = await tx.publicTournamentRegistration.updateMany({
+          where: { id: result.registration.id, tournamentId: result.registration.tournamentId, status: "PENDING_PAYMENT", paymentStatus: "PENDING", mercadoPagoPaymentId: "" },
+          data: { status: "CANCELED", paymentProvider: "MERCADO_PAGO_FAILED" }
+        });
+        if (canceled.count) await cancelTournamentRegistrationReceivable(tx, result.arenaId, result.registration.id);
+      });
       throw error;
     }
 

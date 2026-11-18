@@ -1,3 +1,4 @@
+import { ensureTournamentRegistrationReceivable } from "@/lib/tournaments/registration-receivable";
 import { validateRegistrationThird } from "@/lib/tournaments/trio-registration";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
 import { recordTournamentRegistrationReceipt } from "@/lib/tournaments/registration-receipt";
@@ -16,7 +17,7 @@ type Input = Omit<z.infer<typeof updateManualTournamentRegistrationSchema>, "amo
 export async function updateManualTournamentRegistration(tx: Prisma.TransactionClient, input: Input): Promise<{ ok: true } | { ok: false; error: string }> {
   const registration = await tx.publicTournamentRegistration.findFirst({
     where: { id: input.registrationId, tournamentId: input.tournamentId, tournament: { arenaId: input.arenaId } },
-    select: { id: true, categoryId: true, status: true, paymentStatus: true, paymentProvider: true, paymentReference: true, mercadoPagoPaymentId: true, paymentCheckoutUrl: true, category: { select: { registrationType: true, competition: { select: { format: true } } } } },
+    select: { id: true, leadName: true, leadPlayerId: true, categoryId: true, status: true, paymentStatus: true, paymentProvider: true, paymentReference: true, mercadoPagoPaymentId: true, paymentCheckoutUrl: true, category: { select: { registrationType: true, competition: { select: { format: true } } } } },
   });
   if (!registration) return { ok: false, error: "Inscrição não encontrada nesta arena." };
   if (registration.status === "CANCELED" || ["REVIEW", "REFUNDED"].includes(registration.paymentStatus)) {
@@ -47,6 +48,7 @@ export async function updateManualTournamentRegistration(tx: Prisma.TransactionC
     data: {
       categoryId: category.id,
       competitionId: category.competition?.format === "TRIO" ? category.competition.id : undefined,
+      leadPlayerId: registration.leadName === input.leadName ? registration.leadPlayerId : null,
       leadName: input.leadName,
       leadPhone: input.leadPhone,
       leadCpf: input.leadCpf,
@@ -63,6 +65,7 @@ export async function updateManualTournamentRegistration(tx: Prisma.TransactionC
   });
   if (updated.count !== 1) return { ok: false, error: "Esta inscrição foi alterada. Atualize a página." };
 
+  await ensureTournamentRegistrationReceivable(tx, input.arenaId, registration.id);
   if (bankAccountId) await recordTournamentRegistrationReceipt(tx, { ...input, bankAccountId });
 
   if (input.paymentStatus === "PAID") {

@@ -20,12 +20,14 @@ function loadAction(createPayment: (input: Record<string, unknown>) => Promise<R
   const tx = {
     $queryRaw: async () => [{ id: "tournament-a", arenaId: "arena-a" }],
     arenaOperationalSettings: { findUnique: async () => ({ portalPaymentBankAccountId: bank === "missing" ? null : "bank-a" }) },
+    financialEntry: { findMany: async () => [], create: async ({ data }: any) => ({ id: "entry-a", ...data }), updateMany: async () => ({ count: 1 }) },
     bankAccount: { findFirst: async ({ where }: { where: { id: string; arenaId: string; active: boolean } }) => bank === "valid" && where.id === "bank-a" && where.arenaId === "arena-a" && where.active ? { id: "bank-a" } : null },
     tournament: { findUnique: async ({ where }: { where: { publicSlug?: string } }) => where.publicSlug
       ? { id: "tournament-a", arenaId: "arena-a" }
       : { id: "tournament-a", arenaId: "arena-a", name: "Torneio", registrationPhase: "REGISTRATIONS", registrationOpensAt: null, registrationClosesAt: null, earlyDiscountCents: 0, blockCategoryGap: false, categories: [{ id: "category-a", maxRegistrations: 16, priceFirstCents: 500, priceSecondCents: 500, priceThirdCents: 500, allowedRegistrationCategoryIds: [] }] } },
     publicTournamentRegistration: {
       count: async () => 0,
+      findFirst: async () => ({ ...registration, tournament: { name: "Torneio" } }),
       findMany: async () => [],
       create: async ({ data }: { data: { paymentProvider: string; holdExpiresAt: Date | null } }) => { providerAtCreation = data.paymentProvider; Object.assign(registration, data); return registration; },
       updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {

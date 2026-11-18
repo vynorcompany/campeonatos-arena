@@ -66,6 +66,7 @@ export async function startPublicFinancialEntryPaymentAction(formData: FormData)
       tx.onlinePaymentCheckout.findMany({ where: { arenaId: auth.arenaId, status: "PENDING", items: { some: { financialEntryId: { in: entryIds } } } }, select: { id: true, playerId: true, amountCents: true, checkoutUrl: true, expiresAt: true, items: { select: { financialEntryId: true, amountCents: true } } } }),
     ]);
     if (entries.length !== entryIds.length) throw new Error("Um ou mais lançamentos não estão disponíveis para pagamento.");
+    if (entries.some(entry => entry.source === "TOURNAMENT_REGISTRATION")) throw new Error("Pague a inscrição pelo link do evento ou, se escolheu pagamento no local, procure o caixa da arena.");
     if (reviewCheckout || entries.some((entry) => entry.notes.includes("[MP_REVIEW:"))) throw new Error("Existe um pagamento em análise para um dos lançamentos. Aguarde a conferência da arena antes de pagar novamente.");
     if (policy.bankAccountId && entries.some(entry => entry.settlements.some(settlement => !settlement.bankAccountId) && entry.bankAccountId !== policy.bankAccountId)) throw new Error("Um lançamento já possui recebimentos em outra conta. Solicite a conferência da arena antes de pagar pelo Portal.");
     if (!player?.email) throw new Error("Informe um e-mail no seu perfil antes de prosseguir com o pagamento.");

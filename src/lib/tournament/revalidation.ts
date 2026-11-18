@@ -18,5 +18,7 @@ const tournamentRoutes = [
 ] as const;
 
 export function refreshTournamentRoutes() {
+  revalidatePath("/financeiro/contas-a-receber");
+  revalidatePath("/painel");
   for (const route of tournamentRoutes) revalidatePath(route);
 }

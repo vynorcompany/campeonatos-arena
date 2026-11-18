@@ -8,6 +8,7 @@ import ts from "typescript";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { verifyApprovedMercadoPagoPayment } from "../src/lib/payments/verified-payment";
 import { arenaDatabaseForTest } from "./helpers/arena-database";
+import { ensureTournamentRegistrationReceivable, cancelTournamentRegistrationReceivable } from "../src/lib/tournaments/registration-receivable";
 import { recordTournamentRegistrationReceipt } from "../src/lib/tournaments/registration-receipt";
 import { publicRegistrationApprovalAfterHold } from "../src/lib/tournaments/registration-payment-hold";
 
@@ -29,7 +30,9 @@ function loadWebhook(prisma: unknown, tx: unknown, getPayment: () => Promise<unk
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, Request, URL, Date, console: { error: () => undefined },
     require: (name: string) => {
-      if (name === "@/lib/tournaments/registration-receipt") return { recordTournamentRegistrationReceipt };
+      // Provider-state unit cases isolate persistence; the RLS cases below use the real ledger service.
+      if (name === "@/lib/tournaments/registration-receipt") return { recordTournamentRegistrationReceipt: database ? recordTournamentRegistrationReceipt : async (client: any, input: any) => client.financialEntry.create({ data: { ...input, status: "PAID" } }) };
+      if (name === "@/lib/tournaments/registration-receivable") return { cancelTournamentRegistrationReceivable: database ? cancelTournamentRegistrationReceivable : async () => undefined };
       if (name === "next/server") return { NextResponse: { json: (body: Record<string, unknown>, options?: { status: number }) => ({ body, status: options?.status ?? 200 }) } };
       if (name === "@/lib/prisma") return { prisma };
       if (name === "@/lib/arena-database") return database ? { arenaDatabase: database.arenaDatabase } : { arenaDatabase: (arenaId: string) => ({
@@ -836,6 +839,8 @@ test("inscrição online registra recebimento uma única vez na conta original, 
         tournamentId: tournament.id, categoryId: category.id, leadName: "Atleta QA", leadPhone: "47999999999", leadCpf: "11111111111", partnerName: "Dupla QA", partnerPhone: "47888888888", partnerCpf: "22222222222", registrationOrder: legacy ? 2 : 1, amountCents: 500,
         paymentBankAccountId: legacy ? null : bank.id, mercadoPagoPaymentId: paymentId,
       } });
+      const originalEntry = legacy ? null : await database.withArenaTransaction(arenaId, tx => ensureTournamentRegistrationReceivable(tx, arenaId, registration.id)) as { id: string } | null;
+      if (originalEntry) assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: originalEntry.id } })).status, "PENDING");
       const paidAt = "2026-10-29T11:00:00.000Z";
       const webhook = loadWebhook(runtime, {}, async () => ({ id: paymentId, status: "approved", currency_id: "BRL", transaction_amount: 5, external_reference: registration.id, date_approved: paidAt }), async () => {}, database);
       const call = () => webhook(new Request(`https://example.test/api/payments/mercado-pago/webhook?arenaId=${arenaId}`, { method: "POST", body: JSON.stringify({ data: { id: paymentId } }) }));
@@ -843,6 +848,7 @@ test("inscrição online registra recebimento uma única vez na conta original, 
       assert.ok(responses.every(result => result.status === 200), JSON.stringify(responses));
       const entries = await admin.financialEntry.findMany({ where: { arenaId, externalReference: registration.id }, include: { settlements: true } });
       assert.equal(entries.length, 1);
+      if (originalEntry) assert.equal(entries[0].id, originalEntry.id, "online receipt reuses the original debt");
       assert.equal(entries[0].bankAccountId, legacy ? null : bank.id);
       assert.equal(entries[0].status, "PAID"); assert.equal(entries[0].amountCents, 500);
       assert.equal(entries[0].paymentMethod, "Mercado Pago online");

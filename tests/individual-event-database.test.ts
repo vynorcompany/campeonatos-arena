@@ -62,7 +62,7 @@ test("individual day-use public/manual registration, pricing, payment and tenant
     const { createManualTournamentRegistrationAction } = load("src/lib/actions/tournament/registrations.ts");
     const manual = await createManualTournamentRegistrationAction({}, data({ tournamentId: tournament.id, categoryId: category.id, registrationType: "INDIVIDUAL", leadPlayerId: athlete.id, amountReais: "80,00", bankAccountId: bank.id, paymentStatus: "PAID" }));
     assert.equal(manual.error, null);
-    const receipt = await admin.financialEntry.findFirstOrThrow({ where: { arenaId, source: "TOURNAMENT_REGISTRATION" } });
+    const receipt = await admin.financialEntry.findFirstOrThrow({ where: { arenaId, source: "TOURNAMENT_REGISTRATION", playerId: athlete.id, status: "PAID" } });
     assert.equal(receipt.amountCents, 8000); assert.equal(receipt.counterpartyName, athlete.name);
     const pendingAthlete = await admin.player.create({ data: { arenaId, name: "Pendente Individual", cpf: "44444444444", phone: "42999990004" } });
     const pending = await createManualTournamentRegistrationAction({}, data({ tournamentId: tournament.id, categoryId: category.id, registrationType: "INDIVIDUAL", leadPlayerId: pendingAthlete.id, amountReais: "60,00", paymentStatus: "PENDING" }));

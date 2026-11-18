@@ -2,6 +2,7 @@
 import { receiveOnsiteTournamentRegistration } from "@/lib/tournaments/onsite-registration-receipt";
 import { validateRegistrationThird } from "@/lib/tournaments/trio-registration";
 import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
+import { ensureTournamentRegistrationReceivable, cancelTournamentRegistrationReceivable } from "@/lib/tournaments/registration-receivable";
 import { recordTournamentRegistrationReceipt } from "@/lib/tournaments/registration-receipt";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -285,6 +286,7 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
         data: {
           tournamentId: parsed.data.tournamentId,
           categoryId: categories[0].id,
+          leadPlayerId: lead.id,
           leadName: lead.name,
           leadPhone: lead.phone,
           leadCpf: lead.cpf,
@@ -304,6 +306,7 @@ export async function createManualTournamentRegistrationAction(_: ActionState, f
         }
       });
 
+      await ensureTournamentRegistrationReceivable(tx, auth.arenaId, registration.id);
       if (bankAccountId) await recordTournamentRegistrationReceipt(tx, { arenaId: auth.arenaId, registrationId: registration.id, bankAccountId, amountCents, leadName: lead.name, partnerName: partner?.name ?? "", thirdName: third?.name });
 
       if (parsed.data.paymentStatus === "PAID") {
@@ -346,6 +349,7 @@ export async function deleteTournamentRegistrationAction(formData: FormData) {
       select: { status: true, paymentStatus: true, paymentProvider: true, paymentReference: true, mercadoPagoPaymentId: true, paymentCheckoutUrl: true }
     });
     if (!registration || !canDeleteTournamentRegistration(registration)) return { count: 0 };
+    await cancelTournamentRegistrationReceivable(tx, auth.arenaId, registrationId);
     return tx.publicTournamentRegistration.deleteMany({
       where: { id: registrationId, tournament: { arenaId: auth.arenaId }, status: "PENDING_PAYMENT", paymentStatus: "PENDING", paymentProvider: "MANUAL", paymentReference: "", mercadoPagoPaymentId: "", paymentCheckoutUrl: "" }
     });
