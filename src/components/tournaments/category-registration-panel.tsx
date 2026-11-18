@@ -142,9 +142,9 @@ export function CategoryRegistrationPanel({
                   {category.competition.pairs.length ? (
                     <div className={cx(`${viewStyles.simple_list} ${category.competition.format === "LEAGUE" ? viewStyles.league_registration_list : ""}`)}>
                       {category.competition.pairs.map((pair) => (
-                        <div className={cx(`${viewStyles.simple_item} ${category.competition?.format === "LEAGUE" ? viewStyles.league_registration_card : ""}`)} key={pair.id} id={`pair-${pair.id}`}>
-                          <div className={cx(`${viewStyles.match_copy} ${category.competition?.format === "LEAGUE" ? viewStyles.league_registration_pair_name : ""}`)}>
-                            {pair.playerNames.length ? pair.playerNames.map((name,index)=><span className="tw:flex tw:min-w-0 tw:items-center tw:gap-2" key={`${pair.id}-${index}`}><ClientAvatar name={name}/><span className="tw:min-w-0 tw:break-words">{name}</span></span>) : <span>{pair.name}</span>}
+                        <div className={viewStyles.compact_pair_row} key={pair.id} id={`pair-${pair.id}`}>
+                          <div className={viewStyles.compact_pair_names}>
+                            {pair.playerNames.length ? pair.playerNames.map((name,index)=><span className="tw:inline-flex tw:min-w-0 tw:max-w-full tw:items-center tw:gap-1.5" key={`${pair.id}-${index}`}><span className="tw:[&>span]:size-5"><ClientAvatar name={name}/></span><span className="tw:min-w-0 tw:break-words">{name}</span>{index < pair.playerNames.length-1 ? <span aria-hidden="true" className="tw:ml-1 tw:text-[#607086]">·</span> : null}</span>) : <span>{pair.name}</span>}
                           </div>
                           {canRemovePair ? (
                             <SafeActionForm action={removeCategoryPairAction} successMessage={category.competition?.format === "TRIO" ? "Trio removido." : "Dupla removida."} confirmKeyword="REMOVER" confirmPrompt={`Remover ${category.competition?.format === "TRIO" ? "o trio" : "a dupla"} ${pair.playerNames.length ? pair.playerNames.join(" / ") : pair.name} desta categoria? Digite REMOVER para confirmar.`}>
