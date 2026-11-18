@@ -1,3 +1,4 @@
+import * as registrationReceivables from "../src/lib/tournaments/registration-receivable";
 import * as composition from "../src/lib/products/composition";
 import { consumeProductStock } from "../src/lib/products/stock-aggregates";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
@@ -32,7 +33,7 @@ test("comanda policies enforce delinquency, cash, full payment, surplus, wallet 
     const product = await admin.product.create({ data: { arenaId: arena.id, name: "Service QA", isService: true, priceCents: 1000 } });
     const settings = await admin.arenaOperationalSettings.create({ data: { arenaId: arena.id, requireFullPayment: true, cashRegisterRequired: true, blockDelinquentComandas: true, comandaCardsEnabled: true } });
     const transact = <T>(arenaId: string, operation: Parameters<PrismaClient["$transaction"]>[0]) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return (operation as (tx: unknown) => Promise<T>)(tx); });
-    const mocks: Record<string, unknown> = { "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock },
+    const mocks: Record<string, unknown> = { "@/lib/tournaments/registration-receivable": registrationReceivables, "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock },
       "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id, userId: "goal-test", userName: "Policy operator QA" }) },
       "@/lib/arena-database": { arenaDatabase: (arenaId: string) => arenaDatabaseForTest(runtime, arenaId) }, "@/lib/rls": { withArenaTransaction: transact },
       "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents },

@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 
 export function refreshFinanceRoutes() {
+  revalidatePath("/torneios", "layout");
   revalidatePath("/painel");
   revalidatePath("/financeiro");
   revalidatePath("/financeiro/folha");

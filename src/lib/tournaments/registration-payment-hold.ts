@@ -1,3 +1,4 @@
+import { cancelTournamentRegistrationReceivable } from "@/lib/tournaments/registration-receivable";
 import type { ArenaTransaction } from "@/lib/rls";
 
 export const PUBLIC_REGISTRATION_PAYMENT_HOLD_MINUTES = 60;
@@ -30,7 +31,8 @@ export async function releaseExpiredPublicRegistrationHolds(
   tournamentId: string,
   now = new Date(),
 ) {
-  return tx.publicTournamentRegistration.updateMany({
+  const expired = await tx.publicTournamentRegistration.findMany({ where: { tournamentId, status: "PENDING_PAYMENT", paymentStatus: { notIn: ["PAID", "REVIEW", "REFUNDED"] }, holdExpiresAt: { lte: now } }, select: { id: true, tournament: { select: { arenaId: true } } } });
+  const result = await tx.publicTournamentRegistration.updateMany({
     where: {
       tournamentId,
       status: "PENDING_PAYMENT",
@@ -39,4 +41,9 @@ export async function releaseExpiredPublicRegistrationHolds(
     },
     data: { status: "CANCELED" },
   });
+  for (const registration of expired) {
+    const canceled = await tx.publicTournamentRegistration.count({ where: { id: registration.id, status: "CANCELED" } });
+    if (canceled) await cancelTournamentRegistrationReceivable(tx, registration.tournament.arenaId, registration.id);
+  }
+  return result;
 }

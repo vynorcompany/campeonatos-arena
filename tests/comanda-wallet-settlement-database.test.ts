@@ -1,3 +1,4 @@
+import * as registrationReceivables from "../src/lib/tournaments/registration-receivable";
 import { createCardInstallmentEntries } from "../src/lib/finance/card-installment-service";
 import { customizedCardInstallments } from "../src/lib/finance/card-installments";
 import * as composition from "../src/lib/products/composition";
@@ -36,7 +37,7 @@ async function fixture() {
   const product = await admin.product.create({ data: { arenaId: arena.id, name: "Service QA", priceCents: 1000, isService: true } });
   await admin.arenaOperationalSettings.create({ data: { arenaId: arena.id, requireFullPayment: true } });
   const transact = (scope: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${scope}, true)`; return operation(tx); }, { maxWait: 10_000, timeout: 10_000 });
-  const mocks: Record<string, unknown> = { "@/lib/finance/card-installment-service": { createCardInstallmentEntries }, "@/lib/finance/card-installments": { customizedCardInstallments }, "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock },
+  const mocks: Record<string, unknown> = { "@/lib/tournaments/registration-receivable": registrationReceivables, "@/lib/finance/card-installment-service": { createCardInstallmentEntries }, "@/lib/finance/card-installments": { customizedCardInstallments }, "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock },
     "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id, userId: "goal-test", userName: "Wallet QA" }) },
     "@/lib/arena-database": { arenaDatabase: (scope: string) => arenaDatabaseForTest(runtime, scope) }, "@/lib/rls": { withArenaTransaction: transact },
     "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents },
@@ -193,4 +194,24 @@ test("comanda persists customized dates and amounts atomically and rejects a mis
   const rows=await f.admin.financialEntry.findMany({where:{saleId:sale.id},orderBy:{dueDate:"asc"}});
   assert.deepEqual(rows.map(row=>({dueDate:row.dueDate!.toISOString().slice(0,10),amountCents:row.amountCents})),installmentRows);
  }finally{await f.cleanup()}
+});
+
+test("paying an event debt with a comanda updates the registration and refuses a second online collection", { skip: !isolated }, async () => {
+  const f = await fixture();
+  try {
+    const event = await f.admin.tournament.create({ data: { arenaId: f.arena.id, name: "Local event debt QA" } });
+    const category = await f.admin.tournamentCategory.create({ data: { tournamentId: event.id, name: "Individual", registrationType: "INDIVIDUAL", level: 1 } });
+    const registration = await f.admin.publicTournamentRegistration.create({ data: { tournamentId: event.id, categoryId: category.id, registrationOrder: 1, leadPlayerId: f.owner.id, leadName: f.owner.name, leadPhone: "42999990001", leadCpf: "", partnerName: "", partnerPhone: "", partnerCpf: "", amountCents: 7500, paymentProvider: "PAY_ON_SITE", paymentStatus: "PENDING", status: "CONFIRMED" } });
+    const debt = await f.admin.$transaction(tx => registrationReceivables.ensureTournamentRegistrationReceivable(tx, f.arena.id, registration.id)); assert.ok(debt);
+    await f.fund(7500); const command = await f.command(false);
+    await f.finish(command.id, 7500, [debt.id]);
+    assert.equal((await f.admin.publicTournamentRegistration.findUniqueOrThrow({ where: { id: registration.id } })).paymentStatus, "PAID");
+    assert.equal((await f.admin.financialEntry.findUniqueOrThrow({ where: { id: debt.id } })).status, "PAID");
+    assert.equal(await f.admin.financialEntry.count({ where: { arenaId: f.arena.id, externalReference: registration.id } }), 1);
+    const online = await f.admin.publicTournamentRegistration.create({ data: { tournamentId: event.id, categoryId: category.id, registrationOrder: 2, leadName: "Online QA", leadPhone: "42999990002", leadCpf: "", partnerName: "", partnerPhone: "", partnerCpf: "", amountCents: 7500, paymentProvider: "MERCADO_PAGO", status: "PENDING_PAYMENT" } });
+    const onlineDebt = await f.admin.$transaction(tx => registrationReceivables.ensureTournamentRegistrationReceivable(tx, f.arena.id, online.id)); assert.ok(onlineDebt);
+    const second = await f.command(false);
+    await assert.rejects(f.finish(second.id, 0, [onlineDebt.id], 7500), /cobrança online/);
+    assert.equal(await f.admin.financialSettlement.count({ where: { financialEntryId: onlineDebt.id } }), 0);
+  } finally { await f.cleanup(); }
 });

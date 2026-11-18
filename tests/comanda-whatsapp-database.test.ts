@@ -1,3 +1,4 @@
+import * as registrationReceivables from "../src/lib/tournaments/registration-receivable";
 import * as composition from "../src/lib/products/composition";
 import { consumeProductStock } from "../src/lib/products/stock-aggregates";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
@@ -34,7 +35,7 @@ test("comanda WhatsApp sends only committed own shares once and preserves financ
     const callbacks: (() => Promise<void>)[] = []; const sent: { phone: string; message: string }[] = []; let failProvider = false; let failQueue = false;
     const exports: Record<string, any> = {}; const dispatcher: Record<string, any> = {};
     const common: Record<string, unknown> = { "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock }, "@/lib/rls": { withArenaTransaction: transact } };
-    const load = (file: string, target: Record<string, any>, mocks: Record<string, unknown>) => vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: target, FormData, Date, AbortSignal, crypto: globalThis.crypto, console, require: (name: string) => mocks[name] ?? (name.startsWith("@/") ? {} : nodeRequire(name)) });
+    const load = (file: string, target: Record<string, any>, mocks: Record<string, unknown>) => vm.runInNewContext(ts.transpileModule(readFileSync(new URL(file, import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: target, FormData, Date, AbortSignal, crypto: globalThis.crypto, console, require: (name: string) => name === "@/lib/tournaments/registration-receivable" ? registrationReceivables : mocks[name] ?? (name.startsWith("@/") ? {} : nodeRequire(name)) });
     load("../src/lib/comandas/whatsapp-delivery.ts", dispatcher, { ...common, "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: async (phone: string, message: string, arenaId: string) => {
       assert.equal(arenaId, ids[0]); assert.equal(await admin.sale.count({ where: { arenaId: ids[0] } }) > 0, true, "provider called before sale commit");
       sent.push({ phone, message }); if (failProvider) throw Error("Network uncertainty"); return {};
