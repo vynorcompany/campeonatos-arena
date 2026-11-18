@@ -7,6 +7,7 @@ export function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   // Always overwrite untrusted incoming nonce/CSP headers before Next renders scripts.
   requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("x-portal-pathname", request.nextUrl.pathname);
   requestHeaders.set("Content-Security-Policy", policy);
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", policy);

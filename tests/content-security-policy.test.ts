@@ -23,7 +23,7 @@ test("production policy authorizes nonced scripts without allowing inline handle
 });
 
 test("middleware replaces supplied headers and creates a fresh policy for each render", () => {
-  const exports: Record<string, (request: { headers: Headers }) => { headers: Headers; forwarded: Headers }> = {};
+  const exports: Record<string, (request: { nextUrl: { pathname: string }; headers: Headers }) => { headers: Headers; forwarded: Headers }> = {};
   const source = readFileSync("src/middleware.ts", "utf8");
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, Headers, Uint8Array, btoa, crypto: webcrypto, process: { env: { NODE_ENV: "production" } },
@@ -33,8 +33,9 @@ test("middleware replaces supplied headers and creates a fresh policy for each r
       throw new Error(`Unexpected dependency ${name}`);
     },
   });
-  const first = exports.middleware({ headers: new Headers({ "x-nonce": "attacker", "Content-Security-Policy": "script-src *" }) });
-  const second = exports.middleware({ headers: new Headers() });
+  const first = exports.middleware({ nextUrl: { pathname: "/portal" }, headers: new Headers({ "x-nonce": "attacker", "x-portal-pathname": "/financeiro", "Content-Security-Policy": "script-src *" }) });
+  const second = exports.middleware({ nextUrl: { pathname: "/portal" }, headers: new Headers() });
+  assert.equal(first.forwarded.get("x-portal-pathname"), "/portal");
   const nonce = first.forwarded.get("x-nonce");
   assert.ok(nonce && nonce !== "attacker");
   assert.notEqual(nonce, second.forwarded.get("x-nonce"));
