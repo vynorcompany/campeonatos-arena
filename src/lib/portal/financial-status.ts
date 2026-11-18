@@ -1,8 +1,7 @@
 export type PortalDueUrgency = "overdue" | "soon" | "normal";
 
-/** Calendar-day comparison; the warning starts exactly three days before due date. */
-export function getPortalDueUrgency(dueDate: Date | null, today: Date, status?: string): PortalDueUrgency {
-  if (status === "OVERDUE") return "overdue";
+/** Calendar days: overdue starts the day after the due date, even if a stored status is stale. */
+export function getPortalDueUrgency(dueDate: Date | null, today: Date, _status?: string): PortalDueUrgency {
   if (!dueDate) return "normal";
   const day = (value: Date) => Date.UTC(value.getFullYear(), value.getMonth(), value.getDate());
   const daysUntilDue = Math.round((day(dueDate) - day(today)) / 86_400_000);

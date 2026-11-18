@@ -305,6 +305,7 @@ export function PublicStandings({
       </header>
       <div className="portal-workspace tw:mx-auto tw:grid tw:w-full tw:max-w-[1240px] tw:min-w-0 tw:gap-5 tw:px-4 tw:py-6 tw:min-[700px]:px-8 tw:min-[700px]:py-8">
       <PortalPwaExperience showInstallControl={false} />
+      <PortalPwaExperience showInstallControl />
       {requestedSection !== "home" ? <div><p className="tw:mb-1 tw:text-[10px] tw:font-semibold tw:tracking-[.12em] tw:text-[#606874] tw:dark:text-[#aab4c2]">SEU PORTAL</p><h1 className="tw:m-0 tw:text-2xl tw:font-semibold tw:tracking-tight">{sectionTitle}</h1></div> : null}
       <AthletePortalPrefetch hrefs={[portalHref("home"), portalHref("announcements"), portalHref("leagues", "games"), portalHref("lessons"), portalHref("profile"), portalHref("radar"), portalHref("comandas")]} />
       {requestedSection === "lessons" || requestedSection === "classes" ? (
@@ -381,7 +382,6 @@ export function PublicStandings({
       ) : (
         <PublicPlayerProfile arenaSlug={arena.slug} player={currentClient} />
       )}
-      {requestedSection === "profile" ? <PortalPwaExperience showInstallControl /> : null}
       {requestedSection === "profile" ? <form action={logoutAthletePortalAction} className="tw:min-[700px]:hidden"><input type="hidden" name="arenaSlug" value={arena.slug}/><button type="submit" className="tw:min-h-11 tw:w-full tw:cursor-pointer tw:rounded-xl tw:border tw:border-[#dce1e7] tw:bg-white tw:px-4 tw:text-sm tw:font-medium tw:text-[#606874] tw:dark:border-[#293648] tw:dark:bg-[#101c2d] tw:dark:text-[#adb7c6]">Sair da conta</button></form> : null}
       </div>
       <PortalBottomNav items={menuItems} safeArea={portalPwaEnabled()} current={requestedSection === "booking" ? "schedule" : requestedSection} href={portalHref} />
