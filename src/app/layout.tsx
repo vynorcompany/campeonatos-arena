@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { PortalPwaProvider } from "@/components/portal/portal-pwa-provider";
 import { isPortalPwaPath, portalPwaEnabled } from "@/lib/portal/pwa-policy";
+import { SystemTooltips } from "@/components/ui/system-tooltips";
 import { Suspense } from "react";
 import { NotificationTarget } from "@/components/notifications/notification-target";
 import { documentUtilities } from "./document.utilities";
@@ -39,7 +40,7 @@ export async function generateViewport(): Promise<Viewport> {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={documentUtilities}>
-      <body><PortalPwaProvider enabled={portalPwaEnabled()}>{children}</PortalPwaProvider><Suspense fallback={null}><NotificationTarget /></Suspense><SystemUpdateNotice initialRevision={releaseRevision(process.env.RAILWAY_GIT_COMMIT_SHA)} /></body>
+      <body><SystemTooltips /><PortalPwaProvider enabled={portalPwaEnabled()}>{children}</PortalPwaProvider><Suspense fallback={null}><NotificationTarget /></Suspense><SystemUpdateNotice initialRevision={releaseRevision(process.env.RAILWAY_GIT_COMMIT_SHA)} /></body>
     </html>
   );
 }
