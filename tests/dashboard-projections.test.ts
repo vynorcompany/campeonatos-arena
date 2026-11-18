@@ -144,3 +144,19 @@ test("expense card always reports confirmed cash payments, including partials, r
     assert.equal(card.caption, "Pagamentos confirmados no período");
   }
 });
+
+
+test("financial card details sort all payments chronologically before pagination", () => {
+  const entries = Array.from({ length: 25 }, (_, index) => entry({
+    id: `expense-${String(25 - index).padStart(2, "0")}`, type: "EXPENSE", status: "PAID",
+    paidAt: date(`2026-01-${String(25 - index).padStart(2, "0")}`),
+  }));
+  const data: any = { entries, previousEntries: [], recurrences: [], occurrences: [], courts: [], lessons: [], portalAccounts: [], saleGroups: [], products: [], previousReservations: 0 };
+  for (const view of ["caixa", "competencia"] as const) {
+    const card = buildDashboardAnalytics(data, from, to, to, view).cards.find(card => card.id === "expense")!;
+    assert.deepEqual(card.items.map(item => item.id), Array.from({ length: 25 }, (_, index) => `expense-${String(index + 1).padStart(2, "0")}`));
+    assert.equal(card.items[19].date, "2026-01-20");
+    assert.equal(card.items[20].date, "2026-01-21");
+    assert.equal(data.entries[0].id, "expense-25");
+  }
+});
