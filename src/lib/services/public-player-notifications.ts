@@ -1,4 +1,5 @@
 import "server-only";
+import { getPortalDueUrgency } from "@/lib/portal/financial-status";
 import { playerLessonCredits } from "@/lib/academy/lesson-credit-portal";
 import { portalCheckoutPolicy } from "@/lib/payments/portal-checkout-policy";
 
@@ -43,8 +44,8 @@ export async function getAthletePortalNotifications(arenaSlug: string, playerId:
   const readKeys = new Set(reads.map((item) => item.notificationKey));
   const today = arenaToday(now);
   const financial = (policy.visible ? entries : []).map((entry) => ({ entry, outstandingCents: getOutstandingCents(entry.amountCents, entry.settlements) })).filter(({ outstandingCents }) => outstandingCents > 0).map(({ entry, outstandingCents }) => {
-    const overdue = entry.status === "OVERDUE" || Boolean(entry.dueDate && entry.dueDate < today);
-    return { id: `finance-${entry.id}`, source: "FINANCE" as const, title: overdue ? "Pagamento em atraso" : "Pagamento pendente", message: `${entry.description || "Lançamento financeiro"} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(outstandingCents / 100)}`, href: `/home?arena=${encodeURIComponent(arenaSlug)}&section=finance#finance-${encodeURIComponent(entry.id)}`, createdAt: entry.createdAt.toISOString(), isRead: readKeys.has(`finance-${entry.id}`), persistent: overdue };
+    const overdue = getPortalDueUrgency(entry.dueDate, today) === "overdue";
+    return { id: `finance-${entry.id}`, source: "FINANCE" as const, title: overdue ? "Pagamento em atraso" : "Pagamento em aberto", message: `${entry.description || "Lançamento financeiro"} · ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(outstandingCents / 100)}`, href: `/home?arena=${encodeURIComponent(arenaSlug)}&section=finance#finance-${encodeURIComponent(entry.id)}`, createdAt: entry.createdAt.toISOString(), isRead: readKeys.has(`finance-${entry.id}`), persistent: overdue };
   });
   return [
     ...playerNotifications.filter(notification => policy.visible || notification.type !== "FIXED_BOOKING_OPEN_BALANCE").map((notification) => {

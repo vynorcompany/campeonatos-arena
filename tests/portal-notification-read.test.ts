@@ -1,3 +1,5 @@
+import { arenaToday } from "../src/lib/calendar/arena-wall-clock";
+import { getPortalDueUrgency } from "../src/lib/portal/financial-status";
 import { portalCheckoutPolicy } from "../src/lib/payments/portal-checkout-policy";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -12,19 +14,20 @@ function moduleAt(path: string, mocks: Record<string, unknown>) {
 }
 
 test("ler notificações financeiras persiste a leitura sem eliminar a pendência", async()=>{
-  let read=false;const date=new Date();let paymentSettings:Parameters<typeof portalCheckoutPolicy>[0]=null;let paymentUrl="";
+  let read=false;const date=new Date();let today=date;let dueDate:Date|null=new Date("2020-01-01");let paymentSettings:Parameters<typeof portalCheckoutPolicy>[0]=null;let paymentUrl="";
   const tx={arenaOperationalSettings:{findUnique:async()=>paymentSettings},
     playerNotification:{findMany:async()=>[{id:"player-note",type:"GENERAL",title:"Aviso",message:"Mensagem",href:"",readAt:read?date:null,createdAt:date}]},
     portalAnnouncement:{findMany:async()=>[{id:"notice",title:"Arena",message:"Mensagem",createdAt:date}]},
-    financialEntry:{findMany:async()=>[{id:"debt",description:"Mensalidade",amountCents:500,status:"OVERDUE",dueDate:new Date("2020-01-01"),createdAt:date,onlinePaymentUrl:paymentUrl,settlements:[]}]},
+    financialEntry:{findMany:async()=>[{id:"debt",description:"Mensalidade",amountCents:500,status:"OVERDUE",dueDate,createdAt:date,onlinePaymentUrl:paymentUrl,settlements:[]}]},
     playerPortalNotificationRead:{findMany:async()=>read?[{notificationKey:"finance-debt"},{notificationKey:"arena-notice"},{notificationKey:"booking-delinquency"}]:[]},
     categoryMatch:{findMany:async()=>[]},
   };
   const service=moduleAt("src/lib/services/public-player-notifications.ts",{
+    "@/lib/portal/financial-status": {getPortalDueUrgency},
     "@/lib/academy/lesson-credit-portal": {playerLessonCredits:async()=>null}, "server-only":{},"@/lib/prisma":{prisma:{arena:{findUnique:async()=>({id:"arena-a",onlineBookingOverdueBlockDays:1})}}},
     "@/lib/payments/portal-checkout-policy":{portalCheckoutPolicy},"@/lib/rls":{withArenaTransaction:async(_id:string,fn:(tx:unknown)=>unknown)=>fn(tx)},
     "@/lib/finance/settlements":{getOutstandingCents:(amount:number)=>amount},
-    "@/lib/calendar/arena-wall-clock":{arenaToday:()=>date,instantToArenaWallClock:(value:Date)=>value},
+    "@/lib/calendar/arena-wall-clock":{arenaToday:()=>today,instantToArenaWallClock:(value:Date)=>value},
     "@/lib/calendar/booking-delinquency":{getBookingDelinquency:async()=>({blocked:true})},
   });
   const before=await service.getAthletePortalNotifications("arena-a","player-a");assert.equal(before.filter((n:any)=>!n.isRead).length,4);
@@ -40,6 +43,20 @@ test("ler notificações financeiras persiste a leitura sem eliminar a pendênci
   paymentSettings={...paymentSettings,portalConsumptionEnabled:true,portalPaymentEnabled:false};paymentUrl="https://checkout.private.example/pay";
   const readonly=await service.getAthletePortalNotifications("arena-a","player-a");
   assert.match(readonly.find((n:any)=>n.id==="finance-debt").href,/section=finance/);assert.doesNotMatch(JSON.stringify(readonly),/checkout\.private/);
+  // The server may already say OVERDUE; the arena calendar date remains authoritative.
+  dueDate=new Date(2026,10,18,0,0);
+  today=arenaToday(new Date("2026-11-19T02:59:59Z"));
+  const dueToday=await service.getAthletePortalNotifications("arena-a","player-a");
+  assert.equal(dueToday.find((n:any)=>n.id==="finance-debt").title,"Pagamento em aberto");
+  assert.equal(dueToday.find((n:any)=>n.id==="finance-debt").persistent,false);
+  today=arenaToday(new Date("2026-11-19T03:00:00Z"));
+  const nextDay=await service.getAthletePortalNotifications("arena-a","player-a");
+  assert.equal(nextDay.find((n:any)=>n.id==="finance-debt").title,"Pagamento em atraso");
+  assert.equal(nextDay.find((n:any)=>n.id==="finance-debt").persistent,true);
+  dueDate=null;
+  const withoutDue=await service.getAthletePortalNotifications("arena-a","player-a");
+  assert.equal(withoutDue.find((n:any)=>n.id==="finance-debt").title,"Pagamento em aberto");
+
 
 });
 

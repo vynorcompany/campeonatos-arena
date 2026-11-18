@@ -1,3 +1,4 @@
+import { getPortalDueUrgency } from "../src/lib/portal/financial-status";
 import * as composition from "../src/lib/products/composition";
 import * as stockAggregates from "../src/lib/products/stock-aggregates";
 import { portalCheckoutPolicy } from "../src/lib/payments/portal-checkout-policy";
@@ -13,6 +14,7 @@ test("a tela inicial não diz que está tudo em dia quando há comanda aberta", 
   const comandaQueries: Array<Record<string, unknown>> = [];
   let openComandas: Array<{ id: string; code: string; openedAt?: Date; openedByUserName?: string; bookingServices?: { id: string; amountCents: number }[]; items: { totalCents: number; id?: string; quantity?: number; product?: { name: string } }[] }> = [{ id: "comanda-a", code: "GOAL-1", items: [{ totalCents: 1200 }] }];
   let consumptionEnabled = true;
+  let debts: any[] = [];
   const tx = {
     arenaOperationalSettings: { findUnique: async () => ({ portalConsumptionEnabled: consumptionEnabled }) },
     product: { findMany: async () => [] },
@@ -24,7 +26,7 @@ test("a tela inicial não diz que está tudo em dia quando há comanda aberta", 
     student: { findFirst: async () => null },
     scheduleOccurrence: { count: async () => 0, findMany: async () => [] },
     categoryPair: { count: async () => 0 },
-    financialEntry: { findMany: async () => [] },
+    financialEntry: { findMany: async () => debts },
     comanda: { findMany: async (query: Record<string, unknown>) => { comandaQueries.push(query); return openComandas; } },
   };
   const mocks: Record<string, unknown> = { "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": stockAggregates,
@@ -33,8 +35,8 @@ test("a tela inicial não diz que está tudo em dia quando há comanda aberta", 
     "@/lib/payments/portal-checkout-policy": { portalCheckoutPolicy },
     "@/lib/academy/lesson-credit-portal": { playerLessonCredits: async()=>null }, "@/lib/rls": { withArenaTransaction: async (_arenaId: string, action: (client: typeof tx) => Promise<unknown>) => action(tx) },
     "@/lib/finance/settlements": { getOutstandingCents: (amount: number) => amount },
-    "@/lib/portal/financial-status": { getPortalDueUrgency: () => "normal" },
-    "@/lib/portal/finance-entries": { loadPortalFinancialEntries: async () => [[], []] },
+    "@/lib/portal/financial-status": { getPortalDueUrgency },
+    "@/lib/portal/finance-entries": { loadPortalFinancialEntries: async () => [debts, []] },
     "@/lib/portal/upcoming-reservations": { upcomingPlayerReservationsWhere: () => ({}) },
     "@/lib/calendar/arena-wall-clock": { arenaToday: () => new Date("2030-01-10T12:00:00.000Z"), instantToArenaWallClock: (value: Date) => value },
   };
@@ -70,6 +72,17 @@ test("a tela inicial não diz que está tudo em dia quando há comanda aberta", 
   assert.equal(empty.summary.financialStatus, "active");
   assert.equal(empty.summary.mobileFinancialStatus, "healthy");
   assert.equal(empty.summary.mobileFinancialLabel, "Tudo em dia");
+
+  debts = [{ id: "today", status: "OVERDUE", dueDate: new Date(2030,0,10,0), amountCents: 7500, settlements: [], description: "Inscrição", player: {id:"player-a"}, billingPlayerId:null, sale:null, plan:null, scheduleParticipant:null, onlinePaymentUrl:"", paidAt:null }];
+  const dueHome = await exports.getPublicClientHome("arena-a","player-a") as any;
+  assert.equal(dueHome.summary.mobileFinancialLabel,"Pagamento em aberto");
+  const dueFinance = await exports.getPublicClientFinance("arena-a","player-a") as any;
+  assert.equal(dueFinance.overdue.length,0);
+  assert.equal(dueFinance.open.length,1);
+  debts[0].dueDate=new Date(2030,0,9,23,59);
+  const pastFinance = await exports.getPublicClientFinance("arena-a","player-a") as any;
+  assert.equal(pastFinance.overdue.length,1);
+  debts=[];
   consumptionEnabled = false;
   openComandas = [{ id: "secret-comanda", code: "PRIVATE-CONSUMPTION", items: [{ totalCents: 98765 }] }];
   const hiddenHome = await exports.getPublicClientHome("arena-a", "player-a") as { financialVisible: boolean; charges: unknown[]; summary: { financial: string } };

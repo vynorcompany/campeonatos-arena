@@ -27,8 +27,8 @@ function portalReceivableDeadline(today: Date) {
  */
 function shouldShowPortalReceivable(entry: { status: string; dueDate: Date | null; outstandingCents: number }, today: Date, deadline: Date) {
   if (entry.outstandingCents <= 0) return false;
-  if (entry.status === "OVERDUE") return true;
-  return Boolean(entry.dueDate && entry.dueDate <= deadline);
+  if (!entry.dueDate) return entry.status === "OVERDUE";
+  return entry.dueDate <= deadline;
 }
 
 export async function getPublicClientHome(arenaSlug: string, playerId: string) {
@@ -58,16 +58,17 @@ export async function getPublicClientHome(arenaSlug: string, playerId: string) {
   const entries = policy.visible ? financialEntries : [];
   const openComandas = policy.visible ? activeComandas : [];
   const today = arenaToday(now);
+  const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
   const deadline = portalReceivableDeadline(today);
   const balances = entries.map((entry) => { const outstandingCents = getOutstandingCents(entry.amountCents, entry.settlements); return { ...entry, outstandingCents, payableCents: entry.onlinePaymentUrl && entry.onlineChargeAmountCents != null ? entry.onlineChargeAmountCents : outstandingCents }; }).filter((entry) => entry.outstandingCents > 0);
   const portalBalances = balances.filter((entry) => shouldShowPortalReceivable(entry, today, deadline));
-  const currentEntries = portalBalances.filter((entry) => entry.status === "OVERDUE" || Boolean(entry.dueDate && entry.dueDate <= today));
-  const futureEntries = portalBalances.filter((entry) => entry.status !== "OVERDUE" && entry.dueDate && entry.dueDate > today && entry.dueDate <= deadline);
+  const currentEntries = portalBalances.filter((entry) => !entry.dueDate || entry.dueDate < endOfToday);
+  const futureEntries = portalBalances.filter((entry) => entry.dueDate && entry.dueDate >= endOfToday && entry.dueDate <= deadline);
   const due = currentEntries.reduce((total, entry) => total + entry.payableCents, 0);
   const openComandaTotal = openComandas.reduce((total, comanda) => total + comanda.items.reduce((itemTotal, item) => itemTotal + item.totalCents, 0), 0);
   const hasOpenComanda = openComandas.length > 0;
   const future = futureEntries.reduce((total, entry) => total + entry.payableCents, 0);
-  const overdue = currentEntries.some((entry) => entry.status === "OVERDUE" || (entry.dueDate && entry.dueDate < today));
+  const overdue = currentEntries.some((entry) => getPortalDueUrgency(entry.dueDate, today) === "overdue");
   const dueSoon = futureEntries.some((entry) => getPortalDueUrgency(entry.dueDate, today, entry.status) === "soon");
   const charges = portalBalances.filter((entry) => policy.enabled && entry.onlinePaymentUrl).map((entry) => ({ id: entry.id, description: entry.description, amount: money(entry.payableCents), dueDate: entry.dueDate ? new Intl.DateTimeFormat("pt-BR").format(entry.dueDate) : "Sem vencimento", paymentUrl: entry.onlinePaymentUrl, urgency: getPortalDueUrgency(entry.dueDate, today, entry.status) }));
   const creditState = await withArenaTransaction(arena.id, tx=>playerLessonCredits(tx,arena.id,playerId,arenaSlug));
@@ -97,7 +98,7 @@ export async function getPublicClientFinance(arenaSlug: string, playerId: string
     const payableCents = entry.onlinePaymentUrl && entry.onlineChargeAmountCents != null ? entry.onlineChargeAmountCents : outstandingCents;
     const paidCents = entry.settlements.length ? entry.settlements.reduce((sum, settlement) => sum + settlement.amountCents, 0) : entry.amountCents;
     const chargeDetail = entry.onlinePaymentUrl && outstandingCents && (entry.onlineChargeDiscountCents || entry.onlineChargeInterestCents) ? ` · Desconto: ${money(entry.onlineChargeDiscountCents)} · Juros: ${money(entry.onlineChargeInterestCents)}` : "";
-    const overdue = entry.status !== "PAID" && outstandingCents > 0 && (entry.status === "OVERDUE" || Boolean(entry.dueDate && entry.dueDate < today));
+    const overdue = entry.status !== "PAID" && outstandingCents > 0 && getPortalDueUrgency(entry.dueDate, today) === "overdue";
     const commandItems = entry.sale?.comanda?.items.map((item) => `${item.quantity}× ${item.product.name}`).join(" · ") ?? "";
     const reservation = entry.scheduleParticipant?.occurrence;
     const detail = commandItems ? `Comanda ${entry.sale?.comanda?.code ?? entry.sale?.code ?? ""} · ${commandItems}` : reservation ? `Reserva ${reservation.title} · ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(reservation.startsAt)}${reservation.occurrenceCourts.length ? ` · ${reservation.occurrenceCourts.map((court) => court.court.name).join(" · ")}` : ""}` : entry.plan?.name ? `Plano ${entry.plan.name}` : entry.description || "Lançamento financeiro";
