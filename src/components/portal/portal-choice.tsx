@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Option = { value: string; label: string };
-export function PortalChoice({ label, name, defaultValue, options, navigate = false }: { label: string; name?: string; defaultValue: string; options: Option[]; navigate?: boolean }) {
+export function PortalChoice({ label, name, defaultValue, options, navigate = false, compact = false, queryParam }: { label: string; name?: string; defaultValue: string; options: Option[]; navigate?: boolean; compact?: boolean; queryParam?: string }) {
   const router = useRouter();
   const id = useId();
   const root = useRef<HTMLDivElement>(null);
@@ -20,13 +20,14 @@ export function PortalChoice({ label, name, defaultValue, options, navigate = fa
   const choose = (index: number) => {
     const option = options[index]; if (!option) return;
     setSelected(option.value); setActive(index); setOpen(false);
-    if (navigate) router.push(option.value);
+    if (queryParam) { const url = new URL(window.location.href); url.searchParams.set(queryParam, option.value); router.push(`${url.pathname}${url.search}${url.hash}`); }
+    else if (navigate) router.push(option.value);
     else if (input.current) { input.current.value = option.value; input.current.form?.requestSubmit(); }
   };
   return <div ref={root} className="tw:relative tw:min-w-0" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
-    <span id={`${id}-label`} className="tw:mb-2 tw:block tw:text-[10px] tw:font-bold tw:tracking-[.12em] tw:text-[#606874] tw:uppercase tw:dark:text-[#aab4c2]">{label}</span>
+    <span id={`${id}-label`} className={compact ? "tw:sr-only" : "tw:mb-2 tw:block tw:text-[10px] tw:font-bold tw:tracking-[.12em] tw:text-[#606874] tw:uppercase tw:dark:text-[#aab4c2]"}>{label}</span>
     {name ? <input ref={input} type="hidden" name={name} defaultValue={defaultValue} /> : null}
-    <button type="button" role="combobox" aria-haspopup="listbox" aria-expanded={open} aria-controls={`${id}-list`} aria-labelledby={`${id}-label ${id}-value`} aria-activedescendant={open ? `${id}-option-${active}` : undefined} className="tw:flex tw:min-h-12 tw:w-full tw:min-w-0 tw:cursor-pointer tw:items-center tw:justify-between tw:gap-3 tw:rounded-xl tw:border tw:border-[#c7d1df] tw:bg-white tw:px-4 tw:py-3 tw:text-left tw:text-sm tw:font-semibold tw:text-[#16263d] tw:shadow-sm tw:transition-colors tw:hover:border-[#07408f] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#07408f] tw:dark:border-[#384961] tw:dark:bg-[#102441] tw:dark:text-[#edf2fa]" onClick={() => setOpen(!open)} onKeyDown={event => {
+    <button type="button" role="combobox" aria-haspopup="listbox" aria-expanded={open} aria-controls={`${id}-list`} aria-labelledby={`${id}-label ${id}-value`} aria-activedescendant={open ? `${id}-option-${active}` : undefined} className={`${compact ? "tw:min-h-10! tw:rounded-md! tw:border-0! tw:bg-transparent! tw:px-0! tw:py-1! tw:text-base! tw:font-medium! tw:shadow-none! tw:text-[#174983]! tw:dark:text-[#a5caff]! " : ""}tw:flex tw:min-h-12 tw:w-full tw:min-w-0 tw:cursor-pointer tw:items-center tw:justify-between tw:gap-3 tw:rounded-xl tw:border tw:border-[#c7d1df] tw:bg-white tw:px-4 tw:py-3 tw:text-left tw:text-sm tw:font-semibold tw:text-[#16263d] tw:shadow-sm tw:transition-colors tw:hover:border-[#07408f] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#07408f] tw:dark:border-[#384961] tw:dark:bg-[#102441] tw:dark:text-[#edf2fa]`} onClick={() => setOpen(!open)} onKeyDown={event => {
       if (event.key === "Escape") { event.preventDefault(); setOpen(false); }
       else if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setOpen(true); setActive(value => open ? (value + (event.key === "ArrowDown" ? 1 : -1) + options.length) % options.length : Math.max(0, options.findIndex(option => option.value === selected))); }
       else if (event.key === "Home" || event.key === "End") { event.preventDefault(); setOpen(true); setActive(event.key === "Home" ? 0 : options.length - 1); }
