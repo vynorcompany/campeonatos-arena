@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 
 import { CompositionFields } from "@/components/products/composition-fields";
@@ -29,7 +30,11 @@ const field = "tw:min-h-10 tw:w-full tw:min-w-0 tw:rounded-md tw:border tw:borde
 const primary = "tw:min-h-9 tw:cursor-pointer tw:rounded-md tw:border-0 tw:bg-[#174983] tw:px-3 tw:py-1.5 tw:text-xs tw:font-normal tw:text-white! tw:disabled:cursor-not-allowed tw:disabled:opacity-50";
 const quantityButton = "tw:grid tw:size-9 tw:shrink-0 tw:cursor-pointer tw:place-items-center tw:rounded-md tw:border tw:border-[var(--portal-line,#d8e5e9)] tw:bg-[var(--portal-surface,white)] tw:text-base tw:text-[var(--portal-ink,#133047)] tw:disabled:opacity-40 tw:hover:border-[#174983] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:dark:focus-visible:outline-[#a5caff]";
 
-export function PortalClientComandas({ data: initialData, arenaSlug }: { data: Data; arenaSlug: string }) {
+function ComandaConsumption({ comanda }: { comanda: NonNullable<Data>["comandas"][number] }) {
+  return <>{comanda.items.length ? <ul className="tw:m-0 tw:grid tw:list-none tw:gap-2 tw:p-0">{comanda.items.map(item => <li key={item.id} className="tw:flex tw:min-w-0 tw:justify-between tw:gap-3 tw:text-xs"><span className="tw:min-w-0 tw:break-words">{item.quantity}× {item.name}</span><strong className="tw:shrink-0 tw:font-medium tw:tabular-nums">{money(item.totalCents)}</strong></li>)}</ul> : <p className="tw:m-0 tw:text-xs tw:text-[var(--portal-muted)]">Nenhum item lançado.</p>}<ReservationServices services={comanda.bookingServices}/></>;
+}
+
+export function PortalClientComandas({ data: initialData, arenaSlug, presentation = "orders" }: { data: Data; arenaSlug: string; presentation?: "orders" | "consumption" }) {
   const [data, setData] = useState(initialData);
   useEffect(() => setData(initialData), [initialData]);
   useEffect(() => {
@@ -99,6 +104,7 @@ export function PortalClientComandas({ data: initialData, arenaSlug }: { data: D
     const form = new FormData(); form.set("arenaSlug", arenaSlug); setMessage(""); setMessageFor(null);
     startTransition(async () => { try { await requestPortalComandaOpenAction(form); setMessage("Solicitação enviada à equipe. Aguarde a abertura da sua comanda."); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível enviar a solicitação."); } });
   }}>{pending ? "Enviando…" : "Solicitar abertura de comanda"}</button>{message && !messageFor ? <p role="status" className="tw:m-0 tw:text-sm">{message}</p> : null}</div>;
+  if (presentation === "consumption") return <section aria-label="Consumos das comandas" className="tw:grid tw:min-w-0 tw:gap-4">{data.comandas.map(comanda => <article key={comanda.id} className="tw:min-w-0 tw:rounded-lg tw:border tw:border-[var(--portal-line)] tw:bg-[var(--portal-surface)] tw:p-4 tw:text-[var(--portal-ink)]"><header className="tw:mb-4 tw:flex tw:flex-wrap tw:items-start tw:justify-between tw:gap-3"><div className="tw:min-w-0"><h2 className="tw:m-0 tw:break-words tw:text-sm tw:font-medium">Comanda {comanda.code}</h2><p className="tw:mt-1 tw:mb-0 tw:text-xs tw:text-[var(--portal-muted)]">{comanda.openedAt} · Aberta por {comanda.openedBy}</p></div><strong className="tw:text-lg tw:font-semibold tw:tabular-nums">{money(comanda.totalCents)}</strong></header><ComandaConsumption comanda={comanda}/><div className="tw:mt-4 tw:flex tw:flex-wrap tw:items-start tw:justify-between tw:gap-3"><CloseRequestButton arenaSlug={arenaSlug} comandaId={comanda.id} requested={Boolean(comanda.closeRequestedAt)}/><Link href={`/home?arena=${encodeURIComponent(arenaSlug)}&section=comandas`} className="tw:inline-flex tw:min-h-9 tw:items-center tw:rounded-md tw:border tw:border-[var(--portal-line)] tw:px-3 tw:py-1.5 tw:text-xs tw:text-[#174983] tw:no-underline tw:hover:border-[#174983] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:dark:text-[#a5caff]">Fazer pedido</Link></div></article>)}</section>;
   const activeComanda = data.comandas.find(row => row.id === activeComandaId) ?? data.comandas[0];
   return <section aria-label="Minhas comandas" className="tw:grid tw:min-w-0 tw:gap-5 tw:pb-32 tw:min-[1100px]:pb-0">
     {data.comandas.length > 1 ? <label className="tw:grid tw:max-w-sm tw:gap-1 tw:text-xs">Comanda<select className={field} value={activeComanda.id} onChange={event => setActiveComandaId(event.target.value)}>{data.comandas.map(row => <option key={row.id} value={row.id}>Comanda {row.code} · {money(row.totalCents)}</option>)}</select></label> : null}
@@ -122,7 +128,7 @@ export function PortalClientComandas({ data: initialData, arenaSlug }: { data: D
           </div>
           <div className="tw:grid tw:min-w-0 tw:gap-4 tw:min-[1100px]:sticky tw:min-[1100px]:top-4">
             <section aria-label="Resumo de comanda" className="tw:hidden tw:min-w-0 tw:gap-4 tw:rounded-lg tw:border tw:border-[var(--portal-line)] tw:bg-[var(--portal-surface)] tw:p-4 tw:min-[1100px]:grid"><h3 className="tw:m-0 tw:text-sm tw:font-medium">Seu pedido</h3>{lines}<div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2 tw:border-t tw:border-[var(--portal-line)] tw:pt-3 tw:text-xs"><span>{count} {count === 1 ? "item" : "itens"}</span><span>Estimativa <strong className="tw:font-semibold tw:tabular-nums">{money(estimate)}</strong></span></div><button type="button" disabled={pending || !selected.length} className={`${primary} tw:bg-[#087443]! tw:hover:bg-[#065b34]!`} onClick={() => sendOrder(comanda.id)}>{pending ? "Enviando…" : "Enviar pedido"}</button></section>
-            <details className="tw:min-w-0 tw:border-t tw:border-[var(--portal-line)] tw:pt-3"><summary className="tw:min-h-10 tw:cursor-pointer tw:text-xs">Ver consumo confirmado</summary><div className="tw:py-2">{comanda.items.length ? <ul className="tw:m-0 tw:grid tw:list-none tw:gap-2 tw:p-0">{comanda.items.map(item => <li key={item.id} className="tw:flex tw:justify-between tw:gap-3 tw:text-xs"><span>{item.quantity}× {item.name}</span><strong className="tw:shrink-0 tw:font-medium">{money(item.totalCents)}</strong></li>)}</ul> : <p className="tw:m-0 tw:text-xs tw:text-[var(--portal-muted)]">Nenhum item lançado.</p>}<ReservationServices services={comanda.bookingServices}/><CloseRequestButton arenaSlug={arenaSlug} comandaId={comanda.id} requested={Boolean(comanda.closeRequestedAt)} /></div></details>
+            <details className="tw:min-w-0 tw:border-t tw:border-[var(--portal-line)] tw:pt-3"><summary className="tw:min-h-10 tw:cursor-pointer tw:text-xs">Ver consumo confirmado</summary><div className="tw:py-2"><ComandaConsumption comanda={comanda}/><CloseRequestButton arenaSlug={arenaSlug} comandaId={comanda.id} requested={Boolean(comanda.closeRequestedAt)} /></div></details>
             {message && messageFor === comanda.id ? <p role="status" className="tw:m-0 tw:text-xs tw:leading-relaxed">{message}</p> : null}
           </div>
         </div>
