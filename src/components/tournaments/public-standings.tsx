@@ -306,7 +306,18 @@ export function PublicStandings({
       <div className="portal-workspace tw:mx-auto tw:grid tw:w-full tw:max-w-[1240px] tw:min-w-0 tw:gap-5 tw:px-4 tw:py-6 tw:min-[700px]:px-8 tw:min-[700px]:py-8">
       <PortalPwaExperience showInstallControl={false} />
       <PortalPwaExperience showInstallControl />
-      {requestedSection !== "home" ? <div><p className="tw:mb-1 tw:text-[10px] tw:font-semibold tw:tracking-[.12em] tw:text-[#606874] tw:dark:text-[#aab4c2]">SEU PORTAL</p><h1 className="tw:m-0 tw:text-2xl tw:font-semibold tw:tracking-tight">{sectionTitle}</h1></div> : null}
+      {requestedSection !== "home" ? (
+        <div className="tw:min-w-0 tw:border-b tw:border-[var(--portal-line)] tw:pb-3">
+          <h1 className="tw:sr-only">{sectionTitle}</h1>
+          <nav aria-label="Navegação estrutural" className="tw:min-w-0">
+            <ol className="tw:m-0 tw:flex tw:min-w-0 tw:list-none tw:flex-wrap tw:items-center tw:gap-x-3 tw:gap-y-1 tw:p-0 tw:text-sm tw:font-normal">
+              <li className="tw:min-w-0"><Link href={portalHref("home")} className="tw:inline-flex tw:min-h-8 tw:items-center tw:rounded-sm tw:text-[#174983] tw:no-underline tw:hover:underline tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:dark:text-[#a5caff] tw:dark:focus-visible:outline-[#a5caff]">Início</Link></li>
+              <li aria-hidden="true" className="tw:text-[var(--portal-muted)]">›</li>
+              <li className="tw:min-w-0 tw:break-words"><span aria-current="page" className="tw:text-[var(--portal-ink)]">{sectionTitle}</span></li>
+            </ol>
+          </nav>
+        </div>
+      ) : null}
       <AthletePortalPrefetch hrefs={[portalHref("home"), portalHref("announcements"), portalHref("leagues", "games"), portalHref("lessons"), portalHref("profile"), portalHref("radar"), portalHref("comandas")]} />
       {requestedSection === "lessons" || requestedSection === "classes" ? (
         <nav
