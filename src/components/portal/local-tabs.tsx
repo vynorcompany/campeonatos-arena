@@ -7,7 +7,13 @@ export function PortalLocalTabs({
   initial,
   tabs,
   hashTabs,
+  navigation = "tabs",
+  context,
+  queryParam,
 }: {
+  navigation?: "tabs" | "select";
+  context?: ReactNode;
+  queryParam?: string;
   label: string;
   initial: string;
   hashTabs?: Record<string, string>;
@@ -23,8 +29,14 @@ export function PortalLocalTabs({
   const [selected, setSelected] = useState(
     tabs.some((tab) => tab.id === initial) ? initial : tabs[0]?.id,
   );
-  useEffect(()=>{if(tabs.some(tab=>tab.id===remembered))setSelected(remembered);},[remembered]);
-  const selectTab=(id:string)=>{setSelected(id);setRemembered(id);};
+  const explicitSelection = useRef<string | null | undefined>(undefined);
+  if (explicitSelection.current === undefined && typeof window !== "undefined") explicitSelection.current = queryParam ? new URL(window.location.href).searchParams.get(queryParam) : null;
+  useEffect(() => {
+    const preferred = explicitSelection.current;
+    if (preferred && tabs.some(tab => tab.id === preferred)) setSelected(preferred);
+    else if (tabs.some(tab => tab.id === remembered)) setSelected(remembered);
+  }, [remembered]);
+  const selectTab=(id:string)=>{explicitSelection.current = null;setSelected(id);setRemembered(id);};
   useEffect(() => {
     if (!hashTabs) return;
     const activate = (href: string) => {
@@ -60,7 +72,7 @@ export function PortalLocalTabs({
       )
         activate(anchor.href);
     };
-    const hash = () => activate(window.location.href);
+    const hash = (event: HashChangeEvent) => activate(event.newURL);
     document.addEventListener("click", click, true);
     window.addEventListener("hashchange", hash);
     return () => {
@@ -68,6 +80,17 @@ export function PortalLocalTabs({
       window.removeEventListener("hashchange", hash);
     };
   }, [hashTabs]);
+  useEffect(() => {
+    if (!queryParam || !selected) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get(queryParam) !== selected) { url.searchParams.set(queryParam, selected); window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`); }
+  }, [queryParam, selected]);
+  useEffect(() => {
+    if (!queryParam) return;
+    const back = () => { const value = new URL(window.location.href).searchParams.get(queryParam); if (value && tabs.some(tab => tab.id === value)) selectTab(value); };
+    window.addEventListener("popstate", back);
+    return () => window.removeEventListener("popstate", back);
+  }, [queryParam, tabs]);
   const prefix = useId();
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   return (
@@ -96,7 +119,7 @@ export function PortalLocalTabs({
         }
       }}
     >
-      <div
+      {navigation === "select" ? <div className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-start tw:justify-between tw:gap-x-4 tw:gap-y-3"><div className="tw:min-w-0 tw:flex-1">{context}</div><label className="tw:grid tw:gap-1"><span className="tw:sr-only">{label}</span><select aria-label={label} value={selected} onChange={event => selectTab(event.target.value)} className="tw:min-h-10 tw:max-w-full tw:rounded-md tw:border tw:border-[var(--portal-line)] tw:bg-[var(--portal-surface)] tw:px-3 tw:text-xs tw:font-normal tw:text-[var(--portal-ink)] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:dark:focus-visible:outline-[#a5caff]">{tabs.map(tab => <option key={tab.id} value={tab.id}>{tab.label}</option>)}</select></label></div> : <div
         role="tablist"
         aria-label={label}
         className={submenuTabs.bar}
@@ -140,13 +163,14 @@ export function PortalLocalTabs({
             {tab.label}
           </button>
         ))}
-      </div>
+      </div>}
       {tabs.map((tab) => (
         <div
           key={tab.id}
           role="tabpanel"
           id={`${prefix}-${tab.id}-panel`}
-          aria-labelledby={`${prefix}-${tab.id}-tab`}
+          aria-labelledby={navigation === "tabs" ? `${prefix}-${tab.id}-tab` : undefined}
+          aria-label={navigation === "select" ? tab.label : undefined}
           hidden={selected !== tab.id}
           className={selected !== tab.id ? "tw:hidden" : "tw:min-w-0"}
         >

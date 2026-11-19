@@ -1,4 +1,5 @@
 
+import { PortalChoice } from "./portal-choice";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "@/components/tournaments/public-standings.utilities";
 import { PortalLocalTabs } from "./local-tabs";
@@ -33,6 +34,7 @@ export function PortalTournamentTabs({
         portal={portal}
         view={view}
         showPrize={false}
+        hideCategoryPicker
       />
     ) : (
       <p role="status">Não foi possível carregar os torneios neste momento.</p>
@@ -42,6 +44,9 @@ export function PortalTournamentTabs({
       key={`${arenaSlug}:${initial}`}
       hashTabs={{ "jogo-": "games", "desafio-": "games" }}
       label="Menu da Liga"
+      navigation="select"
+      queryParam="leagueTab"
+      context={<div className="tw:min-w-0 tw:max-w-sm">{portal?.leagueCategories.length ? <PortalChoice compact label="Categoria" queryParam="leagueCategory" defaultValue={portal?.selectedLeagueCategoryId ?? ""} options={(portal?.leagueCategories ?? []).map(category => ({ value: category.id, label: category.label }))}/> : <p className="tw:m-0 tw:py-2 tw:text-sm tw:text-[var(--portal-muted)]">Não há categorias disponíveis.</p>}{portal?.leagueCategories.find(category => category.id === portal.selectedLeagueCategoryId) ? <p className="tw:mt-1 tw:mb-0 tw:flex tw:flex-wrap tw:gap-x-3 tw:gap-y-1 tw:text-xs tw:text-[var(--portal-muted)]"><span>{portal.leagueCategories.find(category => category.id === portal.selectedLeagueCategoryId)?.member ? "Sua categoria" : "Categoria pública"}</span><span>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((portal.leagueCategories.find(category => category.id === portal.selectedLeagueCategoryId)?.registrationFeeCents ?? 0) / 100)} por atleta</span></p> : null}</div>}
       initial={initial}
       tabs={[
         { id: "games", label: "Jogos", content: league("games") },
@@ -178,6 +183,7 @@ function RankingPanel({
       </header>
       {data.options.length ? (
         <RankingCategorySelect
+          compact
           arenaSlug={arenaSlug}
           options={data.options}
           selectedOptionId={data.selectedOptionId}
