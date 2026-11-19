@@ -57,7 +57,7 @@ export default async function PublicStandingsPage(
   const [portal, home, finance, comandas, radar, super12, notifications] = currentClient ? await Promise.all([
     needsPortalData && !isSuper12 ? getPublicLeaguePortal(params.arenaSlug, currentClient.playerId, searchParams?.leagueCategory) : null,
     section === "home" || section === "announcements" ? getPublicClientHome(params.arenaSlug, currentClient.playerId) : null,
-    section === "finance" ? getPublicClientFinance(params.arenaSlug, currentClient.playerId) : null,
+    section === "finance" || section === "profile" ? getPublicClientFinance(params.arenaSlug, currentClient.playerId) : null,
     (section === "comandas" || section === "finance") ? getPublicClientComandas(params.arenaSlug, currentClient.playerId) : null,
     section === "radar" ? getPublicDoublesRadar(params.arenaSlug, currentClient.playerId, { gender: searchParams?.radarGender, category: searchParams?.radarCategory, athleteId: searchParams?.athlete }) : null,
     isSuper12 ? getPublicSuper12(params.arenaSlug, currentClient.playerId, searchParams?.super12) : null,

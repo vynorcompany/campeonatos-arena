@@ -894,7 +894,14 @@ async function main() {
       avisos: ['section[aria-label="Avisos"] [aria-live="polite"]'],
       super12: [".super12-empty strong", ".super12-empty p"],
       reservas: ['section[aria-label="Reservas do atleta"] article h2', 'section[aria-label="Reservas do atleta"] article > p', 'section[aria-label="Reservas do atleta"] article > div:first-child > span'],
-      perfil: [".avatar-crop-field > small"],
+      perfil: [
+        'section[aria-label="Dados do perfil"] header label',
+        'section[aria-label="Dados do perfil"] fieldset legend',
+        'section[aria-label="Dados do perfil"] label:has(input[name="name"])',
+        'section[aria-label="Dados do perfil"] input[name="phone"]',
+        'section[aria-label="Dados do perfil"] input[name="email"]',
+        'section[aria-label="Dados do perfil"] button[type="submit"]',
+      ],
     };
     // Check readable text against the rendered surface rather than pinning the old theme's RGB values.
     const measurePortalContrast = (selectors) => {
