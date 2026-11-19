@@ -371,7 +371,7 @@ export async function finishComandaAction(formData: FormData) {
       data: {
         arenaId: auth.arenaId,
         comandaId: comanda.id,
-        code: `VEN-${Date.now().toString(36).toUpperCase()}`,
+        code: `VEN-${Date.now().toString(36).toUpperCase()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
         customerName: comanda.label,
         paymentMethod: parsed.data.payments.length + (creditAppliedCents ? 1 : 0) === 1 ? (creditAppliedCents ? "Saldo do cliente" : parsed.data.payments[0].paymentMethod) : parsed.data.payments.length || creditAppliedCents ? "MÚLTIPLO" : "",
         status: remainingCents ? (comandaPaymentCents + productCreditCents ? "PARTIAL" : "PENDING") : "PAID",
