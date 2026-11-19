@@ -73,7 +73,7 @@ export function PortalThemeToggle() {
       <summary
         aria-label={`Tema do portal: ${label}`}
         title={`Tema do portal: ${label}`}
-        className="tw:grid tw:size-10 tw:cursor-pointer tw:list-none tw:place-items-center tw:rounded-xl tw:border tw:border-[var(--portal-line)] tw:bg-[var(--portal-surface)] tw:text-[var(--portal-ink)] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#1e5ea8] tw:[&::-webkit-details-marker]:hidden"
+        className="tw:grid tw:size-10 tw:cursor-pointer tw:list-none tw:place-items-center tw:rounded-md tw:border-0 tw:bg-transparent tw:text-[#956300] tw:hover:text-[#704900] tw:dark:text-[#f5c45b] tw:dark:hover:text-[#ffdc8a] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#1e5ea8] tw:dark:focus-visible:outline-[#a5caff] tw:[&::-webkit-details-marker]:hidden"
       >
         <svg
           className="tw:size-5"
@@ -106,7 +106,7 @@ export function PortalThemeToggle() {
                 root.current.querySelector("summary")?.focus();
               }
             }}
-            className={`tw:flex tw:min-h-10 tw:cursor-pointer tw:items-center tw:justify-between tw:rounded-lg tw:border-0 tw:px-3 tw:text-sm tw:font-normal tw:focus-visible:outline-2 tw:focus-visible:outline-[#1e5ea8] ${context.theme === option.value ? "tw:bg-[#174983] tw:text-white" : "tw:bg-transparent tw:text-inherit tw:hover:bg-[#174983] tw:hover:text-white"}`}
+            className={`tw:flex tw:min-h-10 tw:cursor-pointer tw:items-center tw:justify-between tw:rounded-lg tw:border-0 tw:px-3 tw:text-sm tw:font-normal tw:focus-visible:outline-2 tw:focus-visible:outline-[#1e5ea8] tw:dark:focus-visible:outline-[#a5caff] ${context.theme === option.value ? "tw:bg-[#174983] tw:text-white" : "tw:bg-transparent tw:text-inherit tw:hover:bg-[#174983] tw:hover:text-white"}`}
           >
             {option.label}
             <span aria-hidden="true">

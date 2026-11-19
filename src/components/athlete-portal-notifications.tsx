@@ -92,7 +92,7 @@ export function AthletePortalNotifications({ arenaSlug, notifications }: { arena
   };
 
   return <>
-    <button ref={triggerRef} type="button" className="tw:relative tw:grid tw:size-10 tw:shrink-0 tw:place-items-center tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:text-[#133047] tw:dark:border-[#2a4161] tw:dark:bg-[#0b1a30] tw:dark:text-[#eaf3ff]" aria-label="Notificações" aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen((current) => !current)}>
+    <button ref={triggerRef} type="button" className="tw:relative tw:grid tw:size-10 tw:shrink-0 tw:place-items-center tw:rounded-md tw:border-0 tw:bg-transparent tw:text-[#7041a6] tw:hover:text-[#542a83] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:dark:focus-visible:outline-[#a5caff] tw:dark:text-[#c7a8f2] tw:dark:hover:text-[#e2ceff]" aria-label="Notificações" title="Notificações" aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen((current) => !current)}>
       <svg className="tw:size-5 tw:fill-none tw:stroke-current tw:stroke-[1.7]" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
       {unread.length ? <b className={cx("tw:absolute tw:-top-1 tw:-right-1 tw:grid tw:min-w-4 tw:place-items-center tw:rounded-full tw:bg-[#b42318] tw:px-1 tw:text-[.6rem] tw:leading-4 tw:text-white", persistent ? "tw:animate-pulse" : "")}>{persistent ? "!" : unread.length > 9 ? "9+" : unread.length}</b> : null}
     </button>
