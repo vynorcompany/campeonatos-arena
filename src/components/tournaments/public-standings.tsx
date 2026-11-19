@@ -332,14 +332,6 @@ export function PublicStandings({
         </nav>
       ) : null}
       {requestedSection === "lessons" || requestedSection === "classes" ? <nav className={cx("tw:hidden! tw:viewport-700:flex!", mobilePortalTabs)} aria-label="Menu de aulas">{portalVisibility.athletePortalShowLessons ? <Link aria-current={requestedSection === "lessons" ? "page" : undefined} className={cx(requestedSection === "lessons" ? "active" : "")} href={portalHref("lessons")}>Minhas aulas</Link> : null}{portalVisibility.athletePortalShowClasses ? <Link aria-current={requestedSection === "classes" ? "page" : undefined} className={cx(requestedSection === "classes" ? "active" : "")} href={portalHref("classes")}>Turmas</Link> : null}</nav> : null}
-      {requestedSection === "profile" ? (
-        <nav className={cx(viewStyles.athlete_portal_league_nav, "tw:viewport-700:hidden!")} aria-label="Menu do meu perfil">
-          <Link aria-current={requestedSection === "profile" ? "page" : undefined} className={cx(requestedSection === "profile" ? "active" : "")} href={portalHref("profile")}>Dados pessoais</Link>
-          <Link href={portalHref("finance")}>Finanças</Link>
-          <Link href={portalHref("comandas")}>Minhas comandas</Link>
-        </nav>
-      ) : null}
-      {requestedSection === "profile" ? <nav className={cx("tw:hidden! tw:viewport-700:flex!", mobilePortalTabs)} aria-label="Menu do meu perfil"><Link aria-current={requestedSection === "profile" ? "page" : undefined} className={cx(requestedSection === "profile" ? "active" : "")} href={portalHref("profile")}>Dados pessoais</Link><Link href={portalHref("finance")}>Finanças</Link><Link href={portalHref("comandas")}>Comandas</Link></nav> : null}
       {requestedSection === "home" ? (
         <PortalHome home={home} name={currentClient.name} items={menuItems} href={portalHref} bookingHref={arenaBookingPath(arena.slug)} />
       ) : requestedSection === "announcements" ? (
@@ -380,10 +372,9 @@ export function PublicStandings({
       ) : requestedSection === "teacher" && currentClient.isTeacher ? (
         <><TeacherManagementPanel portal={portal}/><TeacherLessonCreditRequestsPanel arenaSlug={arena.slug}/></>
       ) : (
-        <PublicPlayerProfile arenaSlug={arena.slug} player={currentClient} />
+        <PublicPlayerProfile arenaSlug={arena.slug} player={currentClient} financialStatus={finance && !finance.disabled ? finance.health === "healthy" ? "healthy" : "open" : null} />
       )}
-      {requestedSection === "profile" ? <details className="tw:rounded-lg tw:border tw:border-[var(--portal-line)] tw:bg-[var(--portal-surface)] tw:p-4"><summary className="tw:min-h-8 tw:cursor-pointer tw:text-sm">Privacidade e termos</summary><div className="tw:pt-3"><ArenaLegalLinks arenaSlug={arena.slug} showCookieNotice={false}/></div></details> : null}
-      {requestedSection === "profile" ? <form action={logoutAthletePortalAction} className="tw:min-[700px]:hidden"><input type="hidden" name="arenaSlug" value={arena.slug}/><button type="submit" className="tw:min-h-11 tw:w-full tw:cursor-pointer tw:rounded-xl tw:border tw:border-[#dce1e7] tw:bg-white tw:px-4 tw:text-sm tw:font-medium tw:text-[#606874] tw:dark:border-[#293648] tw:dark:bg-[#101c2d] tw:dark:text-[#adb7c6]">Sair da conta</button></form> : null}
+      {requestedSection === "profile" ? <div className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-start tw:justify-between tw:gap-4"><details className="tw:min-w-0"><summary className="tw:min-h-9 tw:cursor-pointer tw:text-xs">Privacidade e termos</summary><div className="tw:pt-2"><ArenaLegalLinks arenaSlug={arena.slug} showCookieNotice={false}/></div></details><form action={logoutAthletePortalAction}><input type="hidden" name="arenaSlug" value={arena.slug}/><button type="submit" data-portal-neutral className="tw:min-h-9 tw:cursor-pointer tw:rounded-md tw:border-0 tw:bg-transparent tw:px-2 tw:py-2 tw:text-xs tw:font-normal tw:text-[#9c382d] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:dark:text-[#ffb9ab] tw:dark:focus-visible:outline-[#a5caff]">Sair da conta</button></form></div> : null}
       </div>
       <PortalBottomNav items={menuItems} safeArea={portalPwaEnabled()} current={requestedSection === "booking" ? "schedule" : requestedSection} href={portalHref} />
       </main></PortalTheme></FilterMemoryProvider>

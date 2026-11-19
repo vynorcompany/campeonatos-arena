@@ -9,11 +9,17 @@ import { toPersistentPlayerPhoto } from "@/lib/uploads";
 
 const profileSchema = z.object({
   arenaSlug: z.string().trim().min(1),
-  name: z.string().trim().min(3, "Informe seu nome completo."),
+  name: z.string().trim().transform((value) => value.replace(/\s+/g, " ")).pipe(z.string().min(3, "Informe seu nome completo.")),
   phone: z.string().trim().min(8, "Informe um telefone válido."),
   email: z.preprocess((value) => value ?? "", z.string().trim().email("E-mail inválido.").or(z.literal(""))),
   bio: z.string().trim().max(800, "A bio pode ter até 800 caracteres."),
-  birthDate: z.preprocess((value) => value || null, z.coerce.date().nullable()),
+  birthDate: z.preprocess((value) => value || "", z.string().trim().refine((value) => {
+    if (!value) return true;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const date = new Date(`${value}T00:00:00.000Z`);
+    const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo" }).format(new Date());
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value && value <= today;
+  }, "Informe uma data de nascimento válida, até hoje.").transform((value) => value ? new Date(`${value}T00:00:00.000Z`) : null)),
   gender: z.enum(["", "Feminino", "Masculino", "Outro"]),
   padelCategories: z.array(z.string().trim().min(1).max(40)).max(9, "Selecione até nove categorias.").default([]),
   padelSide: z.enum(["", "RIGHT", "LEFT", "BOTH"]),
