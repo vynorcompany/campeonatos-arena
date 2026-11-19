@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { createCardInstallmentEntries } from "../src/lib/finance/card-installment-service";
+import { sumLedgerCompositions } from "../src/lib/finance/ledger-composition";
 import { splitCardEntry } from "../src/lib/finance/split-card-entry";
 const url=process.env.ARENA_GOAL_TEST_DATABASE_URL??"";const local=/^postgres(?:ql)?:\/\/[^/]+@127\.0\.0\.1:55433\/arena_goal(?:\?|$)/.test(url);
 test("cartão parcelado cria uma série sem dupla contagem, preserva vínculos e substitui somente contas abertas",{skip:!local},async()=>{
@@ -23,6 +24,9 @@ test("cartão parcelado cria uma série sem dupla contagem, preserva vínculos e
    assert.deepEqual(rows.map(row=>({dueDate:row.dueDate!.toISOString().slice(0,10),amountCents:row.amountCents})),custom);
    assert.equal((await tx.financialRecurrence.findUniqueOrThrow({where:{id:first.recurrenceId!}})).startsAt.toISOString().slice(0,10),"2028-01-05");
   }
+  const adjusted=await createCardInstallmentEntries(tx,{arenaId:arena.id,type:"REVENUE",category:"QA",description:"Composição parcelada QA",source:"MANUAL",amountCents:10500,originalAmountCents:10000,creationInterestCents:1000,creationDiscountCents:500,dueDate:new Date("2028-01-10T12:00:00Z"),status:"PENDING"},3,randomUUID());
+  const adjustedRows=await tx.financialEntry.findMany({where:{recurrenceId:adjusted.recurrenceId}});
+  assert.deepEqual(sumLedgerCompositions(adjustedRows),{originalCents:10000,interestCents:1000,discountCents:500,adjustedCents:10500,unknownCount:0});
   const original=await tx.financialEntry.create({data:{arenaId:arena.id,type:"EXPENSE",source:"MANUAL",category:"QA",description:"Original QA",amountCents:9000,playerId:"goal-athlete-a",billingPlayerId:"goal-athlete-a",competenceDate:new Date("2028-02-01T12:00:00Z")}});
   const requestId=randomUUID(),input={entryId:original.id,expectedUpdatedAt:original.updatedAt.toISOString(),count:3,firstDueDate:new Date("2028-02-10T12:00:00Z"),requestId};
   await splitCardEntry(tx,arena.id,input);await splitCardEntry(tx,arena.id,input);

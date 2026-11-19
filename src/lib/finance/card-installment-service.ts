@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { installmentCompositions } from "./ledger-composition";
 import { customizedCardInstallments } from "./card-installments";
 export async function createCardInstallmentEntries(tx:Prisma.TransactionClient, data:Prisma.FinancialEntryUncheckedCreateInput, count:number, requestId:string, custom?:unknown) {
  if(!/^[a-f\d-]{36}$/i.test(requestId))throw new Error("Reabra o lançamento e tente novamente.");
@@ -8,7 +9,8 @@ export async function createCardInstallmentEntries(tx:Prisma.TransactionClient, 
  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${data.arenaId}:${reference}`},0))`;
  const existing=await tx.financialEntry.findFirst({where:{arenaId:data.arenaId,externalReference:`${reference}:1`}});if(existing)return existing;
  const recurrence=await tx.financialRecurrence.create({data:{arenaId:data.arenaId,type:data.type,counterpartyName:data.counterpartyName??"",category:data.category,description:data.description,amountCents:rows[0].amountCents,frequency:"MONTHLY",startsAt:new Date(Math.min(...rows.map(row=>row.dueDate.getTime()))),endsAt:new Date(Math.max(...rows.map(row=>row.dueDate.getTime()))),nextDueDate:new Date(Math.max(...rows.map(row=>row.dueDate.getTime()))),active:false,bankAccountId:data.bankAccountId,supplierId:data.supplierId,payeeEmployeeId:data.payeeEmployeeId,payeeTeacherId:data.payeeTeacherId,playerId:data.playerId,notes:`Cartão de crédito · ${count} parcelas · Total ${(data.amountCents/100).toFixed(2)}. Todas as parcelas já foram geradas.`}});
+ const compositions = installmentCompositions({ amountCents: data.amountCents, source: data.source, originalAmountCents: data.originalAmountCents, creationInterestCents: data.creationInterestCents, creationDiscountCents: data.creationDiscountCents }, rows.map(row => row.amountCents));
  let first=null;
- for(const row of rows){const entry=await tx.financialEntry.create({data:{...data,amountCents:row.amountCents,status:"PENDING",paidAt:null,dueDate:row.dueDate,paymentMethod:"Cartão de crédito",recurrenceId:recurrence.id,externalReference:`${reference}:${row.number}`,description:`${data.description} · Parcela ${row.number}/${count}`}});first??=entry;}
+ for(const row of rows){const entry=await tx.financialEntry.create({data:{...data,...compositions[row.number - 1],amountCents:row.amountCents,status:"PENDING",paidAt:null,dueDate:row.dueDate,paymentMethod:"Cartão de crédito",recurrenceId:recurrence.id,externalReference:`${reference}:${row.number}`,description:`${data.description} · Parcela ${row.number}/${count}`}});first??=entry;}
  return first!;
 }

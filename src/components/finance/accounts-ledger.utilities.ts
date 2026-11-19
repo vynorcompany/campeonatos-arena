@@ -122,7 +122,7 @@ export const viewStyles = {
     "accounts-ledger-columns", "tw:grid", "tw:grid-cols-[24px_82px_86px_minmax(110px,_.95fr)_minmax(80px,_.7fr)_minmax(140px,_1.4fr)_minmax(110px,_.8fr)_minmax(110px,_.8fr)_100px]", "tw:gap-y-[12px]",
     "tw:gap-x-[12px]", "tw:items-center", "tw:pt-[9px]", "tw:pr-[13px]",
     "tw:pb-[9px]", "tw:pl-[13px]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
-    "tw:border-b-[color:var(--line)]", "tw:bg-[color:#ffffff]", "tw:[background-image:none]", "tw:text-[color:#354f70]",
+    "tw:border-b-[color:var(--line)]", "tw:bg-[color:#ffffff]", "tw:[background-image:none]", "tw:text-[color:#000000]",
     "tw:text-[.62rem]", "tw:font-[800]", "tw:tracking-[.02em]", "tw:uppercase",
     "tw:[&_input]:w-[15px]", "tw:[&_input]:h-[15px]", "tw:[&_input]:[accent-color:var(--brand)]", "",
     "tw:viewport-700:hidden tw:min-w-[1080px]",

@@ -1,4 +1,5 @@
 import { readFileSync } from "./helpers/domain-source";
+import { creationComposition } from "../src/lib/finance/ledger-composition";
 import { entryAdjustedAmount, entryAdjustmentNotes } from "../src/lib/finance/entry-adjustments";
 import { readCardInstallmentCount } from "../src/lib/finance/card-installments";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
@@ -55,6 +56,7 @@ test("receitas manuais simultâneas do mesmo plano criam apenas uma assinatura n
       "@/lib/finance/card-installments": { readCardInstallmentCount },
       "@/lib/finance/action-schemas": { entrySchema: { safeParse: () => ({ success: true, data }) } },
       "@/lib/finance/inputs": { parseMoneyToCents: () => 30000, parseDate: (value: string) => value ? new Date(`${value}T12:00:00Z`) : null },
+      "@/lib/finance/ledger-composition": { creationComposition },
       "@/lib/finance/entry-adjustments": { entryAdjustedAmount, entryAdjustmentNotes },
       "@/lib/finance/discounts": { getDiscountedAmountCents: () => 30000 },
       "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount },
