@@ -1093,16 +1093,16 @@ async function main() {
           if (view.label === "torneios-jogos" && viewport.name === "mobile" && theme === "light") {
             await clickElement('button[aria-label="Próxima semana"]');
             await pause(300);
-            const weekTwo = await send("Runtime.evaluate", { expression: "document.querySelector('main')?.innerText ?? ''", returnByValue: true });
-            if (!weekTwo.result.value.includes("Semana 2 de 4") || !weekTwo.result.value.includes("Daniela GOAL")) {
+            const weekTwo = await send("Runtime.evaluate", { expression: "(() => { const week=document.querySelector('nav[aria-label=\"Selecionar semana da Liga\"] span[aria-label^=\"Semana \"]'); return {body:document.querySelector('main')?.innerText ?? '',week:week?.getAttribute('aria-label'),visible:Boolean(week?.getClientRects().length)}; })()", returnByValue: true });
+            if (weekTwo.result.value.week !== "Semana 2 de 4" || !weekTwo.result.value.visible || !weekTwo.result.value.body.includes("Daniela GOAL")) {
               throw new Error(`${label}: o seletor da segunda semana não mostrou o jogo esperado.`);
             }
             const weekShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
             await writeFile(`${outputDir}/${label}-semana-2.png`, Buffer.from(weekShot.data, "base64"));
             await clickElement('button[aria-label="Semana anterior"]');
             await pause(300);
-            const weekOne = await send("Runtime.evaluate", { expression: "document.querySelector('main')?.innerText ?? ''", returnByValue: true });
-            if (!weekOne.result.value.includes("Semana 1 de 4") || !weekOne.result.value.includes("6–2 · 6–3")) {
+            const weekOne = await send("Runtime.evaluate", { expression: "(() => { const week=document.querySelector('nav[aria-label=\"Selecionar semana da Liga\"] span[aria-label^=\"Semana \"]'); return {body:document.querySelector('main')?.innerText ?? '',week:week?.getAttribute('aria-label'),visible:Boolean(week?.getClientRects().length)}; })()", returnByValue: true });
+            if (weekOne.result.value.week !== "Semana 1 de 4" || !weekOne.result.value.visible || !weekOne.result.value.body.includes("6–2 · 6–3")) {
               throw new Error(`${label}: o seletor não voltou ao resultado da primeira semana.`);
             }
           }
@@ -1133,7 +1133,7 @@ async function main() {
           throw new Error(`${label}: conteúdo cortado ou sessão inválida: ${JSON.stringify({ path: compact.path, section: compact.section, authenticated: compact.authenticated, width: compact.width, scrollWidth: compact.scrollWidth, mainLength: compact.main.trim().length })}`);
         }
         if (view.label === "torneios-jogos") {
-          const leagueLayout = await send("Runtime.evaluate", { expression: "(() => { const selectors = ['.portal-workspace [role=tablist]', '.public-league-portal', '.portal-league-category-card', '.portal-league-category-card [role=combobox]', 'button[aria-label=\"Próxima semana\"]', 'article[id^=\"jogo-\"]']; return selectors.map(selector => { const element = document.querySelector(selector); const rect = element?.getBoundingClientRect(); const style = element && getComputedStyle(element); return {selector, left:rect?.left, right:rect?.right, boxSizing:style?.boxSizing, padding:style?.padding}; }); })()", returnByValue: true });
+          const leagueLayout = await send("Runtime.evaluate", { expression: "(() => { const selectors = ['.portal-workspace [role=tablist][aria-label=\"Menu de Eventos\"]', '[role=tabpanel][aria-label=\"Jogos\"]', 'button[role=combobox]', 'select[aria-label=\"Menu da Liga\"]', 'nav[aria-label=\"Selecionar semana da Liga\"]', 'article[id^=\"jogo-\"]']; return selectors.map(selector => { const element = [...document.querySelectorAll(selector)].find(node => node.getClientRects().length); const rect = element?.getBoundingClientRect(); const style = element && getComputedStyle(element); return {selector, left:rect?.left, right:rect?.right, boxSizing:style?.boxSizing, padding:style?.padding}; }); })()", returnByValue: true });
           if (leagueLayout.result.value.some(({ left, right }) => left == null || right == null || left < 0 || right > compact.width - 4)) {
             throw new Error(`${label}: seletor de semanas ou jogos ultrapassou a área visível: ${JSON.stringify(leagueLayout.result.value)}`);
           }
