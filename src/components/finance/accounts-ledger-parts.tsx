@@ -1,7 +1,10 @@
 "use client";
+import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { viewStyles } from "./accounts-ledger-parts.utilities";
 
 export type Account = {
+  composition?: { originalCents: number; interestCents: number; discountCents: number; adjustedCents: number; creationKnown: boolean };
   id: string;
   updatedAt: string;
   source: string;
@@ -85,4 +88,29 @@ export function PlanSelectOptions({ plans, includeTeacherAll = false }: { plans:
       {group.plans.map((plan) => <option key={`${plan.id}-${plan.teacherId || "unassigned"}`} value={plan.id} data-monthly-price-cents={plan.monthlyPriceCents} data-teacher-id={plan.teacherId}>{plan.name}</option>)}
     </optgroup>
   ))}</>;
+}
+
+export type LedgerValueMode = "adjusted" | "interest" | "original";
+export const ledgerValueModes: { value: LedgerValueMode; label: string }[] = [
+  { value: "adjusted", label: "Total ajustado" },
+  { value: "interest", label: "Somente juros" },
+  { value: "original", label: "Somente valor original" },
+];
+
+export function LedgerValueModeSelector({ value, onChange }: { value: LedgerValueMode; onChange: (value: LedgerValueMode) => void }) {
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ left: 16, top: 16 });
+  const trigger = useRef<HTMLButtonElement>(null);
+  const popup = useRef<HTMLDivElement>(null);
+  const id = useId();
+  useEffect(() => {
+    if (!open) return;
+    const frame = requestAnimationFrame(() => popup.current?.querySelector<HTMLInputElement>("input:checked")?.focus({ preventScroll: true }));
+    const outside = (event: PointerEvent) => { if (!trigger.current?.contains(event.target as Node) && !popup.current?.contains(event.target as Node)) setOpen(false); };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { event.preventDefault(); setOpen(false); trigger.current?.focus(); } };
+    const close = () => setOpen(false);
+    document.addEventListener("pointerdown", outside); document.addEventListener("keydown", escape); window.addEventListener("resize", close); window.addEventListener("scroll", close, true);
+    return () => { cancelAnimationFrame(frame); document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); window.removeEventListener("resize", close); window.removeEventListener("scroll", close, true); };
+  }, [open]);
+  return <><button ref={trigger} type="button" aria-label={`Base da soma selecionada: ${ledgerValueModes.find(mode => mode.value === value)?.label}`} title="Selecionar base da soma" aria-expanded={open} aria-controls={open ? id : undefined} onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); setPosition({ left: Math.max(16, Math.min(rect.right - 240, window.innerWidth - 256)), top: window.innerHeight - rect.bottom > 180 ? rect.bottom + 6 : Math.max(16, rect.top - 174) }); setOpen(current => !current); }} className="tw:inline-grid tw:size-6 tw:shrink-0 tw:cursor-pointer tw:place-items-center tw:rounded tw:border tw:border-[#b3c3d7] tw:bg-white tw:text-[#174983] tw:hover:bg-[#f1f6fc] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983]"><svg className="tw:size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 4h16l-6 7v8l-4 2V11Z"/></svg></button>{open && typeof document !== "undefined" ? createPortal(<div ref={popup} id={id} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false); }} role="radiogroup" aria-label="Base da soma selecionada" style={position} className="tw:fixed tw:z-[200] tw:grid tw:w-60 tw:max-w-[calc(100vw-32px)] tw:gap-1 tw:rounded-md tw:border tw:border-[#cbd6e5] tw:bg-white tw:p-2 tw:text-xs tw:font-normal tw:normal-case tw:text-[#172536] tw:shadow-[0_7px_18px_#17253620]">{ledgerValueModes.map(mode => <label key={mode.value} className="tw:flex tw:min-h-10 tw:cursor-pointer tw:items-center tw:gap-2 tw:rounded tw:px-2 tw:hover:bg-[#f1f6fc]"><input type="radio" name={id} value={mode.value} checked={value === mode.value} onChange={() => { onChange(mode.value); setOpen(false); trigger.current?.focus(); }} className="tw:size-4 tw:shrink-0 tw:accent-[#174983] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983]"/>{mode.label}</label>)}</div>, document.body) : null}</>;
 }

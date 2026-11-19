@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { paginationInput, paginationRange } from "@/lib/pagination";
 import { accountLastPaymentDate } from "@/lib/finance/account-payment-date";
+import { getLedgerComposition } from "@/lib/finance/ledger-composition";
 import { getFinancialEntryBalance } from "@/lib/finance/ledger";
 import { classificationFilter } from "@/lib/finance/classification-filter";
 import { teacherPlanCondition } from "@/lib/finance/plan-filter";
@@ -43,13 +44,13 @@ function ledgerWhere(arenaId: string, type: "REVENUE" | "EXPENSE", filters: Ledg
   return { where, dateField };
 }
 
-export async function getAccountsLedger(arenaId: string, type: "REVENUE" | "EXPENSE", filters: LedgerFilters = {}, paging?: { skip: number; take: number }) {
+export async function getAccountsLedger(arenaId: string, type: "REVENUE" | "EXPENSE", filters: LedgerFilters = {}, paging?: { skip: number; take: number; ids?: string[] }) {
   const { where, dateField } = ledgerWhere(arenaId, type, filters);
   const directSort = ["dueDate","paidAt","category","description","amountCents","status"].includes(filters.sort ?? "") ? filters.sort! : null;
   const direction = filters.direction === "desc" ? "desc" as const : "asc" as const;
   const orderBy: Prisma.FinancialEntryOrderByWithRelationInput[] = directSort ? [{[directSort]: direction},{id:"asc"}] : [{[dateField]:dateField === "dueDate" && type === "REVENUE" ? {sort:"asc",nulls:"first"}:"asc"},{createdAt:"asc"},{id:"asc"}];
-  const entries = await withArenaTransaction(arenaId, (tx) => tx.financialEntry.findMany({ where, ...(paging ? { skip: paging.skip, take: paging.take } : {}), orderBy, include: { fiscalDocument:{select:{id:true}}, billingPlayer: { select: { name: true } }, player: { select: { name: true } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true, paymentMethod: true, paidAt: true, notes: true } }, recurrence: { select: { onlinePaymentMethod: true } }, scheduleParticipant: { select: { player: { select: { name: true } } } }, sale: { select: { customerName: true, comanda: { select: { id: true, code: true, label: true } } } }, supplier: { select: { name: true } } } }));
-  return entries.map((entry) => ({ id: entry.id, updatedAt: entry.updatedAt.toISOString(), source: entry.source, canCardInstallment: entry.source==="MANUAL"&&entry.status==="PENDING"&&!entry.recurrenceId&&!entry.saleId&&!entry.planId&&!entry.scheduleParticipant&&!entry.fiscalDocument&&!entry.onlinePaymentId&&!entry.onlinePaymentUrl&&!entry.settlements.length, playerId: entry.playerId, supplierId: entry.supplierId, payeeEmployeeId: entry.payeeEmployeeId, payeeTeacherId: entry.payeeTeacherId, counterpartyName: entry.billingPlayer?.name || entry.counterpartyName || entry.player?.name || entry.supplier?.name || entry.scheduleParticipant?.player.name || entry.sale?.comanda?.label || entry.sale?.customerName || "Não informado", category: entry.category, description: entry.billingPlayerId && entry.billingPlayerId !== entry.playerId ? `${entry.description} · Dependente: ${entry.player?.name ?? "Cliente"}` : entry.description, amountCents: entry.amountCents, paymentMethod: entry.paymentMethod, bankAccountId: entry.bankAccountId, planId: entry.planId, productId: entry.productId, comanda: entry.sale?.comanda ? { id: entry.sale.comanda.id, code: entry.sale.comanda.code, label: entry.sale.comanda.label } : null, onlineProvider: entry.onlineProvider, onlinePaymentId: entry.onlinePaymentId, onlinePaymentUrl: entry.onlinePaymentUrl, onlinePaymentQrCode: entry.onlinePaymentQrCode, onlinePaymentMethod: entry.recurrence?.onlinePaymentMethod ?? "", onlinePaymentPublishedAt: entry.onlinePaymentPublishedAt?.toISOString() ?? null, onlinePaymentViewedAt: entry.onlinePaymentViewedAt?.toISOString() ?? null, competenceDate: entry.competenceDate?.toISOString().slice(0, 10) ?? null, dueDate: entry.dueDate ? entry.dueDate.toISOString().slice(0, 10) : null, paidAt: accountLastPaymentDate(entry), notes: entry.notes, status: entry.status, voidReason: entry.voidReason, settlements: entry.settlements.map((settlement) => ({ ...settlement, paidAt: settlement.paidAt.toISOString().slice(0, 10) })), balance: getFinancialEntryBalance(entry.amountCents, entry.settlements, entry.status) }));
+  const entries = await withArenaTransaction(arenaId, (tx) => tx.financialEntry.findMany({ where: paging?.ids ? { AND: [where, { id: { in: paging.ids } }] } : where, ...(paging ? { skip: paging.skip, take: paging.take } : {}), orderBy, include: { fiscalDocument:{select:{id:true}}, billingPlayer: { select: { name: true } }, player: { select: { name: true } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true, paymentMethod: true, paidAt: true, notes: true } }, recurrence: { select: { onlinePaymentMethod: true } }, scheduleParticipant: { select: { player: { select: { name: true } } } }, sale: { select: { customerName: true, comanda: { select: { id: true, code: true, label: true } } } }, supplier: { select: { name: true } } } }));
+  return entries.map((entry) => ({ id: entry.id, updatedAt: entry.updatedAt.toISOString(), source: entry.source, canCardInstallment: entry.source==="MANUAL"&&entry.status==="PENDING"&&!entry.recurrenceId&&!entry.saleId&&!entry.planId&&!entry.scheduleParticipant&&!entry.fiscalDocument&&!entry.onlinePaymentId&&!entry.onlinePaymentUrl&&!entry.settlements.length, playerId: entry.playerId, supplierId: entry.supplierId, payeeEmployeeId: entry.payeeEmployeeId, payeeTeacherId: entry.payeeTeacherId, counterpartyName: entry.billingPlayer?.name || entry.counterpartyName || entry.player?.name || entry.supplier?.name || entry.scheduleParticipant?.player.name || entry.sale?.comanda?.label || entry.sale?.customerName || "Não informado", category: entry.category, description: entry.billingPlayerId && entry.billingPlayerId !== entry.playerId ? `${entry.description} · Dependente: ${entry.player?.name ?? "Cliente"}` : entry.description, amountCents: entry.amountCents, composition: getLedgerComposition(entry), paymentMethod: entry.paymentMethod, bankAccountId: entry.bankAccountId, planId: entry.planId, productId: entry.productId, comanda: entry.sale?.comanda ? { id: entry.sale.comanda.id, code: entry.sale.comanda.code, label: entry.sale.comanda.label } : null, onlineProvider: entry.onlineProvider, onlinePaymentId: entry.onlinePaymentId, onlinePaymentUrl: entry.onlinePaymentUrl, onlinePaymentQrCode: entry.onlinePaymentQrCode, onlinePaymentMethod: entry.recurrence?.onlinePaymentMethod ?? "", onlinePaymentPublishedAt: entry.onlinePaymentPublishedAt?.toISOString() ?? null, onlinePaymentViewedAt: entry.onlinePaymentViewedAt?.toISOString() ?? null, competenceDate: entry.competenceDate?.toISOString().slice(0, 10) ?? null, dueDate: entry.dueDate ? entry.dueDate.toISOString().slice(0, 10) : null, paidAt: accountLastPaymentDate(entry), notes: entry.notes, status: entry.status, voidReason: entry.voidReason, settlements: entry.settlements.map((settlement) => ({ ...settlement, paidAt: settlement.paidAt.toISOString().slice(0, 10) })), balance: getFinancialEntryBalance(entry.amountCents, entry.settlements, entry.status) }));
 }
 
 export async function getAccountsLedgerPage(arenaId: string, type: "REVENUE" | "EXPENSE", filters: LedgerFilters, input: { page?: unknown; pageSize?: unknown; entryId?: unknown; entry?: unknown }) {
@@ -70,17 +71,30 @@ export async function getAccountsLedgerPage(arenaId: string, type: "REVENUE" | "
     if (before !== null) request.page = Math.floor(before / request.pageSize) + 1;
   }
   const summary = await withArenaTransaction(arenaId, async tx => {
-    const [total, active] = await Promise.all([
+    const activeWhere = { AND: [where, { status: { not: "VOIDED" }, source: { not: "AGENCY_SUBSCRIPTION" } }] };
+    const [total, active, settlements] = await Promise.all([
       tx.financialEntry.count({ where }),
-      tx.financialEntry.aggregate({ where: { AND: [where, { status: { not: "VOIDED" }, source: { not: "AGENCY_SUBSCRIPTION" } }] }, _sum: { amountCents: true }, _count: true }),
+      tx.financialEntry.aggregate({ where: activeWhere, _sum: { amountCents: true }, _count: true }),
+      tx.financialSettlement.aggregate({ where: { arenaId, financialEntry: { is: activeWhere } }, _sum: { interestCents: true, discountCents: true } }),
     ]);
-    return { total, activeCount: active._count, totalCents: active._sum.amountCents ?? 0 };
+    return { total, activeCount: active._count, totalCents: (active._sum.amountCents ?? 0) + (settlements._sum.interestCents ?? 0) - (settlements._sum.discountCents ?? 0) };
   });
   const range = paginationRange(summary.total, request.page, request.pageSize);
   const keys = ["dueDate", "paidAt", "counterpartyName", "category", "description", "amountCents", "status"] as const;
   const sort = keys.find(key => key === filters.sort);
   let entries;
-  if (sort === "counterpartyName" || sort === "paidAt" || (sort && !input.page && targetId)) {
+  if (sort === "amountCents") {
+    // Rank only the minimal monetary projection; hydrate the requested page,
+    // never every customer's full ledger, when sorting by adjusted value.
+    const amounts = await withArenaTransaction(arenaId, tx => tx.financialEntry.findMany({ where, select: { id: true, amountCents: true, settlements: { select: { interestCents: true, discountCents: true } } } }));
+    const direction = filters.direction === "desc" ? -1 : 1;
+    amounts.sort((a, b) => direction * (getLedgerComposition(a).adjustedCents - getLedgerComposition(b).adjustedCents) || a.id.localeCompare(b.id));
+    if (!input.page && targetId) { const index = amounts.findIndex(entry => entry.id === targetId); if (index >= 0) range.page = Math.floor(index / request.pageSize) + 1; }
+    const ids = amounts.slice((range.page - 1) * request.pageSize, range.page * request.pageSize).map(row => row.id);
+    const page = await getAccountsLedger(arenaId, type, filters, { skip: 0, take: request.pageSize, ids });
+    const positions = new Map(ids.map((id, index) => [id, index]));
+    entries = page.sort((a, b) => positions.get(a.id)! - positions.get(b.id)!);
+  } else if (sort === "counterpartyName" || sort === "paidAt" || (sort && !input.page && targetId)) {
     const all = await getAccountsLedger(arenaId, type, filters);
     const direction = filters.direction === "desc" ? -1 : 1;
     all.sort((a,b) => { const x=a[sort], y=b[sort]; const compared = typeof x === "number" && typeof y === "number" ? x-y : String(x ?? "").localeCompare(String(y ?? ""), "pt-BR", { numeric: true, sensitivity: "base" }); return direction * compared || a.id.localeCompare(b.id); });

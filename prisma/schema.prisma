@@ -2434,6 +2434,9 @@ model StudentSubscription {
 }
 
 model FinancialEntry {
+  originalAmountCents Int?
+  creationInterestCents Int?
+  creationDiscountCents Int?
   automaticBoleto Boolean @default(false)
   boletoReconciledAt DateTime?
   boletoQueueCanceledAt DateTime?
@@ -2608,6 +2611,9 @@ model PlanPriceChange {
 }
 
 model FinancialRecurrence {
+  originalAmountCents Int?
+  creationInterestCents Int?
+  creationDiscountCents Int?
   id                  String           @id @default(cuid())
   type                String
   counterpartyName    String

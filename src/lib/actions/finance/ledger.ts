@@ -1,6 +1,7 @@
 "use server";
 import { lockTournamentRegistrationEntriesForReceipt, syncTournamentRegistrationAfterReceipt } from "@/lib/tournaments/registration-receivable";
 import { boletoPayerDocument } from "@/lib/payments/boleto-payer";
+import { creationComposition, revisedLedgerOriginal } from "@/lib/finance/ledger-composition";
 import { entryAdjustedAmount, entryAdjustmentNotes } from "@/lib/finance/entry-adjustments";
 import { splitCardEntry } from "@/lib/finance/split-card-entry";
 import { readCardInstallmentCount, readCardInstallmentRows } from "@/lib/finance/card-installments";
@@ -118,6 +119,7 @@ export async function createFinancialEntryAction(formData: FormData) {
         productId: parsed.data.productId || null,
         playerId: payee ? payee.playerId : clientId || null,
         amountCents,
+        ...creationComposition(adjustment),
         paymentMethod: parsed.data.paymentMethod,
         status: parsed.data.status,
         dueDate,
@@ -162,18 +164,20 @@ export async function updateFinancialEntryAction(formData: FormData) {
   });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
 
-  const amountCents = parseMoneyToCents(parsed.data.amount);
+  const enteredAmountCents = parseMoneyToCents(parsed.data.amount);
   const expectedUpdatedAt = expectedRecordDate(formData.get("expectedUpdatedAt"));
   if (!expectedUpdatedAt) return { error: staleRecordMessage };
   try { await withArenaTransaction(auth.arenaId, async (tx) => {
     await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${parsed.data.entryId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const entry = await tx.financialEntry.findFirst({
       where: { id: parsed.data.entryId, arenaId: auth.arenaId, status: { not: "VOIDED" } },
-      include: { settlements: { select: { amountCents: true, discountCents: true } } },
+      include: { settlements: { select: { amountCents: true, discountCents: true, interestCents: true } } },
     });
     if (!entry) throw new Error("Lançamento não encontrado ou estornado.");
     assertFinancialEntryPermission(auth, entry.type, "edit");
     assertRecordVersion(recordVersion(entry.updatedAt), expectedUpdatedAt.toISOString());
+    const monetary = revisedLedgerOriginal(entry, enteredAmountCents);
+    const { amountCents } = monetary;
     if (entry.source === "TOURNAMENT_REGISTRATION" && amountCents !== entry.amountCents) throw new Error("Altere o valor da inscrição em Eventos para manter o financeiro sincronizado.");
     if (entry.source === "AGENCY_SUBSCRIPTION") throw new Error("Esta fatura é gerenciada pela agência e não pode ser alterada aqui.");
     await assertFinancialEntryRelationsBelongToArena(tx, auth.arenaId, {
@@ -183,7 +187,8 @@ export async function updateFinancialEntryAction(formData: FormData) {
     });
 
     const paidCents = entry.settlements.reduce((total, settlement) => total + settlement.amountCents + settlement.discountCents, 0);
-    if (amountCents < paidCents) throw new Error("O valor não pode ser menor que o total já baixado.");
+    const settledInterestCents = entry.settlements.reduce((total, settlement) => total + settlement.interestCents, 0);
+    if (amountCents + settledInterestCents < paidCents) throw new Error("O valor não pode ser menor que o total já baixado.");
     const nextPlanId = parsed.data.planId || null;
     const keepsTeacher = entry.teacherId && nextPlanId && (entry.planId === nextPlanId || await tx.teacherPlan.findFirst({ where: { arenaId: auth.arenaId, teacherId: entry.teacherId, planId: nextPlanId, active: true }, select: { id: true } }));
 
@@ -194,7 +199,7 @@ export async function updateFinancialEntryAction(formData: FormData) {
         ...(payee ?? { counterpartyName: parsed.data.counterpartyName }),
         category: parsed.data.category,
         description: parsed.data.description,
-        amountCents,
+        ...monetary,
         dueDate: parseDate(parsed.data.dueDate),
         competenceDate: parseDate(parsed.data.competenceDate),
         notes: parsed.data.notes,
@@ -253,7 +258,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
     const recurrence = await tx.financialRecurrence.create({ data: {
       arenaId: auth.arenaId, type: parsed.data.type, category: parsed.data.category,
       ...(payee ?? { counterpartyName: parsed.data.counterpartyName }),
-      description: parsed.data.description, amountCents, frequency: parsed.data.frequency,
+      description: parsed.data.description, amountCents, ...creationComposition(adjustment), frequency: parsed.data.frequency,
       startsAt, endsAt, nextDueDate: startsAt, bankAccountId: parsed.data.bankAccountId || null, planId: parsed.data.planId || null, teacherId: teacherPlan?.teacherId ?? null,
       playerId: payee ? payee.playerId : clientId || null, onlinePaymentMethod: parsed.data.onlinePaymentMethod, notes: entryAdjustmentNotes(parsed.data.notes,adjustment)
     } });
@@ -261,7 +266,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
     for (const dueDate of dates) {
       const entry = await tx.financialEntry.create({ data: {
         arenaId: auth.arenaId, type: recurrence.type, counterpartyName: recurrence.counterpartyName, category: recurrence.category,
-        description: recurrence.description, amountCents: recurrence.amountCents, dueDate, notes: recurrence.notes,
+        description: recurrence.description, amountCents: recurrence.amountCents, ...creationComposition(adjustment), dueDate, notes: recurrence.notes,
         supplierId: recurrence.supplierId, payeeEmployeeId: recurrence.payeeEmployeeId, payeeTeacherId: recurrence.payeeTeacherId,
         recurrenceId: recurrence.id, bankAccountId: recurrence.bankAccountId, planId: recurrence.planId, teacherId: recurrence.teacherId, playerId: recurrence.playerId,
         paymentMethod: recurrence.onlinePaymentMethod === "BOLETO" ? "Boleto" : ""
