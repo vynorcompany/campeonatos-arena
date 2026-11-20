@@ -176,7 +176,9 @@ test("athlete portal groups League fixtures by week and shows the date range", (
   const service = readFileSync(resolve(process.cwd(), "src/lib/services/public-league-portal.ts"), "utf8");
 
   assert.match(portal, /leagueResultsByWeek/);
-  assert.match(portal, /Período: \{selectedWeek\.period\}/);
+  assert.match(portal, /isLeague \? "Período: " : ""/);
+  assert.match(portal, /\{selectedWeek\.period\}/);
+  assert.match(portal, /const unit = isLeague \? "Semana" : "Rodada"/);
   assert.match(service, /period:/);
 });
 

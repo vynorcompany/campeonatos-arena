@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import test from "node:test";
 
-test("Portal do Atleta oferece Duplas e consulta categorias de Liga", () => {
+test("Portal oferece Duplas ou Equipes e consulta categorias públicas de todos os formatos", () => {
   const page = readFileSync(resolve(process.cwd(), "src/app/classificacao/[arenaSlug]/page.tsx"), "utf8");
   const standings = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-standings.tsx"), "utf8");
   const portal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-league-portal.tsx"), "utf8");
@@ -13,10 +13,10 @@ test("Portal do Atleta oferece Duplas e consulta categorias de Liga", () => {
 
   assert.match(page, /leagueCategory/);
   assert.match(standings, /\"pairs\"/);
-  assert.match(readPortalSources(), /label: "Duplas"/);
+  assert.match(readPortalSources(), /label: isTrio \? "Equipes" : "Duplas"/);
   assert.match(portal, /leagueCategories/);
   assert.match(portal, /portal\.leagueCategories\.length\s*\?\s*\(\s*<form/);
-  assert.match(portal, /Nenhuma categoria de liga ativa\./);
+  assert.match(portal, /Nenhuma categoria disponível\./);
   assert.match(portal, /tw:dark:text-\[#a4b3c8\]!/);
   assert.match(portal, /selectedLeaguePairs/);
   assert.match(portal, /leagueResults/);
