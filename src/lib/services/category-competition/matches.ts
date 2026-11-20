@@ -1,4 +1,5 @@
 import "server-only";
+import { assertPortalMatchResultAccess, type PortalResultActor } from "@/lib/services/portal-match-result-access";
 import { buildReopenedMatch, type CategoryMatchManualStatus } from "@/lib/tournament-category/match-status";
 import { advanceKnockoutWinner, assertStoredMatchCanBeCorrected, categoryCompetitionStatus, categoryMatchStage, getWinnerPairId, invalidateKnockoutBracket, resetKnockoutFromStandings, runSerializableTransaction } from "@/lib/services/category-competition/shared";
 
@@ -137,8 +138,10 @@ export async function recordCategoryMatchResult(
   matchId: string,
   homeScore: number,
   awayScore: number,
+  portalActor?: PortalResultActor,
 ) {
   return runSerializableTransaction(arenaId, async (tx) => {
+    if (portalActor) await assertPortalMatchResultAccess(tx, arenaId, matchId, portalActor);
     const match = await tx.categoryMatch.findFirst({
       where: {
         id: matchId,
@@ -166,6 +169,7 @@ export async function recordCategoryMatchResult(
     if (!match) {
       throw new Error("Jogo publicado não encontrado nesta arena.");
     }
+    if (portalActor && match.competition.format === "LEAGUE") throw new Error("Informe os sets para registrar um resultado de Liga.");
     if (match.competition.format === "TRIO") throw new Error("Registre cada jogo do Trio, com as respectivas formações.");
     if (!match.homePairId || !match.awayPairId) {
       throw new Error("Defina as duas duplas antes de salvar o resultado.");
@@ -211,6 +215,7 @@ export async function recordCategoryMatchResult(
       await advanceKnockoutWinner(tx, match, winnerPairId);
     }
 
+    if (portalActor) await tx.auditEvent.create({ data: { arenaId, actorId: portalActor.playerId, actorName: "Atleta pelo Portal", action: "PORTAL_MATCH_RESULT", entityId: match.id, details: { homeScore, awayScore } } });
     return true;
   });
 }
@@ -223,9 +228,11 @@ export async function recordCategoryLeagueMatchResult(
     homeSet3: number | null; awaySet3: number | null;
   },
   notification?: { playerIds: string[]; href: string },
+  portalActor?: PortalResultActor,
 ) {
   return runSerializableTransaction(arenaId, async (tx) => {
     const { matchId, ...setScores } = input;
+    if (portalActor) await assertPortalMatchResultAccess(tx, arenaId, matchId, portalActor);
     const match = await tx.categoryMatch.findFirst({
       where: { id: matchId, competition: { status: categoryCompetitionStatus.PUBLISHED, format: "LEAGUE", category: { active: true, tournament: { arenaId } } } },
       select: { id: true, homePairId: true, awayPairId: true },
@@ -248,6 +255,7 @@ export async function recordCategoryLeagueMatchResult(
         message: "Confira o placar informado para o seu jogo de Liga.", href: notification.href,
       })) });
     }
+    if (portalActor) await tx.auditEvent.create({ data: { arenaId, actorId: portalActor.playerId, actorName: "Atleta pelo Portal", action: "PORTAL_LEAGUE_RESULT", entityId: match.id, details: { ...setScores, homeScore: homeWins, awayScore: awayWins } } });
     return saved;
   });
 }

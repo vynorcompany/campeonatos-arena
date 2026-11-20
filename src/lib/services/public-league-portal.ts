@@ -354,8 +354,9 @@ export async function getPublicLeaguePortal(
       matches: {
         orderBy: [{ leagueBlock: "asc" }, { roundOrder: "asc" }],
         include: {
-          homePair: { select: { name: true } },
-          awayPair: { select: { name: true } },
+          homePair: { select: { name: true, active: true, players: { select: { player: { select: { id: true, name: true } } } } } },
+          awayPair: { select: { name: true, active: true, players: { select: { player: { select: { id: true, name: true } } } } } },
+          trioGames: { orderBy: { gameNumber: "asc" } },
           winnerPair: { select: { id: true } },
           bookingOccurrences: { where: { arenaId: arena.id, ...activeCourtOccurrenceWhere() }, orderBy: { createdAt: "desc" }, take: 1, select: { startsAt: true, status: true, occurrenceCourts: { select: { court: { select: { name: true } } } } } },
           leagueCycle: { select: { referenceMonth: true } },
@@ -409,6 +410,15 @@ export async function getPublicLeaguePortal(
       canSchedule: selectedLeagueCompetition?.format === "LEAGUE" && selectedLeagueCompetition.status === "PUBLISHED" && ownPairs.some(pair => pair.id === match.homePairId || pair.id === match.awayPairId) && !match.bookingOccurrences.length,
       reservationStatus: match.bookingOccurrences[0]?.status ?? null,
       reservationLabel: match.bookingOccurrences[0] ? `${dateTimeLabel(match.bookingOccurrences[0].startsAt)} · ${match.bookingOccurrences[0].occurrenceCourts.map(item => item.court.name).join(" · ")}` : null,
+      canRecordResult: selectedLeagueCompetition.status === "PUBLISHED" &&
+        !match.winnerPairId && match.manualStatus !== "FINISHED" &&
+        (selectedLeagueCompetition.format === "TRIO" || (match.homeScore === null && match.awayScore === null)) &&
+        Boolean(match.homePair?.active && match.awayPair?.active) &&
+        [...(match.homePair?.players ?? []), ...(selectedLeagueCompetition.format === "LEAGUE" ? [] : match.awayPair?.players ?? [])]
+          .some(entry => linkedPlayerIds.includes(entry.player.id)),
+      homePlayers: match.homePair?.players.map(entry => entry.player) ?? [],
+      awayPlayers: match.awayPair?.players.map(entry => entry.player) ?? [],
+      trioGames: match.trioGames.map(game => ({ gameNumber: game.gameNumber, homePlayerIds: game.homePlayerIds, awayPlayerIds: game.awayPlayerIds, homeScore: game.homeScore, awayScore: game.awayScore })),
       homePairName: match.homePair?.name ?? "Dupla a definir",
       awayPairName: match.awayPair?.name ?? "Dupla a definir",
       homeScore: match.homeScore,
@@ -434,7 +444,7 @@ export async function getPublicLeaguePortal(
       finished:
         Boolean(match.winnerPairId) ||
         match.manualStatus === "FINISHED" ||
-        (match.homeScore !== null && match.awayScore !== null),
+        (selectedLeagueCompetition.format !== "TRIO" && match.homeScore !== null && match.awayScore !== null),
     })) ?? [];
   const slots = arena.courts
     .flatMap((court) =>
