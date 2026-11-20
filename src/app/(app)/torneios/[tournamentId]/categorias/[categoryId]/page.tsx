@@ -1,3 +1,4 @@
+import { groupDisplayStandings } from "@/lib/tournament-category/group-display-order";
 import { CategoryOverviewSettings } from "@/components/tournaments/category-overview-settings";
 import { IndividualRegistrationPanel } from "@/components/tournaments/individual-registration-panel";
 import { CategoryOverviewRoster } from "@/components/tournaments/category-overview-roster";
@@ -304,7 +305,12 @@ export default async function CategoryPage(props: CategoryPageProps) {
               "Dupla removida",
           }))
       : [];
-  const sportsResults = { leagueStandings, knockoutPlacement };
+  const groupStandings = competition?.format !== "LEAGUE" ? competition?.groups.map(group => ({
+    id: group.id,
+    name: group.name,
+    rows: groupDisplayStandings(group.pairs, competition.matches).map(({ pair, ...row }) => ({ ...row, pairName: pair.name })),
+  })) ?? [] : [];
+  const sportsResults = { leagueStandings, groupStandings, knockoutPlacement };
   const categoryView = {
     id: category.id,
     name: category.name,
@@ -334,6 +340,8 @@ export default async function CategoryPage(props: CategoryPageProps) {
             pairs: group.pairs,
           })),
           matches: competition.matches.map((match) => ({
+            homePairId: match.homePairId,
+            awayPairId: match.awayPairId,
             id: match.id,
             label: match.label,
             stage: match.stage,
