@@ -26,6 +26,8 @@ export function PortalTournamentTabs({
   data: ArenaPublicStandings | null;
   initial?: LeagueTab;
 }) {
+  const isTrio = portal?.selectedLeagueFormat === "TRIO";
+  const isLeague = !portal?.selectedLeagueFormat || portal.selectedLeagueFormat === "LEAGUE";
   const league = (view: "games" | "pairs") =>
     portal ? (
       <PublicLeaguePortal
@@ -43,14 +45,14 @@ export function PortalTournamentTabs({
     <PortalLocalTabs
       key={`${arenaSlug}:${initial}`}
       hashTabs={{ "jogo-": "games", "desafio-": "games" }}
-      label="Menu da Liga"
+      label={isLeague ? "Menu da Liga" : "Menu do torneio"}
       navigation="select"
       queryParam="leagueTab"
       context={<div className="tw:min-w-0 tw:max-w-sm">{portal?.leagueCategories.length ? <PortalChoice compact label="Categoria" queryParam="leagueCategory" defaultValue={portal?.selectedLeagueCategoryId ?? ""} options={(portal?.leagueCategories ?? []).map(category => ({ value: category.id, label: category.label }))}/> : <p className="tw:m-0 tw:py-2 tw:text-sm tw:text-[var(--portal-muted)]">Não há categorias disponíveis.</p>}{portal?.leagueCategories.find(category => category.id === portal.selectedLeagueCategoryId) ? <p className="tw:mt-1 tw:mb-0 tw:flex tw:flex-wrap tw:gap-x-3 tw:gap-y-1 tw:text-xs tw:text-[var(--portal-muted)]"><span>{portal.leagueCategories.find(category => category.id === portal.selectedLeagueCategoryId)?.member ? "Sua categoria" : "Categoria pública"}</span><span>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((portal.leagueCategories.find(category => category.id === portal.selectedLeagueCategoryId)?.registrationFeeCents ?? 0) / 100)} por atleta</span></p> : null}</div>}
       initial={initial}
       tabs={[
         { id: "games", label: "Jogos", content: league("games") },
-        { id: "pairs", label: "Duplas", content: league("pairs") },
+        { id: "pairs", label: isTrio ? "Equipes" : "Duplas", content: league("pairs") },
         {
           id: "ranking",
           label: "Ranking",
@@ -61,7 +63,7 @@ export function PortalTournamentTabs({
         {
           id: "rules",
           label: "Regras",
-          content: data ? <RulesPanel data={data} /> : null,
+          content: isLeague ? (data ? <RulesPanel data={data} /> : null) : <RulesPanel data={data} selectedRules={portal?.selectedEventRules ?? ""} />,
         },
         {
           id: "prizes",
@@ -74,13 +76,15 @@ export function PortalTournamentTabs({
 }
 
 function PrizePanel({ portal }: { portal: Portal }) {
+  const isLeague = !portal?.selectedLeagueFormat || portal.selectedLeagueFormat === "LEAGUE";
+  const prizes = isLeague ? portal?.prizes ?? [] : [];
   return (
     <>
       <section className="tw:mx-3 tw:hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:viewport-700:block tw:dark:border-[#3e5e8b] tw:dark:bg-[#10294c]">
         <h2 className="tw:mb-3 tw:text-lg tw:font-semibold">Premiação</h2>
-        {portal?.prizes.length ? (
+        {prizes.length ? (
           <div className="tw:grid tw:gap-2">
-            <>{portal.prizes.map((prize) => (
+            <>{prizes.map((prize) => (
               <article
                 key={prize.id}
                 className="tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#2a4161] tw:dark:bg-[#102441]"
@@ -111,13 +115,13 @@ function PrizePanel({ portal }: { portal: Portal }) {
           🏆
         </div>
         <div className={viewStyles.portal_league_prize_copy}>
-          <span>PREMIAÇÃO DA LIGA</span>
+          <span>{isLeague ? "PREMIAÇÃO DA LIGA" : "PREMIAÇÃO"}</span>
           <h2>O pódio está à sua espera</h2>
           <p>Acompanhe a premiação dos seus torneios em tempo real.</p>
         </div>
         <div className={viewStyles.portal_league_prize_list}>
-          {portal?.prizes.length ? (
-            portal.prizes.map((prize) => (
+          {prizes.length ? (
+            prizes.map((prize) => (
               <article key={prize.id}>
                 <strong>{prize.categoryName}</strong>
                 <span>{prize.eventName}</span>
@@ -135,14 +139,14 @@ function PrizePanel({ portal }: { portal: Portal }) {
   );
 }
 
-function RulesPanel({ data }: { data: ArenaPublicStandings }) {
+function RulesPanel({ data, selectedRules }: { data: ArenaPublicStandings | null; selectedRules?: string }) {
   return (
     <section className={viewStyles.athlete_portal_content_panel}>
       <header>
         <span>REGULAMENTO</span>
         <h2>Regras dos Torneios</h2>
       </header>
-      {data.leagueRules.length ? (
+      {selectedRules !== undefined ? (selectedRules.trim() ? <article className={viewStyles.portal_rule}><p className="tw:whitespace-pre-wrap tw:break-words">{selectedRules}</p></article> : <p className={viewStyles.muted}>Nenhuma regra foi publicada para este evento.</p>) : data?.leagueRules.length ? (
         data.leagueRules.map((league) => (
           <article className={viewStyles.portal_rule} key={league.id}>
             <strong>{league.categoryName}</strong>
