@@ -11,6 +11,7 @@ import {
   reopenCategoryLeagueForEditingAction,
 } from "@/lib/actions/category-competition";
 import { canGenerateCategoryDraw } from "@/lib/tournament-category/draw";
+import { orderGroupPairsByStandings } from "@/lib/tournament-category/group-display-order";
 
 type DrawCategory = {
   id: string;
@@ -33,6 +34,9 @@ type DrawCategory = {
       }>;
     }>;
     matches: Array<{
+      stage: string;
+      homePairId: string | null;
+      awayPairId: string | null;
       winnerPairId: string | null;
       homeScore: number | null;
       awayScore: number | null;
@@ -176,7 +180,7 @@ export function CategoryDrawPanel({
                         </div>
                         {group.pairs.length ? (
                           <div className={cx(`${viewStyles.simple_list} ${competition.format === "LEAGUE" ? viewStyles.league_group_pair_list : ""}`)}>
-                            {group.pairs.map((pair) => (
+                            {orderGroupPairsByStandings(group.pairs, competition.matches).map((pair) => (
                               <div className={cx(`${viewStyles.simple_item} ${competition.format === "LEAGUE" ? viewStyles.league_group_pair : ""}`)} key={pair.id}>
                                 {competition.format === "LEAGUE" ? <span className={viewStyles.league_group_pair_icon} aria-hidden="true"><PairPlayersIcon /></span> : null}
                                 <strong>{pair.name}</strong>
