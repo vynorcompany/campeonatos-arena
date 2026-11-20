@@ -65,11 +65,15 @@ export function PublicLeaguePortal({
         );
       }
     });
+  const isLeague = !portal.selectedLeagueFormat || portal.selectedLeagueFormat === "LEAGUE";
+  const isTrio = portal.selectedLeagueFormat === "TRIO";
+  const registeredTeamsTitle = isTrio ? "Equipes inscritas" : "Duplas inscritas";
+  const unit = isLeague ? "Semana" : "Rodada";
   const ownPairs = portal.pairs.filter(
-    (pair) => pair.categoryId === portal.selectedLeagueCategoryId,
+    (pair) => isLeague && pair.categoryId === portal.selectedLeagueCategoryId,
   );
   const challenges = portal.challenges.filter(
-    (challenge) => challenge.categoryId === portal.selectedLeagueCategoryId,
+    (challenge) => isLeague && challenge.categoryId === portal.selectedLeagueCategoryId,
   );
   const selectedCategory = portal.leagueCategories.find(
     (category) => category.id === portal.selectedLeagueCategoryId,
@@ -96,6 +100,8 @@ export function PublicLeaguePortal({
     leagueResultsByWeek.find((week) => week.block === selectedWeekBlock) ??
     leagueResultsByWeek[0];
   const selectedWeekIndex = leagueResultsByWeek.findIndex((week) => week.block === selectedWeek?.block);
+
+  const selectedRoundLabel = selectedWeek ? `${unit} ${isLeague ? selectedWeek.block : selectedWeekIndex + 1}` : "";
 
   useEffect(() => {
     const focusNotifiedMatch = () => {
@@ -169,7 +175,7 @@ export function PublicLeaguePortal({
       ) : null)}
       {view === "pairs" ? (
         <><section className={cx(viewStyles.portal_league_pairs, "tw:viewport-700:hidden!")}>
-          <h3>Duplas inscritas</h3>
+          <h3>{registeredTeamsTitle}</h3>
           {portal.selectedLeaguePairs.length ? (
             <div>
               <>{portal.selectedLeaguePairs.map((pair) => (
@@ -182,12 +188,12 @@ export function PublicLeaguePortal({
               ))}</>
             </div>
           ) : (
-            <p className={mutedText}>{portal.leagueCategories.length ? "Ainda não há duplas nesta categoria." : "Nenhuma categoria de liga ativa."}</p>
+            <p className={mutedText}>{portal.leagueCategories.length ? `Ainda não há ${isTrio ? "equipes" : "duplas"} nesta categoria.` : "Nenhuma categoria disponível."}</p>
           )}
         </section>
-        <section aria-label="Duplas inscritas" className="tw:mx-1 tw:mt-3 tw:mb-24 tw:hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:viewport-700:block tw:dark:border-[#3e5e8b] tw:dark:bg-[#10294c]">
-          <div className="tw:mb-3 tw:flex tw:items-center tw:justify-between tw:gap-3"><h2 className="tw:m-0 tw:text-base tw:font-semibold tw:text-[#133047]! tw:dark:text-[#eaf3ff]!">Duplas inscritas</h2><span className="tw:text-xs tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{portal.selectedLeaguePairs.length}</span></div>
-          {portal.selectedLeaguePairs.length ? <div className="tw:grid tw:gap-2"><>{portal.selectedLeaguePairs.map((pair, index) => <article key={pair.id} className="tw:flex tw:items-start tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#2a4161] tw:dark:bg-[#102441]"><span className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#174983] tw:text-xs tw:font-semibold tw:text-white! tw:dark:bg-[#174983] tw:dark:text-white!">{index + 1}</span><div className="tw:min-w-0"><strong className="tw:block tw:break-words tw:text-sm tw:leading-snug tw:text-[#133047]! tw:dark:text-[#eaf3ff]!">{pair.name}</strong>{pair.groupName ? <small className="tw:mt-1 tw:block tw:text-xs tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{pair.groupName}</small> : null}</div></article>)}</></div> : <p className="tw:m-0 tw:text-sm tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{portal.leagueCategories.length ? "Ainda não há duplas nesta categoria." : "Nenhuma categoria de liga ativa."}</p>}
+        <section aria-label={registeredTeamsTitle} className="tw:mx-1 tw:mt-3 tw:mb-24 tw:hidden tw:rounded-2xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:viewport-700:block tw:dark:border-[#3e5e8b] tw:dark:bg-[#10294c]">
+          <div className="tw:mb-3 tw:flex tw:items-center tw:justify-between tw:gap-3"><h2 className="tw:m-0 tw:text-base tw:font-semibold tw:text-[#133047]! tw:dark:text-[#eaf3ff]!">{registeredTeamsTitle}</h2><span className="tw:text-xs tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{portal.selectedLeaguePairs.length}</span></div>
+          {portal.selectedLeaguePairs.length ? <div className="tw:grid tw:gap-2"><>{portal.selectedLeaguePairs.map((pair, index) => <article key={pair.id} className="tw:flex tw:items-start tw:gap-3 tw:rounded-xl tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-3 tw:dark:border-[#2a4161] tw:dark:bg-[#102441]"><span className="tw:grid tw:size-8 tw:shrink-0 tw:place-items-center tw:rounded-full tw:bg-[#174983] tw:text-xs tw:font-semibold tw:text-white! tw:dark:bg-[#174983] tw:dark:text-white!">{index + 1}</span><div className="tw:min-w-0"><strong className="tw:block tw:break-words tw:text-sm tw:leading-snug tw:text-[#133047]! tw:dark:text-[#eaf3ff]!">{pair.name}</strong>{pair.groupName ? <small className="tw:mt-1 tw:block tw:text-xs tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{pair.groupName}</small> : null}</div></article>)}</></div> : <p className="tw:m-0 tw:text-sm tw:text-[#606874]! tw:dark:text-[#a4b3c8]!">{portal.leagueCategories.length ? `Ainda não há ${isTrio ? "equipes" : "duplas"} nesta categoria.` : "Nenhuma categoria disponível."}</p>}
         </section></>
       ) : (
         <>
@@ -214,9 +220,9 @@ export function PublicLeaguePortal({
               ))}
             </section>
           ) : null}
-          {showPrize && portal.prizes.length ? (
+          {isLeague && showPrize && portal.prizes.length ? (
             <section className={viewStyles.public_league_prizes}>
-              <h3>Premiação da Liga</h3>
+              <h3>{isLeague ? "Premiação da Liga" : "Premiação do torneio"}</h3>
               <>{portal.prizes.map((prize) => (
                 <article key={prize.id}>
                   <strong>
@@ -230,18 +236,18 @@ export function PublicLeaguePortal({
             </section>
           ) : null}
           <section className={cx(hideCategoryPicker ? "tw:grid tw:min-w-0 tw:gap-3" : viewStyles.portal_league_results, !hideCategoryPicker && "tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[minmax(0,1fr)]! tw:viewport-700:[&_h3]:text-[#133047]! tw:viewport-700:dark:[&_h3]:text-[#eaf3ff]! tw:viewport-700:[&_>_header_>_small]:hidden! tw:viewport-700:[&_>_header_span]:hidden!")}>
-            {hideCategoryPicker ? <header className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:border-t tw:border-[var(--portal-line)] tw:pt-4"><h3 className="tw:m-0 tw:text-base tw:font-semibold">Jogos e resultados</h3>{selectedWeek ? <nav aria-label="Selecionar semana da Liga" className="tw:flex tw:items-center tw:gap-2 tw:text-xs"><button type="button" disabled={selectedWeekIndex <= 0} aria-label="Semana anterior" onClick={() => setSelectedWeekBlock(leagueResultsByWeek[selectedWeekIndex - 1]?.block ?? selectedWeek.block)} className="tw:grid tw:size-9 tw:cursor-pointer tw:place-items-center tw:rounded-md tw:border-0 tw:bg-transparent tw:text-[#174983] tw:disabled:opacity-40 tw:dark:text-[#a5caff]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="tw:size-4" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><span aria-label={`Semana ${selectedWeek.block} de ${leagueResultsByWeek.length}`} title={`${selectedWeek.period} · Semana ${selectedWeek.block} de ${leagueResultsByWeek.length}`}>Semana {selectedWeek.block}</span><button type="button" disabled={selectedWeekIndex >= leagueResultsByWeek.length - 1} aria-label="Próxima semana" onClick={() => setSelectedWeekBlock(leagueResultsByWeek[selectedWeekIndex + 1]?.block ?? selectedWeek.block)} className="tw:grid tw:size-9 tw:cursor-pointer tw:place-items-center tw:rounded-md tw:border-0 tw:bg-transparent tw:text-[#174983] tw:disabled:opacity-40 tw:dark:text-[#a5caff]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="tw:size-4" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></nav> : null}</header> : <>            <header>
+            {hideCategoryPicker ? <header className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:border-t tw:border-[var(--portal-line)] tw:pt-4"><h3 className="tw:m-0 tw:text-base tw:font-semibold">Jogos e resultados</h3>{selectedWeek ? <nav aria-label={isLeague ? "Selecionar semana da Liga" : "Selecionar rodada do torneio"} className="tw:flex tw:items-center tw:gap-2 tw:text-xs"><button type="button" disabled={selectedWeekIndex <= 0} aria-label={isLeague ? "Semana anterior" : "Rodada anterior"} onClick={() => setSelectedWeekBlock(leagueResultsByWeek[selectedWeekIndex - 1]?.block ?? selectedWeek.block)} className="tw:grid tw:size-9 tw:cursor-pointer tw:place-items-center tw:rounded-md tw:border-0 tw:bg-transparent tw:text-[#174983] tw:disabled:opacity-40 tw:dark:text-[#a5caff]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="tw:size-4" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><span aria-label={`${selectedRoundLabel} de ${leagueResultsByWeek.length}`} title={`${selectedWeek.period} · ${selectedRoundLabel} de ${leagueResultsByWeek.length}`}>{selectedRoundLabel}</span><button type="button" disabled={selectedWeekIndex >= leagueResultsByWeek.length - 1} aria-label={isLeague ? "Próxima semana" : "Próxima rodada"} onClick={() => setSelectedWeekBlock(leagueResultsByWeek[selectedWeekIndex + 1]?.block ?? selectedWeek.block)} className="tw:grid tw:size-9 tw:cursor-pointer tw:place-items-center tw:rounded-md tw:border-0 tw:bg-transparent tw:text-[#174983] tw:disabled:opacity-40 tw:dark:text-[#a5caff]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="tw:size-4" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></nav> : null}</header> : <>            <header>
               <div>
-                {!hideCategoryPicker ? <span>CALENDÁRIO DA LIGA</span> : null}
+                {!hideCategoryPicker ? <span>{isLeague ? "CALENDÁRIO DA LIGA" : "JOGOS DO TORNEIO"}</span> : null}
                 <h3>Jogos e resultados</h3>
               </div>
-              {!hideCategoryPicker ? <small>Organizado por semana</small> : null}
+              {!hideCategoryPicker ? <small>{isLeague ? "Organizado por semana" : "Organizado por rodada"}</small> : null}
             </header>
 </>}
             {leagueResultsByWeek.length ? (
               <div className={cx(hideCategoryPicker ? "tw:grid tw:min-w-0 tw:gap-3" : viewStyles.portal_league_week_list, "tw:viewport-700:min-w-0! tw:viewport-700:grid-cols-[minmax(0,1fr)]!")}>
-                <div className={hideCategoryPicker ? "tw:hidden" : cx(viewStyles.portal_league_week_tabs, "tw:viewport-700:hidden!")} role="tablist" aria-label="Semana da Liga">
-                  {leagueResultsByWeek.map((week) => (
+                <div className={hideCategoryPicker ? "tw:hidden" : cx(viewStyles.portal_league_week_tabs, "tw:viewport-700:hidden!")} role="tablist" aria-label={isLeague ? "Semana da Liga" : "Rodada do torneio"}>
+                  {leagueResultsByWeek.map((week, index) => (
                     <button
                       aria-selected={selectedWeek?.block === week.block}
                       className={cx(selectedWeek?.block === week.block ? "active" : "")}
@@ -250,17 +256,17 @@ export function PublicLeaguePortal({
                       role="tab"
                       type="button"
                     >
-                      Sem. {week.block || "—"}
+                      {isLeague ? `Sem. ${week.block || "—"}` : `Rodada ${index + 1}`}
                     </button>
                   ))}
                 </div>
-                {!hideCategoryPicker && selectedWeek ? <nav className={`${hideCategoryPicker ? "tw:flex " : "tw:hidden tw:viewport-700:flex "}tw:items-center tw:justify-between tw:gap-3 tw:py-2 tw:viewport-700:[&_strong]:text-[#133047]! tw:viewport-700:dark:[&_strong]:text-[#eaf3ff]!`} aria-label="Selecionar semana da Liga"><button type="button" onClick={() => setSelectedWeekBlock(leagueResultsByWeek[selectedWeekIndex - 1]?.block ?? selectedWeek.block)} disabled={selectedWeekIndex <= 0} aria-label="Semana anterior" className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-full tw:border tw:border-[#d8e5e9] tw:bg-white tw:text-[#133047] tw:disabled:opacity-35 tw:dark:border-[#3e5e8b] tw:dark:bg-[#10294c] tw:dark:text-[#eaf3ff]">‹</button><span className="tw:min-w-0 tw:text-center"><strong className="tw:block tw:text-sm tw:font-semibold tw:text-[#133047] tw:dark:text-[#eaf3ff]">Semana {selectedWeek.block} de {leagueResultsByWeek.length}</strong><small className="tw:block tw:text-[.75rem] tw:text-[#4d6675]! tw:dark:text-[#a4b3c8]!">{selectedWeek.period}</small></span><button type="button" onClick={() => setSelectedWeekBlock(leagueResultsByWeek[selectedWeekIndex + 1]?.block ?? selectedWeek.block)} disabled={selectedWeekIndex >= leagueResultsByWeek.length - 1} aria-label="Próxima semana" className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-full tw:border tw:border-[#d8e5e9] tw:bg-white tw:text-[#133047] tw:disabled:opacity-35 tw:dark:border-[#3e5e8b] tw:dark:bg-[#10294c] tw:dark:text-[#eaf3ff]">›</button></nav> : null}
+                {!hideCategoryPicker && selectedWeek ? <nav className={`${hideCategoryPicker ? "tw:flex " : "tw:hidden tw:viewport-700:flex "}tw:items-center tw:justify-between tw:gap-3 tw:py-2 tw:viewport-700:[&_strong]:text-[#133047]! tw:viewport-700:dark:[&_strong]:text-[#eaf3ff]!`} aria-label={isLeague ? "Selecionar semana da Liga" : "Selecionar rodada do torneio"}><button type="button" onClick={() => setSelectedWeekBlock(leagueResultsByWeek[selectedWeekIndex - 1]?.block ?? selectedWeek.block)} disabled={selectedWeekIndex <= 0} aria-label={isLeague ? "Semana anterior" : "Rodada anterior"} className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-full tw:border tw:border-[#d8e5e9] tw:bg-white tw:text-[#133047] tw:disabled:opacity-35 tw:dark:border-[#3e5e8b] tw:dark:bg-[#10294c] tw:dark:text-[#eaf3ff]">‹</button><span className="tw:min-w-0 tw:text-center"><strong className="tw:block tw:text-sm tw:font-semibold tw:text-[#133047] tw:dark:text-[#eaf3ff]">{selectedRoundLabel} de {leagueResultsByWeek.length}</strong><small className="tw:block tw:text-[.75rem] tw:text-[#4d6675]! tw:dark:text-[#a4b3c8]!">{selectedWeek.period}</small></span><button type="button" onClick={() => setSelectedWeekBlock(leagueResultsByWeek[selectedWeekIndex + 1]?.block ?? selectedWeek.block)} disabled={selectedWeekIndex >= leagueResultsByWeek.length - 1} aria-label={isLeague ? "Próxima semana" : "Próxima rodada"} className="tw:grid tw:size-9 tw:shrink-0 tw:place-items-center tw:rounded-full tw:border tw:border-[#d8e5e9] tw:bg-white tw:text-[#133047] tw:disabled:opacity-35 tw:dark:border-[#3e5e8b] tw:dark:bg-[#10294c] tw:dark:text-[#eaf3ff]">›</button></nav> : null}
                 {selectedWeek ? (
                   <section className={cx(hideCategoryPicker ? "tw:grid tw:min-w-0 tw:gap-2 tw:[&>header]:hidden" : viewStyles.portal_league_week, "tw:viewport-700:border-0! tw:viewport-700:bg-transparent! tw:viewport-700:[&_>_header]:hidden! tw:viewport-700:[&_>_div]:gap-2!")} key={selectedWeek.block}>
                     <header>
                       <div>
-                        <strong>Semana {selectedWeek.block || "—"}</strong>
-                        <span>Período: {selectedWeek.period}</span>
+                        <strong>{selectedRoundLabel}</strong>
+                        <span>{isLeague ? "Período: " : ""}{selectedWeek.period}</span>
                       </div>
                       <small>
                         {selectedWeek.results.length} jogo
@@ -313,7 +319,7 @@ export function PublicLeaguePortal({
                             </span>
                           </strong>
                           </>}
-                          {!result.finished && result.canSchedule ? <Link href={`${arenaBookingPath(arenaSlug)}?match=${encodeURIComponent(result.id)}`} className="tw:mt-3 tw:inline-flex tw:items-center tw:gap-1 tw:rounded-md tw:border tw:border-blue-300 tw:px-3 tw:py-1.5 tw:text-xs tw:font-medium tw:text-blue-700 tw:dark:text-blue-200">Agendar Confronto</Link> : null}
+                          {isLeague && !result.finished && result.canSchedule ? <Link href={`${arenaBookingPath(arenaSlug)}?match=${encodeURIComponent(result.id)}`} className="tw:mt-3 tw:inline-flex tw:items-center tw:gap-1 tw:rounded-md tw:border tw:border-blue-300 tw:px-3 tw:py-1.5 tw:text-xs tw:font-medium tw:text-blue-700 tw:dark:text-blue-200">Agendar Confronto</Link> : null}
                           {result.reservationLabel ? <small className="tw:mt-3 tw:block tw:text-xs tw:text-[#354f70] tw:dark:text-[#c2d5ee]">{result.reservationStatus === "PENDING_PAYMENT" ? "Aguardando pagamento" : result.reservationStatus === "PENDING_CONFIRMATION" ? "Aguardando confirmação" : "Reserva confirmada"} · {result.reservationLabel}</small> : null}
                         </article>
                       ))}</>
@@ -322,7 +328,7 @@ export function PublicLeaguePortal({
                 ) : null}
               </div>
             ) : (
-              <p className={mutedText}>{portal.leagueCategories.length ? "Ainda não há jogos para esta categoria." : "Nenhuma categoria de liga ativa."}</p>
+              <p className={mutedText}>{portal.leagueCategories.length ? "Ainda não há jogos para esta categoria." : "Nenhuma categoria disponível."}</p>
             )}
           </section>
           {resultNotice ? <p role="status" className="tw:m-0 tw:rounded-md tw:border tw:border-[#99cfb3] tw:bg-[#edf9f2] tw:px-3 tw:py-2 tw:text-sm tw:text-[#14532d]">{resultNotice}</p> : null}

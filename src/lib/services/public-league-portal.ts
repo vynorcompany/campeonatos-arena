@@ -1,3 +1,4 @@
+import { portalEventCompetitionWhere } from "@/lib/portal/event-visibility";
 import { playerLessonCredits } from "@/lib/academy/lesson-credit-portal";
 import { lessonCreditBalances } from "@/lib/academy/lesson-credits";
 import { activeCourtOccurrenceWhere } from "@/lib/calendar/online-booking-hold";
@@ -333,21 +334,13 @@ export async function getPublicLeaguePortal(
     }),
   );
   const leagueCompetitions = await db.categoryCompetition.findMany({
-    where: {
-      format: "LEAGUE",
-      status: { not: "FINISHED" },
-      category: { active: true, tournament: { arenaId: arena.id } },
-      OR: [
-        { status: "PUBLISHED" },
-        { pairs: { some: { active: true, players: { some: { playerId: { in: linkedPlayerIds } } } } } },
-      ],
-    },
+    where: portalEventCompetitionWhere(arena.id, linkedPlayerIds),
     orderBy: [
       { category: { tournament: { name: "asc" } } },
       { category: { name: "asc" } },
     ],
     include: {
-      category: { include: { tournament: { select: { name: true } } } },
+      category: { include: { tournament: { select: { name: true, rules: true } } } },
       pairs: {
         where: { active: true },
         orderBy: { drawOrder: "asc" },
@@ -390,8 +383,9 @@ export async function getPublicLeaguePortal(
     null;
   const leagueCategories = leagueCompetitions.map((competition) => ({
     id: competition.categoryId,
+    format: competition.format,
     label: `${competition.category.name} · ${competition.category.tournament.name}`,
-    member: ownCompetitionIds.has(competition.id),
+    member: ownCompetitionIds.has(competition.id) || competition.pairs.some(pair => pair.players.some(entry => linkedPlayerIds.includes(entry.player.id))),
     registrationFeeCents: competition.registrationFeeCents,
   }));
   const selectedLeaguePairs =
@@ -407,12 +401,12 @@ export async function getPublicLeaguePortal(
   const leagueResults =
     selectedLeagueCompetition?.matches.map((match) => ({
       id: match.id,
-      block: match.leagueBlock,
-      period: leagueWeekPeriod(
+      block: selectedLeagueCompetition?.format === "LEAGUE" ? match.leagueBlock : match.roundOrder,
+      period: selectedLeagueCompetition?.format === "LEAGUE" ? leagueWeekPeriod(
         match.leagueCycle?.referenceMonth,
         match.leagueBlock,
-      ),
-      canSchedule: selectedLeagueCompetition?.status === "PUBLISHED" && ownPairs.some(pair => pair.id === match.homePairId || pair.id === match.awayPairId) && !match.bookingOccurrences.length,
+      ) : match.label,
+      canSchedule: selectedLeagueCompetition?.format === "LEAGUE" && selectedLeagueCompetition.status === "PUBLISHED" && ownPairs.some(pair => pair.id === match.homePairId || pair.id === match.awayPairId) && !match.bookingOccurrences.length,
       reservationStatus: match.bookingOccurrences[0]?.status ?? null,
       reservationLabel: match.bookingOccurrences[0] ? `${dateTimeLabel(match.bookingOccurrences[0].startsAt)} · ${match.bookingOccurrences[0].occurrenceCourts.map(item => item.court.name).join(" · ")}` : null,
       homePairName: match.homePair?.name ?? "Dupla a definir",
@@ -551,6 +545,8 @@ export async function getPublicLeaguePortal(
     makeupEnabled: creditState?.makeupEnabled ?? true,
     leagueCategories,
     selectedLeagueCategoryId: selectedLeagueCompetition?.categoryId ?? null,
+    selectedLeagueFormat: selectedLeagueCompetition?.format ?? null,
+    selectedEventRules: selectedLeagueCompetition?.category.tournament.rules ?? null,
     selectedLeaguePairs,
     leagueResults,
     pairs: ownPairs.map((pair) => ({
