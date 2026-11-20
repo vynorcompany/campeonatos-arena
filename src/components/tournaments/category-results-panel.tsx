@@ -1,3 +1,4 @@
+import { ExpandableGameCard } from "./expandable-game-card";
 import { CategoryTrioMatchPanel, type TrioGame, type TrioSide } from "./category-trio-match-panel";
 import { ClientAvatar } from "@/components/players/client-avatar";
 import { LeagueIcon } from "./league-icon";
@@ -263,7 +264,7 @@ export function CategoryResultsPanel({
                               <small>{orderedMatches.filter((item) => getLeagueMatchBlock(item) === leagueBlock).length} jogos</small>
                             </div>
                           ) : null}
-                        <div className={cx(`${viewStyles.category_game_row} ${competition.format === "LEAGUE" ? viewStyles.league_calendar_card : ""}`)}>
+                        <ExpandableGameCard label={match.label} expandable={Boolean(canManage || canRecordResults)} className={cx(`${viewStyles.category_game_row} ${competition.format === "LEAGUE" ? viewStyles.league_calendar_card : ""}`)}>
                           <div className={viewStyles.category_game_time}>
                             <span className={viewStyles.category_game_label}>Data e horário</span>
                             <strong>
@@ -291,7 +292,7 @@ export function CategoryResultsPanel({
                             {match.woReason ? <small className={viewStyles.league_wo_badge}>W.O.</small> : null}
                             {canRecordResults && competition.format === "LEAGUE" && canRecord ? <LeagueMatchResultDialog match={match} /> : null}
                           </div>
-                          {canManage || canRecordResults ? <details className="tw:min-w-0 tw:open:col-span-full tw:viewport-760:col-span-full"><summary className={`${ui.icon} tw:list-none tw:[&::-webkit-details-marker]:hidden`} aria-label={`Editar agendamento e status de ${match.label}`} title="Editar agendamento e status"><LeagueIcon name="edit"/></summary><div className={viewStyles.category_game_actions}>
+                          {canManage || canRecordResults ? <details data-game-editor className="tw:min-w-0 tw:open:col-span-full tw:viewport-760:col-span-full"><summary className={`${ui.icon} tw:list-none tw:[&::-webkit-details-marker]:hidden`} aria-label={`Editar agendamento e status de ${match.label}`} title="Editar agendamento e status"><LeagueIcon name="edit"/></summary><div className={viewStyles.category_game_actions}>
                           {canRecordResults && competition.status === "PUBLISHED" && competition.format !== "TRIO" ? (
                             <form
                               action={updateCategoryMatchStatusAction}
@@ -304,6 +305,7 @@ export function CategoryResultsPanel({
                               />
                               <select
                                 name="status"
+                                key={matchStatus}
                                 defaultValue={matchStatus}
                                 aria-label={`Status de ${match.label}`}
                               >
@@ -354,6 +356,7 @@ export function CategoryResultsPanel({
                             className={viewStyles.category_game_form_2}
                           >
                             <input type="hidden" name="matchId" value={match.id} />
+                            <input type="hidden" name="courtName" value="" />
                             <input type="hidden" name="scheduledDate" value="" />
                             <input type="hidden" name="scheduledTime" value="" />
                             <SubmitButton
@@ -413,9 +416,11 @@ export function CategoryResultsPanel({
                               <SubmitButton label="Resetar resultado" pendingLabel="Resetando..." className={viewStyles.button} />
                             </form>
                           ) : null}
-                          </div></details> : null}
+                          </div>
                           {competition.format === "TRIO" && match.homePair && match.awayPair ? <CategoryTrioMatchPanel matchId={match.id} games={match.trioGames ?? []} home={{ ...match.homePair, players: match.homePair.players ?? [] }} away={{ ...match.awayPair, players: match.awayPair.players ?? [] }} canRecordResults={Boolean(canRecordResults && canRecord)} /> : null}
-                        </div>
+                          </details> : null}
+                          {!canManage && !canRecordResults && competition.format === "TRIO" && match.homePair && match.awayPair ? <CategoryTrioMatchPanel matchId={match.id} games={match.trioGames ?? []} home={{ ...match.homePair, players: match.homePair.players ?? [] }} away={{ ...match.awayPair, players: match.awayPair.players ?? [] }} canRecordResults={false} /> : null}
+                        </ExpandableGameCard>
                         </Fragment>
                       );
                     })}

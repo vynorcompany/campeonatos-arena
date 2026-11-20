@@ -154,7 +154,7 @@ async function getTournamentUpcomingMatchesPayload(arenaId: string, tournamentId
   }>;
 
   try {
-    matches = await prisma.match.findMany({
+    matches = await arenaDatabase(arenaId).match.findMany({
       where: {
         tournament: {
           id: tournamentId,
@@ -190,7 +190,7 @@ async function getTournamentUpcomingMatchesPayload(arenaId: string, tournamentId
       throw error;
     }
 
-    const legacyMatches = await prisma.match.findMany({
+    const legacyMatches = await arenaDatabase(arenaId).match.findMany({
       where: {
         tournament: {
           id: tournamentId,
@@ -226,6 +226,24 @@ async function getTournamentUpcomingMatchesPayload(arenaId: string, tournamentId
       manualStatus: null
     }));
   }
+
+  const categoryMatches = await arenaDatabase(arenaId).categoryMatch.findMany({
+    where: {
+      competition: {
+        status: "PUBLISHED",
+        category: { active: true, archivedAt: null, tournament: { id: tournamentId, arenaId, status: { not: "FINISHED" } } },
+      },
+      showOnTv: true,
+      homePairId: { not: null },
+      awayPairId: { not: null },
+    },
+    include: { homePair: { select: { name: true } }, awayPair: { select: { name: true } } },
+    orderBy: [{ roundOrder: "asc" }, { updatedAt: "asc" }],
+  });
+
+  // Preserve existing tournament matches and include the category engine used
+  // by current events. Keep their identities distinct in the rotating slides.
+  matches.push(...categoryMatches.map(match => ({ ...match, id: `category-${match.id}` })));
 
   return matches
     .filter((match) => getMatchDisplayStatus(match) !== "FINISHED")

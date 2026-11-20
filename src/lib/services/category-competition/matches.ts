@@ -34,8 +34,8 @@ export async function updateCategoryMatchSchedule(
         scheduledTime,
         courtName,
         manualStatus:
-          match.manualStatus === "FINISHED"
-            ? "FINISHED"
+          match.manualStatus === "FINISHED" || match.manualStatus === "LIVE"
+            ? match.manualStatus
             : scheduledDate && scheduledTime
               ? "SCHEDULED"
               : "WAITING",
