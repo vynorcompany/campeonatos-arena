@@ -1,3 +1,4 @@
+import { KnockoutSwapForm } from "./knockout-swap-form";
 import { ExpandableGameCard } from "./expandable-game-card";
 import { CategoryTrioMatchPanel, type TrioGame, type TrioSide } from "./category-trio-match-panel";
 import { ClientAvatar } from "@/components/players/client-avatar";
@@ -44,6 +45,14 @@ type CompetitionMatch = {
   winnerPair: { name: string } | null;
   trioGames?: TrioGame[];
 };
+
+function canSwapMatch(match: CompetitionMatch) {
+  return ["QUARTERFINAL", "SEMIFINAL", "FINAL"].includes(match.stage) &&
+    Boolean(match.homePair?.id || match.awayPair?.id) && !match.winnerPair &&
+    !["LIVE", "FINISHED"].includes(match.manualStatus ?? "") &&
+    [match.homeScore, match.awayScore, match.homeSet1, match.awaySet1, match.homeSet2, match.awaySet2, match.homeSet3, match.awaySet3].every(score => score == null) &&
+    !(match.trioGames ?? []).some(game => game.homeScore != null || game.awayScore != null);
+}
 
 type GameSort = "round" | "date" | "status";
 type GameStatusFilter = "ALL" | "WAITING" | "SCHEDULED" | "LIVE" | "FINISHED";
@@ -453,6 +462,10 @@ export function CategoryResultsPanel({
                               <SubmitButton label="Resetar resultado" pendingLabel="Resetando..." className={viewStyles.button} />
                             </form>
                           ) : null}
+                          {canManage && competition.status === "PUBLISHED" && canSwapMatch(match) ? <KnockoutSwapForm matchId={match.id} slots={competition.matches.filter(candidate => candidate.stage === match.stage && canSwapMatch(candidate)).flatMap(candidate => [
+                            ...(candidate.homePair?.id ? [{ matchId: candidate.id, matchLabel: candidate.label, side: "home" as const, pairId: candidate.homePair.id, pairName: candidate.homePair.name }] : []),
+                            ...(candidate.awayPair?.id ? [{ matchId: candidate.id, matchLabel: candidate.label, side: "away" as const, pairId: candidate.awayPair.id, pairName: candidate.awayPair.name }] : []),
+                          ])} /> : null}
                           </div>
                           {competition.format === "TRIO" && match.homePair && match.awayPair ? <CategoryTrioMatchPanel matchId={match.id} games={match.trioGames ?? []} home={{ ...match.homePair, players: match.homePair.players ?? [] }} away={{ ...match.awayPair, players: match.awayPair.players ?? [] }} canRecordResults={Boolean(canRecordResults && canRecord)} /> : null}
                           </details> : null}
