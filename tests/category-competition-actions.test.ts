@@ -64,7 +64,7 @@ test("every category competition action requires its specific permission", async
   assert.doesNotMatch(source, /requireModuleEdit\("tournaments"\)/);
 });
 
-test("manual pair eligibility is arena, activity, class and gender scoped", () => {
+test("manual pair eligibility keeps arena, activity and gender checks without restricting profile class", () => {
   const category = {
     arenaId: "arena-1",
     className: "5ª",
@@ -96,15 +96,7 @@ test("manual pair eligibility is arena, activity, class and gender scoped", () =
       ),
     /inativo/i,
   );
-  assert.throws(
-    () =>
-      validateManualPairEligibility(
-        category,
-        [eligiblePlayers[0], { ...eligiblePlayers[1], className: "4ª" }],
-        [],
-      ),
-    /classe/i,
-  );
+  assert.doesNotThrow(() => validateManualPairEligibility(category, [eligiblePlayers[0], { ...eligiblePlayers[1], className: "4ª" }], []));
   assert.throws(
     () =>
       validateManualPairEligibility(
@@ -125,7 +117,7 @@ test("Liga A aceita atletas cadastrados na Liga A mesmo com classe antiga difere
   assert.doesNotThrow(() => validateManualPairEligibility(category, players, []));
   assert.throws(() => validateManualPairEligibility(category, [{ ...players[0], active: false }, players[1]], []), /inativo/i);
   assert.throws(() => validateManualPairEligibility(category, [players[0], { ...players[1], gender: "Feminino" }], []), /gênero/i);
-  assert.throws(() => validateManualPairEligibility(category, [players[0], { ...players[1], leagueTier: "" }], []), /classe/i);
+  assert.doesNotThrow(() => validateManualPairEligibility(category, [players[0], { ...players[1], leagueTier: "" }], []));
 });
 
 test("manual pair eligibility rejects an existing pair regardless of slot order", () => {
@@ -346,4 +338,16 @@ test("category creation locks the selected ranking row before reading the catego
     createCategoryCompetitionSource,
     /feedsGeneralRanking = ranking\.feedsGeneralRanking;[\s\S]*feedsGeneralRanking,/,
   );
+});
+
+
+test("duplas e trios aceitam classes diferentes mantendo a proteção contra duplicidade", () => {
+  const players = ["6ª categoria", "7ª categoria", "Iniciante"].map((className, index) => ({ id: `qa-${index}`, arenaId: "qa", active: true, className, gender: "Masculino" }));
+  for (const format of ["SIMPLE", "TRIO"]) {
+    const category = { arenaId: "qa", className: "5ª", gender: "MASCULINO", format };
+    const team = players.slice(0, format === "TRIO" ? 3 : 2);
+    assert.doesNotThrow(() => validateManualPairEligibility(category, team, []));
+    assert.throws(() => validateManualPairEligibility(category, team, [[team[0].id, "another"]]), /já está vinculado/);
+    assert.throws(() => validateManualPairEligibility(category, [...team.slice(1), team[1]], []), /diferentes/);
+  }
 });
