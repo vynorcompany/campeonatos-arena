@@ -87,6 +87,7 @@ test("ações rejeitam o perfil sem permissão antes de consultar o banco", asyn
   for (const [name, actions] of [
     ["category-trio", ["recordCategoryTrioGameAction"]],
     ["tournament", ["createTournamentAction", "createRankingProfileAction", "generateCategoryBracketAction"]],
+    ["knockout-reordering", ["swapKnockoutParticipantsAction"]],
     ["category-competition", ["createCategoryCompetitionAction", "publishCategoryDrawAction", "recordCategoryMatchResultAction", "runLeagueLifecycleAction"]],
   ] as const) {
     const checked: string[] = [];
@@ -127,4 +128,8 @@ test("receber inscrição no local exige baixa financeira além da gestão de to
   });
   await assert.rejects(exported.receiveOnsiteTournamentRegistrationAction({}, new FormData()), /SEM_BAIXA_FINANCEIRA/);
   assert.deepEqual(checked, ["tournaments:manage", "finance:receivable:settle"]);
+});
+
+test("reordenar mata-mata exige gestão do torneio", () => {
+  assert.deepEqual(tournamentGuards(readActionFile("knockout-reordering")), { swapKnockoutParticipantsAction: "requirePermission:tournaments:manage" });
 });
