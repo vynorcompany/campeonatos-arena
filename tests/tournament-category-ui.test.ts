@@ -196,9 +196,9 @@ test("seletor da Liga A usa o nível cadastrado antes da classe legada", () => {
   assert.equal(matchesCompetitionAthleteEligibility(category, { className: "7", gender: "Masculino", leagueTier: "A" }), true);
   assert.equal(matchesCompetitionAthleteEligibility(category, { className: "6ª categoria", gender: "Masculino", leagueTier: "A" }), true);
   assert.equal(matchesCompetitionAthleteEligibility(category, { className: "5ª", gender: "Masculino", leagueTier: "B" }), false);
-  assert.equal(matchesCompetitionAthleteEligibility(category, { className: "7", gender: "Masculino", leagueTier: "" }), false);
+  assert.equal(matchesCompetitionAthleteEligibility(category, { className: "7", gender: "Masculino", leagueTier: "" }), true);
   assert.equal(matchesCompetitionAthleteEligibility(category, { className: "7", gender: "Feminino", leagueTier: "A" }), false);
-  assert.equal(matchesCompetitionAthleteEligibility({ ...category, format: "SIMPLE" }, { className: "7", gender: "Masculino", leagueTier: "A" }), false);
+  assert.equal(matchesCompetitionAthleteEligibility({ ...category, format: "SIMPLE" }, { className: "7", gender: "Masculino", leagueTier: "A" }), true);
 });
 
 test("category configuration uses standard class and binary gender selectors", async () => {
@@ -454,4 +454,15 @@ test("league workspace uses compact vector icons and identifies registration as 
   assert.match(portal, /por atleta/);
   assert.match(styleRules("league-overview-primary-action"), /margin-left: auto/);
   assert.match(styleRules("league-overview-metric-icon"), /width: 38px/);
+});
+
+
+test("seletor inclui perfis de outras classes sem alterar gênero ou divisão de liga", () => {
+  for (const className of ["6ª categoria", "7ª categoria", "Iniciante", ""]) {
+    for (const format of ["SIMPLE", "TRIO", "THREE_GROUPS", "FOUR_GROUPS"]) {
+      const category = { className: "5ª", gender: "MASCULINO", format };
+      assert.equal(matchesCompetitionAthleteEligibility(category, { className, gender: "Masculino" }), true);
+      assert.equal(matchesCompetitionAthleteEligibility(category, { className, gender: "Feminino" }), false);
+    }
+  }
 });

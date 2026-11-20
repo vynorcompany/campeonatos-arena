@@ -19,22 +19,11 @@ function normalizeEligibilityValue(value: string) {
   return value.trim().toLocaleUpperCase("pt-BR");
 }
 
-function normalizeCategoryClass(value: string) {
-  const normalized = normalizeEligibilityValue(value).replace(/\s+/g, "");
-  const ordinalClass = normalized.match(/^(\d+)(?:A|ª)?$/u);
-  return ordinalClass?.[1] ?? normalized;
-}
-
 export function matchesCategoryEligibility(
   category: Pick<CategoryEligibility, "className" | "gender">,
   player: Pick<EligiblePlayer, "className" | "gender">,
 ) {
-  const categoryClass = normalizeCategoryClass(category.className);
-  const playerClass = normalizeCategoryClass(player.className);
-  if (categoryClass && playerClass && playerClass !== categoryClass) {
-    return false;
-  }
-
+  // Profile class is descriptive; event registrations are not restricted by it.
   const categoryGender = normalizeEligibilityValue(category.gender);
   const playerGender = normalizeEligibilityValue(player.gender);
   return !categoryGender || !playerGender || playerGender === categoryGender;
@@ -46,11 +35,7 @@ export function matchesCompetitionAthleteEligibility(
 ) {
   const categoryTier = category.leagueTier?.trim().toUpperCase();
   const playerTier = player.leagueTier?.trim().toUpperCase();
-  if (category.format === "LEAGUE" && categoryTier && playerTier) {
-    if (playerTier !== categoryTier) return false;
-    // A league's tier, not the athlete's legacy class, determines their division.
-    return matchesCategoryEligibility({ className: "", gender: category.gender }, player);
-  }
+  if (category.format === "LEAGUE" && categoryTier && playerTier && playerTier !== categoryTier) return false;
   return matchesCategoryEligibility(category, player);
 }
 
@@ -81,15 +66,6 @@ export function validateManualPairEligibility(
 
   if (players.some((player) => !player.active)) {
     throw new Error("Atleta inativo não pode ser inscrito.");
-  }
-
-  const categoryClass = normalizeCategoryClass(category.className);
-  if (categoryClass && players.some((player) => {
-    const playerClass = normalizeCategoryClass(player.className);
-    const matchingLeagueTier = category.format === "LEAGUE" && category.leagueTier && player.leagueTier === category.leagueTier;
-    return !matchingLeagueTier && playerClass && playerClass !== categoryClass;
-  })) {
-    throw new Error("A classe do atleta não é elegível para esta categoria.");
   }
 
   const categoryGender = normalizeEligibilityValue(category.gender);
