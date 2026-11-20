@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { withArenaTransaction, type ArenaTransaction } from "@/lib/rls";
 import { getPublicLinkedPlayerIds } from "@/lib/services/public-player-link";
 import { recordCategoryLeagueMatchResult } from "@/lib/services/category-competition";
+import { portalResultError } from "@/lib/services/portal-match-result-access";
 import { parseLeagueMatchResultInput } from "@/lib/actions/league-match-result-input";
 import { createLimitedLeagueProposal } from "@/lib/league/proposal-limit";
 
@@ -91,14 +92,18 @@ export async function recordOwnLeagueMatchResultAction(formData: FormData) {
   const match = await prisma.categoryMatch.findFirst({ where: { id: input.matchId, competition: { format: "LEAGUE", status: "PUBLISHED", category: { tournament: { arenaId: auth.arenaId } } } }, include: { homePair: { include: { players: { select: { playerId: true } } } }, awayPair: { include: { players: { select: { playerId: true } } } }, competition: { select: { categoryId: true } } } });
   if (!match?.homePair || !match.awayPair) return { success: false as const, error: "Jogo de Liga inválido." };
   if (!match.homePair.players.some((entry) => linkedPlayerIds.includes(entry.playerId))) return { success: false as const, error: "Somente a dupla mandante pode registrar este resultado." };
-  const saved = await recordCategoryLeagueMatchResult(auth.arenaId, input, {
-    playerIds: match.awayPair.players.map((entry) => entry.playerId),
-    href: `${publicPortalPath(arenaSlug, match.competition.categoryId)}#jogo-${match.id}`,
-  });
-  revalidatePath("/home");
-  revalidatePath(`/classificacao/${arenaSlug}`);
-  revalidatePath("/torneios", "layout");
-  return { success: true as const, matchId: saved.id, homeScore: saved.homeScore, awayScore: saved.awayScore };
+  try {
+    const saved = await recordCategoryLeagueMatchResult(auth.arenaId, input, {
+      playerIds: match.awayPair.players.map((entry) => entry.playerId),
+      href: `${publicPortalPath(arenaSlug, match.competition.categoryId)}#jogo-${match.id}`,
+    }, { playerId: auth.playerId, playerIds: linkedPlayerIds });
+    revalidatePath("/home");
+    revalidatePath(`/classificacao/${arenaSlug}`);
+    revalidatePath("/torneios", "layout");
+    return { success: true as const, matchId: saved.id, homeScore: saved.homeScore, awayScore: saved.awayScore };
+  } catch (error) {
+    return { success: false as const, error: portalResultError(error) };
+  }
 }
 
 export async function respondLeagueChallengeAction(formData: FormData) {

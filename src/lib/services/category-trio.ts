@@ -1,14 +1,17 @@
 import "server-only";
+import { assertPortalMatchResultAccess, type PortalResultActor } from "@/lib/services/portal-match-result-access";
 import { runSerializableTransaction, assertStoredMatchCanBeCorrected, resetKnockoutFromStandings, advanceKnockoutWinner, invalidateKnockoutBracket } from "@/lib/services/category-competition/shared";
 import { summarizeTrioGames, validateTrioGame, type TrioGameResult } from "@/lib/tournament-category/trio";
 
-export async function recordCategoryTrioGame(arenaId: string, matchId: string, input: TrioGameResult, actor?: { id: string; name: string }) {
+export async function recordCategoryTrioGame(arenaId: string, matchId: string, input: TrioGameResult, actor?: { id: string; name: string }, portalActor?: PortalResultActor) {
   return runSerializableTransaction(arenaId, async tx => {
+    if (portalActor) await assertPortalMatchResultAccess(tx, arenaId, matchId, portalActor);
     const match = await tx.categoryMatch.findFirst({
       where: { id: matchId, competition: { format: "TRIO", status: "PUBLISHED", category: { active: true, tournament: { arenaId } } } },
       include: { homePair: { include: { players: true } }, awayPair: { include: { players: true } }, trioGames: { orderBy: { gameNumber: "asc" } } },
     });
     if (!match || !match.homePair || !match.awayPair) throw new Error("Confronto de Trio publicado não encontrado nesta arena.");
+    if (portalActor && match.trioGames.some(game => game.gameNumber === input.gameNumber)) throw new Error("Este jogo já foi registrado. Solicite uma correção à arena.");
     await assertStoredMatchCanBeCorrected(tx, match);
     // Never rebuild a bracket after any knockout game has started, even before its encounter finishes.
     if (match.stage === "GROUP" && await tx.categoryTrioGame.count({ where: { competitionId: match.competitionId, match: { stage: { not: "GROUP" } } } })) throw new Error("O mata-mata já começou. Não é possível alterar os resultados dos grupos.");

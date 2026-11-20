@@ -8,6 +8,7 @@ import { viewStyles } from "./public-league-portal.utilities";
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { PublicEventResultForm } from "./public-event-result-form";
 import { PublicLeagueResultForm } from "./public-league-result-form";
 import { requestLeagueMedicalSubstitutionAction } from "@/lib/actions/league-medical-substitutions";
 import Link from "next/link";
@@ -274,9 +275,14 @@ export function PublicLeaguePortal({
                       </small>
                     </header>
                     <div>
-                      <>{selectedWeek.results.map((result) => (
+                      <>{selectedWeek.results.map((result) => {
+                        const completedTrioGames = result.trioGames.filter(game => game.homeScore != null && game.awayScore != null);
+                        const trioInProgress = isTrio && completedTrioGames.length > 0 && !result.finished;
+                        const homeScore = trioInProgress ? completedTrioGames.filter(game => game.homeScore! > game.awayScore!).length : result.homeScore ?? 0;
+                        const awayScore = trioInProgress ? completedTrioGames.filter(game => game.awayScore! > game.homeScore!).length : result.awayScore ?? 0;
+                        return (
                         <article id={`jogo-${result.id}`} key={result.id} className={hideCategoryPicker ? "tw:grid tw:min-w-0 tw:gap-3 tw:border-b tw:border-[var(--portal-line)] tw:py-4 tw:scroll-mt-24 tw:[&.is-notification-highlight]:[animation:portal-league-match-highlight_1.3s_ease-in-out_2] tw:motion-reduce:[&.is-notification-highlight]:animate-none tw:[&.is-notification-highlight]:bg-[#e6f0ff] tw:dark:[&.is-notification-highlight]:bg-[#203b5e]" : "tw:viewport-700:block! tw:viewport-700:rounded-2xl! tw:viewport-700:border! tw:viewport-700:border-[#d8e5e9]! tw:viewport-700:bg-white! tw:viewport-700:p-3! tw:viewport-700:dark:border-[#2a4161]! tw:viewport-700:dark:bg-[#0b1a30]! tw:viewport-700:[&_strong]:text-[#133047]! tw:viewport-700:dark:[&_strong]:text-[#eaf3ff]!"}>
-                          {hideCategoryPicker ? <><div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2 tw:text-xs tw:text-[var(--portal-muted)]"><span className={result.finished ? "tw:text-[#087443] tw:dark:text-[#79d7a8]" : result.scheduledAtLabel ? "tw:text-[#174983] tw:dark:text-[#a5caff]" : ""}>{result.finished ? "Finalizado" : result.scheduledAtLabel ? "Agendado" : "A agendar"}</span><span>{result.scheduledAtLabel || "Horário a definir"}</span></div><div className="tw:grid tw:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] tw:items-center tw:gap-3 tw:text-sm"><span className="tw:min-w-0 tw:break-words">{result.homePairName}</span><span className="tw:text-base tw:text-[#174983] tw:tabular-nums tw:dark:text-[#a5caff]">{result.finished ? `${result.homeScore ?? 0} : ${result.awayScore ?? 0}` : "VS"}</span><span className="tw:min-w-0 tw:break-words tw:text-right">{result.awayPairName}</span></div>{result.finished && result.setScores.length ? <small className="tw:text-xs tw:text-[var(--portal-muted)]">{result.setScores.map(([home, away]) => `${home}–${away}`).join(" · ")}</small> : null}</> : <>
+                          {hideCategoryPicker ? <><div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2 tw:text-xs tw:text-[var(--portal-muted)]"><span className={result.finished ? "tw:text-[#087443] tw:dark:text-[#79d7a8]" : result.scheduledAtLabel ? "tw:text-[#174983] tw:dark:text-[#a5caff]" : ""}>{result.finished ? "Finalizado" : trioInProgress ? "Em andamento" : result.scheduledAtLabel ? "Agendado" : "A agendar"}</span><span>{result.scheduledAtLabel || "Horário a definir"}</span></div><div className="tw:grid tw:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] tw:items-center tw:gap-3 tw:text-sm"><span className="tw:min-w-0 tw:break-words">{result.homePairName}</span><span className="tw:text-base tw:text-[#174983] tw:tabular-nums tw:dark:text-[#a5caff]">{result.finished || trioInProgress ? `${homeScore} : ${awayScore}` : "VS"}</span><span className="tw:min-w-0 tw:break-words tw:text-right">{result.awayPairName}</span></div>{result.finished && result.setScores.length ? <small className="tw:text-xs tw:text-[var(--portal-muted)]">{result.setScores.map(([home, away]) => `${home}–${away}`).join(" · ")}</small> : null}</> : <>
                           <div className="tw:hidden tw:viewport-700:block"><div className="tw:mb-3 tw:flex tw:items-center tw:justify-between tw:gap-2 tw:text-[.67rem] tw:font-medium tw:text-[#606874] tw:dark:text-[#a4b3c8]"><span>{result.scheduledAtLabel || "Horário a definir"}</span><span>{result.finished ? "Encerrado" : result.scheduledAtLabel ? "Agendado" : "Aguardando"}</span></div><div className="tw:grid tw:grid-cols-[minmax(0,1fr)_auto] tw:items-center tw:gap-x-3 tw:gap-y-2"><div className="tw:min-w-0"><span className="tw:block tw:text-[.64rem] tw:font-semibold tw:uppercase tw:text-[#08387b] tw:dark:text-[#5b92de]">Mandante</span><strong className="tw:mt-1 tw:block tw:text-sm tw:leading-snug tw:font-semibold tw:text-[#133047] tw:dark:text-[#eaf3ff]">{result.homePairName}</strong></div><b className="tw:text-base tw:text-[#08387b] tw:dark:text-[#5b92de]">{result.finished ? result.homeScore ?? 0 : ""}</b><div className="tw:min-w-0"><span className="tw:block tw:text-[.64rem] tw:font-semibold tw:uppercase tw:text-[#606874] tw:dark:text-[#a4b3c8]">Visitante</span><strong className="tw:mt-1 tw:block tw:text-sm tw:leading-snug tw:font-semibold tw:text-[#133047] tw:dark:text-[#eaf3ff]">{result.awayPairName}</strong></div><b className="tw:text-base tw:text-[#606874] tw:dark:text-[#a4b3c8]">{result.finished ? result.awayScore ?? 0 : ""}</b></div>{result.finished && result.setScores.length ? <div className="tw:mt-3 tw:flex tw:justify-between tw:border-t tw:border-[#d8e5e9] tw:pt-2 tw:text-[.7rem] tw:dark:border-[#2a4161]"><span className="tw:text-[#606874] tw:dark:text-[#a4b3c8]">Games</span><strong className="tw:text-[#133047] tw:dark:text-[#eaf3ff]">{result.setScores.map(([home, away]) => `${home}–${away}`).join(" · ")}</strong></div> : null}</div>
                           <strong className={cx(viewStyles.portal_league_match_sides, "tw:viewport-700:hidden!")}>
                             <span className="portal-league-match-home">
@@ -300,8 +306,8 @@ export function PublicLeaguePortal({
                               ) : null}
                             </span>
                             <b className={viewStyles.portal_league_match_score}>
-                              {result.finished
-                                ? `${result.homeScore ?? 0} × ${result.awayScore ?? 0}`
+                              {result.finished || trioInProgress
+                                ? `${homeScore} × ${awayScore}`
                                 : "×"}
                               {result.finished && result.setScores.length ? (
                                 <small>
@@ -320,9 +326,10 @@ export function PublicLeaguePortal({
                           </strong>
                           </>}
                           {isLeague && !result.finished && result.canSchedule ? <Link href={`${arenaBookingPath(arenaSlug)}?match=${encodeURIComponent(result.id)}`} className="tw:mt-3 tw:inline-flex tw:items-center tw:gap-1 tw:rounded-md tw:border tw:border-blue-300 tw:px-3 tw:py-1.5 tw:text-xs tw:font-medium tw:text-blue-700 tw:dark:text-blue-200">Agendar Confronto</Link> : null}
+                          {result.canRecordResult ? <details className="tw:min-w-0 tw:rounded-md tw:border tw:border-[var(--portal-line)] tw:px-3 tw:py-2"><summary className="tw:cursor-pointer tw:break-words tw:text-xs tw:font-medium tw:text-[#174983] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:dark:text-[#a5caff] tw:dark:focus-visible:outline-[#a5caff]">Registrar resultado</summary>{isLeague ? <PublicLeagueResultForm arenaSlug={arenaSlug} matchId={result.id} homeName={result.homePairName} awayName={result.awayPairName} onSaved={setResultNotice}/> : <PublicEventResultForm key={`${result.id}:${result.trioGames.filter(game => game.homeScore != null && game.awayScore != null).length}`} arenaSlug={arenaSlug} matchId={result.id} homeName={result.homePairName} awayName={result.awayPairName} isTrio={isTrio} homePlayers={result.homePlayers} awayPlayers={result.awayPlayers} trioGames={result.trioGames} onSaved={setResultNotice}/>}</details> : null}
                           {result.reservationLabel ? <small className="tw:mt-3 tw:block tw:text-xs tw:text-[#354f70] tw:dark:text-[#c2d5ee]">{result.reservationStatus === "PENDING_PAYMENT" ? "Aguardando pagamento" : result.reservationStatus === "PENDING_CONFIRMATION" ? "Aguardando confirmação" : "Reserva confirmada"} · {result.reservationLabel}</small> : null}
                         </article>
-                      ))}</>
+                      );})}</>
                     </div>
                   </section>
                 ) : null}
@@ -339,18 +346,6 @@ export function PublicLeaguePortal({
                   <header>
                     <strong>{pair.name}</strong>
                   </header>
-                  {pair.opponents.map((opponent) => (
-                    <details
-                      className={viewStyles.public_league_result_entry}
-                      key={`resultado-${opponent.matchId}`}
-                    >
-                      <summary>
-                        Registrar resultado · Semana {opponent.block ?? "—"} ·{" "}
-                        {opponent.name}
-                      </summary>
-                      <PublicLeagueResultForm arenaSlug={arenaSlug} matchId={opponent.matchId} homeName={pair.name} awayName={opponent.name} onSaved={setResultNotice} />
-                    </details>
-                  ))}
                   <details className={viewStyles.public_medical_request}>
                     <summary>Solicitar substituição médica</summary>
                     {pair.medicalRequestPending ? (
