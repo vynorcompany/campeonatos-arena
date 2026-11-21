@@ -105,6 +105,9 @@ test("Trio group and knockout encounters enforce formations, aggregate results, 
     await assert.rejects(service.recordCategoryTrioGame(arenas[0], first.id, game(first, 3, true)), /ordem/);
     await service.recordCategoryTrioGame(arenas[0], first.id, game(first, 1, true));
     assert.equal((await admin.categoryMatch.findUniqueOrThrow({ where: { id: first.id } })).winnerPairId, null);
+    const groupLayout = (await admin.categoryGroup.findMany({ where: { competitionId: competition.id }, orderBy: { drawOrder: "asc" }, include: { pairs: { orderBy: { drawOrder: "asc" } } } })).map(group => ({ id: group.id, pairIds: group.pairs.map(pair => pair.id) }));
+    await assert.rejects(load("src/lib/services/category-competition/group-editing.ts").saveCategoryGroups(arenas[0], { competitionId: competition.id, expectedGroups: groupLayout, groups: groupLayout.map(group => ({ ...group, pairIds: [...group.pairIds].reverse() })) }, { id: "goal-test", name: "QA" }), /já foi iniciado/);
+
     const repeated = { ...game(first, 2, false), homePlayerIds: [...game(first, 1, true).homePlayerIds].reverse() };
     await assert.rejects(service.recordCategoryTrioGame(arenas[0], first.id, repeated), /formação/);
     await assert.rejects(scope(arenas[0], (tx: any) => tx.categoryTrioGame.create({ data: { ...repeated, matchId: first.id, competitionId: competition.id } })), /formation already used/);
