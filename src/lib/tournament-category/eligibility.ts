@@ -26,7 +26,7 @@ export function matchesCategoryEligibility(
   // Profile class is descriptive; event registrations are not restricted by it.
   const categoryGender = normalizeEligibilityValue(category.gender);
   const playerGender = normalizeEligibilityValue(player.gender);
-  return !categoryGender || !playerGender || playerGender === categoryGender;
+  return !categoryGender || categoryGender === "MISTA" || !playerGender || playerGender === categoryGender;
 }
 
 export function matchesCompetitionAthleteEligibility(
@@ -68,14 +68,7 @@ export function validateManualPairEligibility(
     throw new Error("Atleta inativo não pode ser inscrito.");
   }
 
-  const categoryGender = normalizeEligibilityValue(category.gender);
-  if (
-    categoryGender &&
-    players.some((player) => {
-      const playerGender = normalizeEligibilityValue(player.gender);
-      return playerGender && playerGender !== categoryGender;
-    })
-  ) {
+  if (players.some(player => !matchesCategoryEligibility(category, player))) {
     throw new Error("O gênero do atleta não é elegível para esta categoria.");
   }
 

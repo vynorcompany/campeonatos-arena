@@ -1,19 +1,19 @@
 import "server-only";
 import { withArenaTransaction } from "@/lib/rls";
 import { z } from "zod";
-import { CATEGORY_CLASS_OPTIONS } from "@/lib/tournament-category/options";
+import { CATEGORY_CLASS_OPTIONS, isCategoryGender } from "@/lib/tournament-category/options";
 
 export const newTournamentCategorySchema = z.object({
   tournamentId: z.string().trim().min(1, "Selecione um evento."),
   name: z.string().trim().min(3, "Informe um nome de categoria com pelo menos 3 caracteres."),
   registrationType: z.enum(["PAIR", "TRIO", "INDIVIDUAL"]),
   class: z.string().optional(),
-  gender: z.string().optional(),
+  gender: z.string().trim().toUpperCase().optional(),
   isPublic: z.boolean(),
 }).superRefine((input, context) => {
   if (input.registrationType !== "TRIO") return;
   if (!CATEGORY_CLASS_OPTIONS.some(option => option === input.class)) context.addIssue({ code: z.ZodIssueCode.custom, path: ["class"], message: "Selecione a classe do Trio." });
-  if (!["FEMININO", "MASCULINO"].includes(input.gender ?? "")) context.addIssue({ code: z.ZodIssueCode.custom, path: ["gender"], message: "Selecione o gênero do Trio." });
+  if (!isCategoryGender(input.gender ?? "")) context.addIssue({ code: z.ZodIssueCode.custom, path: ["gender"], message: "Selecione o gênero do Trio." });
 });
 
 export async function createTournamentCategory(arenaId: string, input: z.infer<typeof newTournamentCategorySchema>) {
