@@ -570,6 +570,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
 
         {tab === "groups" ? (
           <CategoryDrawPanel
+            canManage={canManage}
             tournamentId={params.tournamentId}
             categories={[categoryView]}
           />

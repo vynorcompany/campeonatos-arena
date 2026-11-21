@@ -1,3 +1,4 @@
+import { CategoryGroupsEditor } from "./category-groups-editor";
 
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./category-draw-panel.utilities";
@@ -6,7 +7,6 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { StatusBadge } from "@/components/tournaments/status-badge";
 import {
   generateCategoryDrawAction,
-  moveCategoryPairAction,
   publishCategoryDrawAction,
   reopenCategoryLeagueForEditingAction,
 } from "@/lib/actions/category-competition";
@@ -47,6 +47,8 @@ type DrawCategory = {
       homeSet3: number | null;
       awaySet3: number | null;
       manualStatus: string | null;
+      woReason?: string | null;
+      trioGames?: Array<{ homeScore: number | null; awayScore: number | null }>;
     }>;
   } | null;
 };
@@ -74,9 +76,11 @@ function PairPlayersIcon() {
 export function CategoryDrawPanel({
   tournamentId,
   categories,
+  canManage = false,
 }: {
   tournamentId: string;
   categories: DrawCategory[];
+  canManage?: boolean;
 }) {
   if (!categories.length) {
     return (
@@ -97,7 +101,8 @@ export function CategoryDrawPanel({
     <div className={viewStyles.stack_md}>
       <>{categories.map((category) => {
         const competition = category.competition;
-        const canReopenLeague = competition?.format === "LEAGUE" && competition.status === "PUBLISHED" && competition.matches.every((match) => !match.winnerPairId && match.homeScore == null && match.awayScore == null && match.homeSet1 == null && match.awaySet1 == null && match.homeSet2 == null && match.awaySet2 == null && match.homeSet3 == null && match.awaySet3 == null && match.manualStatus !== "LIVE" && match.manualStatus !== "FINISHED");
+        const canReopenLeague = canManage && competition?.format === "LEAGUE" && competition.status === "PUBLISHED" && competition.matches.every((match) => !match.winnerPairId && !match.woReason && match.homeScore == null && match.awayScore == null && match.homeSet1 == null && match.awaySet1 == null && match.homeSet2 == null && match.awaySet2 == null && match.homeSet3 == null && match.awaySet3 == null && match.manualStatus !== "LIVE" && match.manualStatus !== "FINISHED" && !(match.trioGames?.length));
+        const canEditGroups = canManage && competition && ["DRAFT", "PUBLISHED"].includes(competition.status) && competition.matches.every(match => !match.winnerPairId && !match.woReason && [match.homeScore, match.awayScore, match.homeSet1, match.awaySet1, match.homeSet2, match.awaySet2, match.homeSet3, match.awaySet3].every(score => score == null) && !["LIVE", "FINISHED"].includes(match.manualStatus ?? "") && !(match.trioGames?.length));
 
         return (
           <article
@@ -123,7 +128,7 @@ export function CategoryDrawPanel({
               </p>
             ) : (
               <>
-                {competition.status === "DRAFT" ? (
+                {canManage && competition.status === "DRAFT" ? (
                   <div className={cx(`${viewStyles.section_actions} ${competition.format === "LEAGUE" ? viewStyles.league_groups_actions : ""}`)}>
                     <form action={generateCategoryDrawAction}>
                       <input
@@ -163,10 +168,10 @@ export function CategoryDrawPanel({
                       </form>
                     ) : null}
                   </div>
-                ) : canReopenLeague ? <div className={viewStyles.section_actions_league_groups_actions}><form action={reopenCategoryLeagueForEditingAction}><input type="hidden" name="competitionId" value={competition.id} /><SubmitButton label="Voltar para edição" pendingLabel="Reabrindo..." className={viewStyles.button_button_secondary} /></form><p className={viewStyles.muted}>Nenhum jogo foi iniciado. As duplas serão mantidas, mas a tabela atual será refeita.</p></div> : <p className={viewStyles.muted}>A composição foi publicada e não recebe mais ajustes.</p>}
+                ) : canReopenLeague ? <div className={viewStyles.section_actions_league_groups_actions}><form action={reopenCategoryLeagueForEditingAction}><input type="hidden" name="competitionId" value={competition.id} /><SubmitButton label="Voltar para edição" pendingLabel="Reabrindo..." className={viewStyles.button_button_secondary} /></form><p className={viewStyles.muted}>Nenhum jogo foi iniciado. As duplas serão mantidas, mas a tabela atual será refeita.</p></div> : !canEditGroups ? <p className={viewStyles.muted}>A composição está disponível para consulta.</p> : null}
 
                 {competition.groups.length ? (
-                  <div className={cx(`simple-grid simple-grid-2 ${competition.format === "LEAGUE" ? viewStyles.league_groups_list : ""}`)}>
+                  canEditGroups ? <CategoryGroupsEditor competitionId={competition.id} groups={competition.groups} league={competition.format === "LEAGUE"} trio={competition.format === "TRIO"} groupIcon={<LeagueTrophyIcon/>} pairIcon={<PairPlayersIcon/>} /> : <div className={cx(`simple-grid simple-grid-2 ${competition.format === "LEAGUE" ? viewStyles.league_groups_list : ""}`)}>
                     {competition.groups.map((group) => (
                       <section className={cx(`${viewStyles.section_card} ${competition.format === "LEAGUE" ? viewStyles.league_group_card : ""}`)} key={group.id}>
                         <div className={cx(competition.format === "LEAGUE" ? viewStyles.league_group_card_heading : "")}>
@@ -184,37 +189,7 @@ export function CategoryDrawPanel({
                               <div className={cx(`${viewStyles.simple_item} ${competition.format === "LEAGUE" ? viewStyles.league_group_pair : ""}`)} key={pair.id}>
                                 {competition.format === "LEAGUE" ? <span className={viewStyles.league_group_pair_icon} aria-hidden="true"><PairPlayersIcon /></span> : null}
                                 <strong>{pair.name}</strong>
-                                {competition.status === "DRAFT" ? (
-                                  <form
-                                    action={moveCategoryPairAction}
-                                    className="field-inline"
-                                  >
-                                    <input
-                                      type="hidden"
-                                      name="pairId"
-                                      value={pair.id}
-                                    />
-                                    <select
-                                      name="targetGroupId"
-                                      defaultValue={group.id}
-                                      aria-label={`Mover ${pair.name}`}
-                                    >
-                                      {competition.groups.map((targetGroup) => (
-                                        <option
-                                          key={targetGroup.id}
-                                          value={targetGroup.id}
-                                        >
-                                          {targetGroup.name}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <SubmitButton
-                                      label="Mover"
-                                      pendingLabel="..."
-                                      className={viewStyles.button}
-                                    />
-                                  </form>
-                                ) : null}
+
                               </div>
                             ))}
                           </div>

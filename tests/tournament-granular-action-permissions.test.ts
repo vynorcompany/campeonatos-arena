@@ -88,6 +88,7 @@ test("ações rejeitam o perfil sem permissão antes de consultar o banco", asyn
     ["category-trio", ["recordCategoryTrioGameAction"]],
     ["tournament", ["createTournamentAction", "createRankingProfileAction", "generateCategoryBracketAction"]],
     ["knockout-reordering", ["swapKnockoutParticipantsAction"]],
+    ["category-group-editing", ["saveCategoryGroupsAction"]],
     ["category-competition", ["createCategoryCompetitionAction", "publishCategoryDrawAction", "recordCategoryMatchResultAction", "runLeagueLifecycleAction"]],
   ] as const) {
     const checked: string[] = [];
@@ -132,4 +133,8 @@ test("receber inscrição no local exige baixa financeira além da gestão de to
 
 test("reordenar mata-mata exige gestão do torneio", () => {
   assert.deepEqual(tournamentGuards(readActionFile("knockout-reordering")), { swapKnockoutParticipantsAction: "requirePermission:tournaments:manage" });
+});
+
+test("editar grupos exige gestão do torneio", () => {
+  assert.deepEqual(tournamentGuards(readActionFile("category-group-editing")), { saveCategoryGroupsAction: "requirePermission:tournaments:manage" });
 });

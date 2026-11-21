@@ -126,7 +126,13 @@ test("focused panels submit through the category lifecycle server actions", asyn
 
   assert.match(registrationPanel, /CategoryPairForm/);
   assert.match(drawPanel, /generateCategoryDrawAction/);
-  assert.match(drawPanel, /moveCategoryPairAction/);
+  assert.match(drawPanel, /CategoryGroupsEditor/);
+  assert.doesNotMatch(drawPanel, /action=\{moveCategoryPairAction\}/);
+  const groupEditor = await readFile(path.join(workspaceRoot, "src", "components", "tournaments", "category-groups-editor.tsx"), "utf8");
+  assert.match(groupEditor, /saveCategoryGroupsAction/);
+  assert.match(groupEditor, /expectedGroups:expected/);
+  assert.match(groupEditor, /onPointerDown/);
+  assert.match(groupEditor, /onKeyDown/);
   assert.match(drawPanel, /publishCategoryDrawAction/);
   assert.match(resultsPanel, /recordCategoryMatchResultAction/);
   assert.match(resultsPanel, /finishCategoryCompetitionAction/);
