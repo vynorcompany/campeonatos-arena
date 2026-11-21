@@ -90,6 +90,12 @@ test("Trio group and knockout encounters enforce formations, aggregate results, 
       assert.equal(persisted.priceFirstCents, publicEvent.priceFirstCents);
     }
     assert.deepEqual(await admin.tournamentCategory.findMany({ where: { id: { in: beforeCategories.map(c => c.id) } }, orderBy: { level: "asc" } }), beforeCategories);
+    const mixed = await creation.createTournamentCategory(arenas[0], parse("TRIO", { name: "Trio Mista", gender: "Mista" }));
+    const mixedCategory = await admin.tournamentCategory.findUniqueOrThrow({ where: { id: mixed.categoryId }, include: { competition: true } });
+    assert.equal(mixedCategory.gender, "MISTA");
+    const mixedAthletes = await Promise.all(["Masculino", "Feminino", "Masculino"].map((gender, index) => admin.player.create({ data: { arenaId: arenas[0], name: `Mista QA ${index}`, gender } })));
+    await load("src/lib/services/category-competition/pairs.ts").addManualPair(arenas[0], mixedCategory.competition!.id, ...mixedAthletes.map(player => player.id));
+    assert.equal(await admin.categoryPair.count({ where: { competitionId: mixedCategory.competition!.id } }), 1);
     const draw = load("src/lib/services/category-competition/draw.ts"), service = load("src/lib/services/category-trio.ts"), matches = load("src/lib/services/category-competition/matches.ts");
     await draw.generateCategoryDraw(arenas[0], competition.id); await draw.publishCategoryDraw(arenas[0], competition.id);
     const group = await admin.categoryMatch.findMany({ where: { competitionId: competition.id, stage: "GROUP" }, orderBy: { roundOrder: "asc" }, include: { homePair: { include: { players: { orderBy: { slot: "asc" } } } }, awayPair: { include: { players: { orderBy: { slot: "asc" } } } } } });

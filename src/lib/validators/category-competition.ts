@@ -22,7 +22,7 @@ const checkboxSchema = z.preprocess(
 
 const categoryGenderSchema = z.preprocess(
   (value) => String(value ?? "").trim().toLocaleUpperCase("pt-BR"),
-  z.enum(["FEMININO", "MASCULINO"]),
+  z.enum(["FEMININO", "MASCULINO", "MISTA"]),
 );
 
 const scheduledDateSchema = z.preprocess(

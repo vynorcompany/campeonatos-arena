@@ -10,7 +10,7 @@ import {
   createCategoryCompetitionSchema,
 } from "../src/lib/validators/category-competition";
 import { createPlayerSchema } from "../src/lib/validators/player";
-import { validateManualPairEligibility } from "../src/lib/tournament-category/eligibility";
+import { matchesCategoryEligibility, matchesCompetitionAthleteEligibility, validateManualPairEligibility } from "../src/lib/tournament-category/eligibility";
 import { CATEGORY_CLASS_OPTIONS } from "../src/lib/tournament-category/options";
 
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -350,4 +350,25 @@ test("duplas e trios aceitam classes diferentes mantendo a proteção contra dup
     assert.throws(() => validateManualPairEligibility(category, team, [[team[0].id, "another"]]), /já está vinculado/);
     assert.throws(() => validateManualPairEligibility(category, [...team.slice(1), team[1]], []), /diferentes/);
   }
+});
+
+
+test("Mista aceita homens e mulheres nas buscas e inscrições sem afrouxar outras proteções", () => {
+  const category = { arenaId: "arena-1", className: "5ª", gender: " Mista " };
+  const players = [
+    { id: "homem", arenaId: "arena-1", active: true, className: "7ª", gender: "Masculino" },
+    { id: "mulher", arenaId: "arena-1", active: true, className: "3ª", gender: "Feminino" },
+  ];
+  for (const player of players) {
+    assert.equal(matchesCategoryEligibility(category, player), true);
+    assert.equal(matchesCompetitionAthleteEligibility({ ...category, format: "SIMPLE" }, player), true);
+  }
+  assert.doesNotThrow(() => validateManualPairEligibility(category, players, []));
+  assert.doesNotThrow(() => validateManualPairEligibility({ ...category, format: "TRIO" }, [...players, { ...players[0], id: "terceiro" }], []));
+  assert.throws(() => validateManualPairEligibility(category, [players[0], { ...players[1], arenaId: "outra" }], []), /arena/);
+  assert.throws(() => validateManualPairEligibility(category, [players[0], { ...players[1], active: false }], []), /inativo/);
+  assert.throws(() => validateManualPairEligibility(category, players, [["homem", "outro"]]), /já está vinculado/);
+  assert.equal(matchesCategoryEligibility({ ...category, gender: "FEMININO" }, players[0]), false);
+  assert.equal(matchesCategoryEligibility({ ...category, gender: "MASCULINO" }, players[1]), false);
+  assert.equal(createCategoryCompetitionSchema.parse({ categoryId: "category-1", class: "5ª", gender: " mista ", format: "SIMPLE", rankingId: null }).gender, "MISTA");
 });

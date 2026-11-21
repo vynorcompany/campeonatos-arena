@@ -78,8 +78,12 @@ test("individual registration links clients and supports local payment without o
     assert.equal((await admin.publicTournamentRegistration.findUniqueOrThrow({where:{id:held.id}})).paymentCheckoutUrl,held.paymentCheckoutUrl);
     await assert.rejects(scope(arenaId,(tx:any)=>receive(tx,{arenaId,registrationId:held.id,bankAccountId:bank.id,paidAt:new Date()})),/não encontrada/);
     assert.equal(await admin.pair.count({where:{tournamentId:event.id}}),0);
-    const pairCategory=await admin.tournamentCategory.create({data:{tournamentId:event.id,name:"Duplas local",level:3,priceFirstCents:5000}});
+    const pairCategory=await admin.tournamentCategory.create({data:{tournamentId:event.id,name:"Duplas local",gender:"MISTA",level:3,priceFirstCents:5000}});
+    await admin.player.create({ data: { arenaId, name: "Dupla Primeiro", cpf: "11144477735", gender: "Masculino" } });
+    await admin.player.create({ data: { arenaId, name: "Dupla Segundo", cpf: "12345678909", gender: "Feminino" } });
     const pair=await register({},data({tournamentSlug:event.publicSlug,categoryId:pairCategory.id,registrationType:"PAIR",leadName:"Dupla Primeiro",leadPhone:"42999991238",leadCpf:"11144477735",leadEmail:"pair@example.test",partnerName:"Dupla Segundo",partnerPhone:"42999991239",partnerCpf:"12345678909"})); assert.equal(pair.error,null); assert.equal(pair.amountCents,10000); assert.equal(await admin.pair.count({where:{tournamentId:event.id}}),1);
+    const mixedPair = await admin.pair.findFirstOrThrow({ where: { tournamentId: event.id }, include: { players: { include: { player: true } } } });
+    assert.deepEqual(mixedPair.players.map(item => item.player.gender).sort(), ["Feminino", "Masculino"]);
     const trioCategory=await admin.tournamentCategory.create({data:{tournamentId:event.id,name:"Trio local",level:4,priceFirstCents:2500}});
     await admin.categoryCompetition.create({data:{categoryId:trioCategory.id,format:"TRIO",status:"DRAFT",isPublic:true}});
     const trio=await register({},data({tournamentSlug:event.publicSlug,categoryId:trioCategory.id,registrationType:"PAIR",leadName:"Trio Primeiro",leadPhone:"42999991240",leadCpf:"11111111111",leadEmail:"trio@example.test",partnerName:"Trio Segundo",partnerPhone:"42999991241",partnerCpf:"22222222222",thirdName:"Trio Terceiro",thirdPhone:"42999991242",thirdCpf:"33333333333"})); assert.equal(trio.error,null); assert.equal(trio.amountCents,7500); assert.equal((await admin.publicTournamentRegistration.findUniqueOrThrow({where:{id:trio.registrationId}})).paymentStatus,"PENDING");

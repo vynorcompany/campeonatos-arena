@@ -1,9 +1,11 @@
 "use server";
 
+import { isCategoryGender } from "@/lib/tournament-category/options";
 import { CategoryCompetitionConfigurationError } from "@/lib/tournament-category/configuration-error";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { withArenaTransaction } from "@/lib/rls";
 import { closeLeagueCycleManually, reopenEmptyLeagueCycle } from "@/lib/league/lifecycle";
 import { leagueReferenceMonth } from "@/lib/league/reference-month";
 import { parseReaisToCents } from "@/lib/tournaments/inputs";
@@ -420,13 +422,13 @@ export async function updateLeagueCategoryAction(formData: FormData) {
   } catch {
     throw new Error("Informe um valor de inscrição válido.");
   }
-  if (!categoryId || !name || !className || !["FEMININO", "MASCULINO"].includes(gender) || !["A", "B"].includes(leagueTier)) {
+  if (!categoryId || !name || !className || !isCategoryGender(gender) || !["A", "B"].includes(leagueTier)) {
     throw new Error("Preencha nome, classe, gênero e nível da Liga.");
   }
-  const category = await prisma.tournamentCategory.findFirst({ where: { id: categoryId, tournament: { arenaId: auth.arenaId }, competition: { format: "LEAGUE" } }, select: { id: true, competition: { select: { id: true, pairs: { where: { active: true }, select: { players: { select: { playerId: true } } } } } } } });
-  if (!category?.competition) throw new Error("Categoria de Liga não encontrada.");
-  const competition = category.competition;
-  await prisma.$transaction(async (tx) => {
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    const category = await tx.tournamentCategory.findFirst({ where: { id: categoryId, tournament: { arenaId: auth.arenaId }, competition: { format: "LEAGUE" } }, select: { id: true, competition: { select: { id: true, pairs: { where: { active: true }, select: { players: { select: { playerId: true } } } } } } } });
+    if (!category?.competition) throw new Error("Categoria de Liga não encontrada.");
+    const competition = category.competition;
     await tx.tournamentCategory.update({ where: { id: category.id }, data: { name, class: className, gender } });
     await tx.categoryCompetition.update({ where: { id: competition.id }, data: { leagueTier, registrationFeeCents } });
     const playerIds = Array.from(new Set(competition.pairs.flatMap((pair) => pair.players.map((player) => player.playerId))));
