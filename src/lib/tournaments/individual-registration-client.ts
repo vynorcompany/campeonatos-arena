@@ -1,3 +1,4 @@
+import { capitalizeClientName } from "@/lib/clients/name-search";
 import { Prisma } from "@prisma/client";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 
@@ -19,5 +20,5 @@ export async function resolveIndividualRegistrationClient(tx: Prisma.Transaction
   `;
   const matches = candidates.filter(player => registrationNameKey(player.name) === nameKey);
   if (matches.length > 1) throw new Error("Não foi possível identificar um cadastro único. Procure a recepção para revisar seu cadastro.");
-  return matches[0] ?? tx.player.create({ data: { arenaId, name, phone: normalizedPhone, cpf: legacyCpf } });
+  return matches[0] ?? tx.player.create({ data: { arenaId, name: capitalizeClientName(name), phone: normalizedPhone, cpf: legacyCpf } });
 }

@@ -1,4 +1,6 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
+
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GroupCheckinForm } from "./group-checkin-form";
@@ -37,7 +39,7 @@ export function CourtCheckinChooser({arenaSlug,token,playerId,playerName,mode,sl
   const ownChecked=Boolean(slot?.participants.find(p=>p.playerId===playerId)?.checkedIn || (slot&&confirmed.includes(slot.id)));
   const canCheckin=Boolean(slot&&now!==null&&now>=slot.opensAt&&now<=slot.closesAt);
   const normalized=(value:string)=>value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
-  const matching=slots.filter(game=>game.time===time&&normalized([game.responsibleName,...game.courts.map(c=>c.name)].join(" ")).includes(normalized(search.trim())));
+  const matching=slots.filter(game=>game.time===time&&matchesSearch([game.responsibleName,...game.courts.map(c=>c.name)].join(" "), search));
   const changeTime=(value:string)=>{setTime(value);setGameId("");setCourt("");setSearch("");};
   const selectGame=(game:Slot)=>{setGameId(game.id);setCourt(game.courts.length===1?game.courts[0].id:"");scrollToSummary();};
   const chooseKind=(value:"game"|"lesson")=>{setKind(value);changeTime("");};

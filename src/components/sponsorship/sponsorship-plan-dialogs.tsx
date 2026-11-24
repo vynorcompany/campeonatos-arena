@@ -1,4 +1,6 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
+
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { PlanDueOptions } from "./plan-due-options";
 import { viewStyles } from "./sponsorship-plan-dialogs.utilities";
@@ -47,7 +49,7 @@ export function AddSponsorToPlanButton({ action, planId, clients = [], monthlyAm
   const [paymentMethod,setPaymentMethod]=useState("");
   const [clientQuery, setClientQuery] = useState("");
   const [clientId, setClientId] = useState("");
-  const matchingClients = useMemo(() => clientQuery.trim() ? clients.filter((client) => `${client.name} ${client.phone}`.toLocaleLowerCase("pt-BR").includes(clientQuery.toLocaleLowerCase("pt-BR"))).slice(0, 8) : [], [clientQuery, clients]);
+  const matchingClients = useMemo(() => clientQuery.trim() ? clients.filter((client) => matchesSearch(`${client.name} ${client.phone}`, clientQuery)).slice(0, 8) : [], [clientQuery, clients]);
   return <>
     <button type="button" className={viewStyles.button_button_primary_button_small} onClick={() => setOpen(true)}>Inserir empresa</button>
     {open ? <Dialog title="Inserir empresa" close={() => setOpen(false)}>

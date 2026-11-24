@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/clients/name-search";
 import { normalizeBrazilianPhone } from "./phone";
 
 export type MergeClient = { id: string; name: string; phone: string; cpf: string; active: boolean };
@@ -41,5 +42,5 @@ export function findClientDuplicates(clients: MergeClient[]): DuplicatePair[] {
 export function matchesMergeSearch(client: MergeClient, query: string) {
   const name = normalizeClientName(query);
   const digits = /^[\d\s.()+/-]+$/.test(query) ? query.replace(/\D/g, "") : "";
-  return !name || normalizeClientName(client.name).includes(name) || Boolean(digits && (normalizeBrazilianPhone(client.phone).includes(normalizeBrazilianPhone(query)) || client.phone.replace(/\D/g, "").includes(digits) || client.cpf.replace(/\D/g, "").includes(digits)));
+  return !name || matchesSearch(client.name, query) || Boolean(digits && (normalizeBrazilianPhone(client.phone).includes(normalizeBrazilianPhone(query)) || client.phone.replace(/\D/g, "").includes(digits) || client.cpf.replace(/\D/g, "").includes(digits)));
 }

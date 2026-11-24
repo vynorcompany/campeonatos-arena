@@ -1,4 +1,5 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
 import { useFilterMemory } from "@/components/filters/filter-memory";
 import Link from "next/link";
 import { tournamentWorkspace as ui } from "@/components/tournaments/tournament-workspace";
@@ -6,7 +7,7 @@ import { ActionIcon, actionIconButton } from "@/components/ui/action-icon";
 type Event = {id:string;name:string;registrationPhase:string;categories:{id:string;name:string}[]};
 export function TournamentDirectory({events,path,canManage}:{events:Event[];path:string;canManage:boolean}) {
   const [query,setQuery]=useFilterMemory(`tournament-directory:${path}`, "");
-  const visible=events.filter(event=>event.name.toLocaleLowerCase("pt-BR").includes(query.trim().toLocaleLowerCase("pt-BR")));
+  const visible=events.filter(event=>matchesSearch(event.name, query));
   return <section className={ui.page} aria-label="Eventos em operação">
     <div className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-between tw:gap-2">
       <label className="tw:flex tw:w-full tw:max-w-[320px] tw:items-center tw:gap-2 tw:rounded-md tw:border tw:border-[#c7d8eb] tw:bg-white tw:px-2"><ActionIcon name="search"/><input className="tw:h-8! tw:min-h-8! tw:min-w-0 tw:flex-1 tw:border-0! tw:bg-transparent! tw:px-0! tw:text-xs! tw:shadow-none!" aria-label="Pesquisar eventos" placeholder="Pesquisar eventos" value={query} onChange={e=>setQuery(e.target.value)}/>{query?<button className={actionIconButton} type="button" aria-label="Limpar pesquisa de eventos" onClick={()=>setQuery("")}><ActionIcon name="close"/></button>:null}</label>

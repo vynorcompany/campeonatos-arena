@@ -1,4 +1,5 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
 
 import { useFilterMemory } from "@/components/filters/filter-memory";
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
@@ -34,7 +35,7 @@ export function TeacherManagementWorkspace({ teachers, clients }: { teachers: Te
   const [query, setQuery] = useFilterMemory("teachers.query", "");
   const [status, setStatus] = useFilterMemory<"ALL" | "ACTIVE" | "INACTIVE">("teacher-directory-status", "ALL");
   const [order, setOrder] = useFilterMemory<"NAME" | "STUDENTS" | "PLANS">("teacher-directory-order", "NAME");
-  const visibleTeachers = teachers.filter((teacher) => (status === "ALL" || (status === "ACTIVE" ? teacher.active : !teacher.active)) && teacher.name.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR"))).sort((first, second) => order === "STUDENTS" ? second.studentAssignments.length - first.studentAssignments.length || first.name.localeCompare(second.name, "pt-BR") : order === "PLANS" ? second.planAssignments.length - first.planAssignments.length || first.name.localeCompare(second.name, "pt-BR") : first.name.localeCompare(second.name, "pt-BR"));
+  const visibleTeachers = teachers.filter((teacher) => (status === "ALL" || (status === "ACTIVE" ? teacher.active : !teacher.active)) && matchesSearch(teacher.name, query)).sort((first, second) => order === "STUDENTS" ? second.studentAssignments.length - first.studentAssignments.length || first.name.localeCompare(second.name, "pt-BR") : order === "PLANS" ? second.planAssignments.length - first.planAssignments.length || first.name.localeCompare(second.name, "pt-BR") : first.name.localeCompare(second.name, "pt-BR"));
 
   return <section className={viewStyles.teacher_directory}>
     <header className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><h1 className="tw:sr-only">Professores</h1><button type="button" className={viewStyles.button_button_primary_button_small} onClick={() => setCreateOpen(true)}><EventIcon name="user-plus" /> Novo professor</button></header>

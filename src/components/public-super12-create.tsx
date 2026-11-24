@@ -1,4 +1,5 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./public-super12-create.utilities";
 
@@ -20,7 +21,7 @@ export function PublicSuper12Create({ arenaSlug, athletes }: { arenaSlug: string
   const selectedIds = useMemo(() => pairs.flat(), [pairs]);
   const pairCount = pairs.filter((pair) => pair.length === 2).length;
   const groupCount = qualification === "TOP_TWO" ? 4 : 3;
-  const available = search.trim() ? athletes.filter((athlete) => athlete.name.toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR")) && !selectedIds.includes(athlete.id)).slice(0, 8) : [];
+  const available = search.trim() ? athletes.filter((athlete) => matchesSearch(athlete.name, search) && !selectedIds.includes(athlete.id)).slice(0, 8) : [];
 
   function addPair() {
     if (pairs.length >= 12) return;

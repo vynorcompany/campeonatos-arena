@@ -1,4 +1,5 @@
 "use server";
+import { capitalizeClientName } from "@/lib/clients/name-search";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth/guards";
 import { withArenaTransaction } from "@/lib/rls";
@@ -17,7 +18,7 @@ export async function createDependentAction(form: FormData) {
         await validateGuardian(tx, auth.arenaId, guardianId);
         const duplicate = await tx.player.findFirst({ where: { arenaId: auth.arenaId, guardianId, name: { equals: name, mode: "insensitive" }, birthDate, mergedIntoPlayerId: null }, select: { id: true } });
         if (duplicate) throw new Error("Já existe um dependente com este nome e nascimento para este responsável. Abra o cadastro existente.");
-        const player = await tx.player.create({ data: { arenaId: auth.arenaId, name, guardianId, birthDate } });
+        const player = await tx.player.create({ data: { arenaId: auth.arenaId, name: capitalizeClientName(name), guardianId, birthDate } });
         await tx.student.create({ data: { arenaId: auth.arenaId, playerId: player.id, name } });
     });
     } catch(error) { return {error: error instanceof Error && !error.name.startsWith("Prisma") ? error.message : "Não foi possível cadastrar o dependente. Confira os dados e tente novamente."}; }

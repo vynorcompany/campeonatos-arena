@@ -34,9 +34,9 @@ test("quick client registration accepts absent optional fields, stores profile a
     });
     const form = (values:Record<string,string>)=>{const data=new FormData();for(const [key,value]of Object.entries(values))data.set(key,value);return data;};
     await admin.player.create({data:{arenaId:ids[1],name:"Outra arena",phone:"47999990001"}});
-    const minimal=await exports.createQuickPlayerAction!(form({name:"Cliente Inicial",phone:"(47) 99999-0001"}));
+    const minimal=await exports.createQuickPlayerAction!(form({name:"cliente inicial",phone:"(47) 99999-0001"}));
     const saved=await admin.player.findUniqueOrThrow({where:{id:minimal.id}});
-    assert.equal(saved.arenaId,ids[0]);assert.equal(saved.phone,"47999990001");assert.equal(saved.cpf,"");assert.equal(saved.birthDate,null);
+    assert.equal(saved.name,"Cliente Inicial");assert.equal(saved.arenaId,ids[0]);assert.equal(saved.phone,"47999990001");assert.equal(saved.cpf,"");assert.equal(saved.birthDate,null);
     const full=await exports.createQuickPlayerAction!(form({name:"Cliente Completo",phone:"47999990002",email:"client@example.test",cpf:"529.982.247-25",birthDate:"1995-06-15",class:"B",gender:"Feminino"}));
     const profile=await admin.player.findUniqueOrThrow({where:{id:full.id}});
     assert.equal(profile.email,"client@example.test");assert.equal(profile.cpf,"52998224725");assert.equal(profile.class,"B");assert.equal(profile.gender,"Feminino");assert.equal(profile.birthDate?.toISOString().slice(0,10),"1995-06-15");

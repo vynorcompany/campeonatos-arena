@@ -1,4 +1,5 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
 import { viewStyles } from "./tv-sponsor-multiselect.utilities";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -11,7 +12,7 @@ export function TvSponsorMultiselect({ sponsors, selectedSponsorIds }: { sponsor
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const selectedSponsors = useMemo(() => sponsors.filter((sponsor) => selectedIds.includes(sponsor.id)), [selectedIds, sponsors]);
-  const suggestions = useMemo(() => sponsors.filter((sponsor) => !selectedIds.includes(sponsor.id) && sponsor.name.toLocaleLowerCase("pt-BR").includes(query.trim().toLocaleLowerCase("pt-BR"))), [query, selectedIds, sponsors]);
+  const suggestions = useMemo(() => sponsors.filter((sponsor) => !selectedIds.includes(sponsor.id) && matchesSearch(sponsor.name, query)), [query, selectedIds, sponsors]);
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {

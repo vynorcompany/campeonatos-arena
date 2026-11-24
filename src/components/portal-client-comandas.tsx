@@ -1,4 +1,5 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
 
 import Link from "next/link";
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
@@ -68,7 +69,7 @@ export function PortalClientComandas({ data: initialData, arenaSlug, presentatio
   const [draftLines,setDraftLines] = useState<Record<string,{productId:string;choices:IngredientChoices}>>({});
   const [drafts, setDrafts] = useState<Record<string, { orderId: string; quantities: Record<string, number> }>>({});
   const categories = useMemo(() => ["Todos", ...Array.from(new Set(data?.products.map(product => product.category) ?? []))], [data]);
-  const products = useMemo(() => (data?.products ?? []).filter(product => (category === "Todos" || product.category === category) && (!search.trim() || product.name.toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR")))), [category, data, search]);
+  const products = useMemo(() => (data?.products ?? []).filter(product => (category === "Todos" || product.category === category) && (!search.trim() || matchesSearch(product.name, search))), [category, data, search]);
   const changeQuantity = (comandaId: string, productId: string, delta: number, selectedChoices?:IngredientChoices) => {
     const product = data?.products.find(row => row.id === productId);
     if (!product || pending) return;

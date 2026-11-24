@@ -1,4 +1,6 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
+
 import { useFilterMemory } from "@/components/filters/filter-memory";
 import { AttachmentPreview } from "./attachment-preview";
 import { useThreadScroll } from "./use-thread-scroll";
@@ -203,7 +205,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
   useWhatsAppRealtime({ paused: !connected, initialVersion, scope: pollingScope });
 
   const visible = useMemo(() => conversations.filter((conversation) => {
-    const searchMatches = `${conversation.contactName} ${conversation.contactPhone} ${conversation.player?.name ?? ""}`.toLowerCase().includes(query.trim().toLowerCase());
+    const searchMatches = matchesSearch(`${conversation.contactName} ${conversation.contactPhone} ${conversation.player?.name ?? ""}`, query);
     if (!searchMatches) return false;
     if (filter === "unread") return conversation.unreadCount > 0 && !conversation.archivedAt;
     if (filter === "groups") return conversation.remoteJid.endsWith("@g.us") && !conversation.archivedAt;
@@ -212,7 +214,7 @@ export function WhatsAppChatWorkspace({ conversations: initialConversations, pol
     return !conversation.archivedAt;
   }), [conversations, filter, query]);
   const matchedClient = useMemo(() => active && !active.remoteJid.endsWith("@g.us") ? clients.find((client) => normalizeBrazilianPhone(client.phone) === normalizeBrazilianPhone(active.contactPhone)) ?? null : null, [active, clients]);
-  const clientOptions = useMemo(() => clientQuery.trim() ? clients.filter((client) => `${client.name} ${client.phone}`.toLowerCase().includes(clientQuery.toLowerCase())).slice(0, 8) : [], [clientQuery, clients]);
+  const clientOptions = useMemo(() => clientQuery.trim() ? clients.filter((client) => matchesSearch(`${client.name} ${client.phone}`, clientQuery)).slice(0, 8) : [], [clientQuery, clients]);
 
   const slaStatus = (conversation: WhatsAppConversation) => {
     const last = messagesFor(conversation).at(-1);

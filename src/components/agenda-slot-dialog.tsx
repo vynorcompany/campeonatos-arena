@@ -1,4 +1,5 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
 import { WhatsAppBrandIcon } from "@/components/whatsapp/whatsapp-brand-icon";
 import { openWhatsAppPlayerConversationAction } from "@/lib/actions/whatsapp-chat";
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
@@ -82,7 +83,7 @@ export function AgendaSlotDialog({ slot, players, courts, teachers, bookingTypes
   const lesson = isLessonType(bookingTypeName);
   const fixedBooking = isFixedBooking(bookingTypeName);
   const selectedParticipants = participants.filter((participant) => participant.playerId);
-  const matchingPlayers = useMemo(() => playerOptions.filter((player) => player.name.toLowerCase().includes(playerSearch.toLowerCase()) && !selectedParticipants.some((participant) => participant.playerId === player.id)), [playerOptions, playerSearch, selectedParticipants]);
+  const matchingPlayers = useMemo(() => playerOptions.filter((player) => matchesSearch(player.name, playerSearch) && !selectedParticipants.some((participant) => participant.playerId === player.id)), [playerOptions, playerSearch, selectedParticipants]);
   const stateLabel = slot.state === "AVAILABLE" ? "Nova reserva" : slot.state === "OCCUPIED" ? (canEditBooking ? "Editar reserva" : "Ver reserva") : "Horário indisponível";
   const canSaveBooking = slot.occurrenceId ? canEditBooking : canCreateBooking;
   const responsibleName = playerOptions.find((player) => player.id === (responsiblePlayerId || selectedParticipants[0]?.playerId))?.name ?? "Cliente";

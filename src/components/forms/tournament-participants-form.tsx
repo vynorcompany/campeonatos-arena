@@ -1,4 +1,6 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
+
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 
 
@@ -84,7 +86,7 @@ export function TournamentParticipantsForm(props: TournamentParticipantsFormProp
     if (!normalizedSearch) return registrations;
     return registrations.filter((item) => {
       const blob = `${item.leadName} ${item.partnerName} ${item.thirdName ?? ""} ${item.categoryName}`.toLowerCase();
-      return blob.includes(normalizedSearch);
+      return matchesSearch(blob, normalizedSearch);
     });
   }, [normalizedSearch, registrations]);
 

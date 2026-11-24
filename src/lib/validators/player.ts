@@ -1,3 +1,4 @@
+import { capitalizeClientName } from "@/lib/clients/name-search";
 import { z } from "zod";
 
 export const fullNameSchema = z.string().trim().min(3, "Informe nome e sobrenome.").refine(
@@ -28,7 +29,7 @@ const optionalAddressField = z.preprocess((value) => value ?? "", z.string().tri
 const optionalAddressUpdateField = z.preprocess((value) => value === null ? undefined : value, z.string().trim().max(120).optional());
 
 export const createPlayerSchema = z.object({
-  name: fullNameSchema,
+  name: fullNameSchema.transform(capitalizeClientName),
   points: z.coerce.number().int().min(0, "A pontuação deve ser positiva."),
   class: eligibilityFieldSchema,
   gender: eligibilityFieldSchema,
@@ -94,7 +95,7 @@ const clientIdentity = {
 function validateClientName(data: {personType:string;name:string}, ctx: z.RefinementCtx) {
   if (data.personType === "PF" && !fullNameSchema.safeParse(data.name).success) ctx.addIssue({code:"custom",path:["name"],message:"Informe nome e sobrenome."});
 }
-export const createClientSchema = createPlayerSchema.extend(clientIdentity).superRefine(validateClientName);
+export const createClientSchema = createPlayerSchema.extend({...clientIdentity, name: clientIdentity.name.transform(capitalizeClientName)}).superRefine(validateClientName);
 export const updateClientSchema = updatePlayerSchema.extend({...clientIdentity, personType: z.preprocess(value => value === null ? undefined : value, z.enum(["PF","PJ"]).optional()), cnpj: clientIdentity.cnpj.optional()}).superRefine((data,ctx) => validateClientName({...data,personType:data.personType??"PF"},ctx));
 
-export const quickClientSchema = createPlayerSchema.pick({name:true,phone:true,email:true,cpf:true,class:true,gender:true,birthDate:true}).extend({...clientIdentity,phone:z.string().trim().min(8,"Informe um telefone válido.").max(30)}).superRefine(validateClientName);
+export const quickClientSchema = createPlayerSchema.pick({name:true,phone:true,email:true,cpf:true,class:true,gender:true,birthDate:true}).extend({...clientIdentity,name:clientIdentity.name.transform(capitalizeClientName),phone:z.string().trim().min(8,"Informe um telefone válido.").max(30)}).superRefine(validateClientName);

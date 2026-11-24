@@ -20,7 +20,7 @@ test("financial pagination limits hydrated rows, keeps full-filter totals and is
  const category=`pagination-${randomUUID()}`,ids=Array.from({length:48},()=>randomUUID());
  try {
   const own=await admin.arena.findUniqueOrThrow({where:{slug:"arena-teste-goal"}}),other=await admin.arena.findUniqueOrThrow({where:{slug:"arena-beta-goal"}});
-  await admin.financialEntry.createMany({data:ids.map((id,i)=>({id,arenaId:i===47?other.id:own.id,type:"EXPENSE",category,description:`Item ${i}`,amountCents:100,status:i===45?"PAID":i===46?"VOIDED":"PENDING",source:"MANUAL",dueDate:new Date("2026-11-11T12:00:00Z")}))});
+  await admin.financialEntry.createMany({data:ids.map((id,i)=>({id,arenaId:i===47?other.id:own.id,type:"EXPENSE",category,description:`Item ${i}`,counterpartyName:i===0?"Paulo Marcelo Kaufman":"Outro Cliente",amountCents:100,status:i===45?"PAID":i===46?"VOIDED":"PENDING",source:"MANUAL",dueDate:new Date("2026-11-11T12:00:00Z")}))});
   type Page={entries:{id:string}[];total:number;totalCents:number;activeCount:number;page:number;pageSize:number};
   const exports:{getAccountsLedgerPage?:(id:string,type:string,filters:object,paging:object)=>Promise<Page>}={};const require=createRequire(import.meta.url);
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/finance/accounts.ts",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require(name:string){
@@ -33,6 +33,8 @@ test("financial pagination limits hydrated rows, keeps full-filter totals and is
   assert.equal(first.entries.length,20);assert.equal(second.entries.length,20);assert.equal(third.entries.length,5);assert.equal(third.page,3);
   assert.equal(first.total,45);assert.equal(first.totalCents,4500);assert.equal(first.activeCount,45);
   const unique=new Set([...first.entries,...second.entries,...third.entries].map(e=>e.id));assert.equal(unique.size,45);assert.ok(!unique.has(ids[47]));
+  const named = await exports.getAccountsLedgerPage!(own.id,"EXPENSE",{category,status:"OPEN",name:"Paulo Kaufman"},{page:1});
+  assert.equal(named.total,1);assert.equal(named.entries[0].id,ids[0],"encontra nome e sobrenome sem exigir o nome do meio");
   const focused = await exports.getAccountsLedgerPage!(own.id,"EXPENSE",{category,status:"OPEN"},{entryId:third.entries[0].id});
   assert.equal(focused.page,3);assert.ok(focused.entries.some(entry=>entry.id===third.entries[0].id));
   await admin.financialEntry.update({where:{id:ids[0]},data:{amountCents:9000}});

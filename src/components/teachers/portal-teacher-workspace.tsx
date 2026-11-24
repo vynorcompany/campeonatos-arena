@@ -1,4 +1,6 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
+
 
 import { useMemo } from "react";
 import { useFilterMemory } from "@/components/filters/filter-memory";
@@ -19,10 +21,9 @@ export function PortalTeacherWorkspace({arenaSlug,management}:{arenaSlug:string;
  const [planQuery,setPlanQuery]=useFilterMemory("teacher.plans.query","");
  const [classQuery,setClassQuery]=useFilterMemory("teacher.classes.query","");
  const [agendaQuery,setAgendaQuery]=useFilterMemory("teacher.agenda.query","");
- const normal=(value:string)=>value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("pt-BR");
- const plans=management.plans.filter(p=>normal(p.name).includes(normal(planQuery)));
- const groups=management.classGroups.filter(g=>normal(g.name+" "+g.students.map(s=>s.name).join(" ")).includes(normal(classQuery)));
- const agenda=management.agenda.filter(a=>normal(a.title+" "+a.when+" "+a.status).includes(normal(agendaQuery)));
+ const plans=management.plans.filter(p=>matchesSearch(p.name, planQuery));
+ const groups=management.classGroups.filter(g=>matchesSearch(g.name+" "+g.students.map(s=>s.name).join(" "), classQuery));
+ const agenda=management.agenda.filter(a=>matchesSearch(a.title+" "+a.when+" "+a.status, agendaQuery));
  const pending=useMemo(()=>management.students.reduce((n,s)=>n+s.pendingMakeups.length,0),[management.students]);
  return <section className="tw:grid tw:min-w-0 tw:gap-4 tw:text-[var(--portal-ink)]" aria-label="Área do Professor">
   <PortalLocalTabs label="Área do Professor" initial="plans" tabs={[
