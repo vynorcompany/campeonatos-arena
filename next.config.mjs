@@ -2,6 +2,7 @@ import { contentSecurityPolicy } from "./src/lib/security/content-security-polic
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  poweredByHeader: false,
   serverExternalPackages: ["pdf-parse", "pdfjs-dist", "@napi-rs/canvas"],
   async headers() {
     return [{
