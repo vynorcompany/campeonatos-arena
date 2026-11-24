@@ -12,7 +12,7 @@ import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { arenaDatabaseForTest } from "./helpers/arena-database";
 import * as operationalPolicy from "../src/lib/comandas/operational-policy";
-import { allocateComandaShares } from "../src/lib/comandas/split";
+import { allocateComandaLines, allocateComandaShares } from "../src/lib/comandas/split";
 import { allocatePaymentsToDebts, getOutstandingCents } from "../src/lib/finance/settlements";
 import { comandaDebtOwnerId, selectedComandaDebtWhere } from "../src/lib/finance/comanda-debts";
 import { cashReferenceDate } from "../src/lib/finance/cash-day";
@@ -36,7 +36,7 @@ test("comanda policies enforce delinquency, cash, full payment, surplus, wallet 
     const mocks: Record<string, unknown> = { "@/lib/tournaments/registration-receivable": registrationReceivables, "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock },
       "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id, userId: "goal-test", userName: "Policy operator QA" }) },
       "@/lib/arena-database": { arenaDatabase: (arenaId: string) => arenaDatabaseForTest(runtime, arenaId) }, "@/lib/rls": { withArenaTransaction: transact },
-      "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents },
+      "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/comandas/split": { allocateComandaLines, allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents },
       "@/lib/finance/comanda-debts": { comandaDebtOwnerId, selectedComandaDebtWhere }, "@/lib/finance/cash-day": { cashReferenceDate }, "@/lib/finance/cash-register-sales": { recordCashSaleIfOpen },
     };
     const actions: Record<string, (form: FormData) => Promise<any>> = {};

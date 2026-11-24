@@ -12,7 +12,7 @@ import { randomUUID } from "node:crypto";
 import { PrismaClient, type Prisma } from "@prisma/client";
 import { enqueueComandaWhatsapp } from "../src/lib/comandas/whatsapp-outbox";
 import * as operationalPolicy from "../src/lib/comandas/operational-policy";
-import { allocateComandaShares } from "../src/lib/comandas/split";
+import { allocateComandaLines, allocateComandaShares } from "../src/lib/comandas/split";
 import { allocatePaymentsToDebts, getOutstandingCents } from "../src/lib/finance/settlements";
 import { comandaDebtOwnerId, selectedComandaDebtWhere } from "../src/lib/finance/comanda-debts";
 import { cashReferenceDate } from "../src/lib/finance/cash-day";
@@ -47,7 +47,7 @@ test("comanda WhatsApp sends only committed own shares once and preserves financ
       "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: ids[0], userId: "goal-test", userName: "WhatsApp QA" }) },
       "@/lib/comandas/whatsapp-outbox": { enqueueComandaWhatsapp: (...args: Parameters<typeof enqueueComandaWhatsapp>) => { if (failQueue) throw Error("Queue unavailable"); return enqueueComandaWhatsapp(...args); } },
       "@/lib/comandas/whatsapp-delivery": dispatcher, "@/lib/comandas/operational-policy": operationalPolicy,
-      "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents }, "@/lib/finance/comanda-debts": { comandaDebtOwnerId, selectedComandaDebtWhere }, "@/lib/finance/cash-day": { cashReferenceDate }, "@/lib/finance/cash-register-sales": { recordCashSaleIfOpen },
+      "@/lib/comandas/split": { allocateComandaLines, allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents }, "@/lib/finance/comanda-debts": { comandaDebtOwnerId, selectedComandaDebtWhere }, "@/lib/finance/cash-day": { cashReferenceDate }, "@/lib/finance/cash-register-sales": { recordCashSaleIfOpen },
     });
     const bill = () => admin.comanda.create({ data: { arenaId: ids[0], playerId: owner.id, label: owner.name, code: `WA-${randomUUID()}`, items: { create: { productId: product.id, quantity: 1, unitPriceCents: 1000, totalCents: 1000 } } } });
     const finish = (comandaId: string, split = false) => { const form = new FormData(); form.set("comandaId", comandaId); form.set("payments", JSON.stringify([{ bankAccountId: bank.id, paymentMethod: "PIX", amountCents: split ? 400 : 1000 }])); if (split) form.set("shares", JSON.stringify([{ playerId: owner.id, amountCents: 400 }, { playerId: partner.id, amountCents: 600 }])); return exports.finishComandaAction(form); };

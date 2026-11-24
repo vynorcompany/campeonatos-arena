@@ -10,7 +10,7 @@ import { after } from "next/server";
 import { enqueueComandaWhatsapp } from "@/lib/comandas/whatsapp-outbox";
 import { dispatchComandaWhatsapp } from "@/lib/comandas/whatsapp-delivery";
 import { calculateComandaDiscounts, applyComandaPaymentPolicy, assertComandaMayOpen, assertComandaCashRegister } from "@/lib/comandas/operational-policy";
-import { allocateComandaShares } from "@/lib/comandas/split";
+import { allocateComandaLines, allocateComandaShares } from "@/lib/comandas/split";
 import { deleteComandaWithAudit } from "@/lib/comandas/delete-with-audit";
 import { arenaDatabase } from "@/lib/arena-database";
 
@@ -60,6 +60,8 @@ const finishComandaSchema = z.object({
   discountCents: z.coerce.number().int().min(0).max(2147483647).default(0),
   itemDiscounts: z.array(z.object({kind:z.enum(["ITEM","DEBT"]),id:z.string().min(1),amountCents:z.number().int().min(0).max(2147483647)})).max(500).default([]),
   quotedTotalCents: z.coerce.number().int().min(0).max(2147483647).optional(),
+  splitIncludesBookings: z.preprocess(value => value === true || value === "true", z.boolean()).default(false),
+  splitItemIds: z.array(z.string().min(1)).max(500).default([]),
   fiscalCustomerDocument: z.string().trim().max(18).default(""),
   comandaId: z.string().min(1),
   shares: z.array(z.object({ playerId: z.string().min(1).nullable(), amountCents: z.coerce.number().int().nonnegative() })).max(20).default([]),
@@ -269,11 +271,42 @@ export async function updateComandaItemQuantityAction(formData: FormData) {
   if (!parsed.success) throw new Error("Ajuste inválido.");
 
   await withArenaTransaction(auth.arenaId, async (tx) => {
+    const owner = await tx.comandaItem.findFirst({ where: { id: parsed.data.itemId, comanda: { arenaId: auth.arenaId, status: "OPEN" } }, select: { comandaId: true } });
+    if (!owner) throw new Error("Item não encontrado.");
+    await tx.$queryRaw`SELECT id FROM "Comanda" WHERE id = ${owner.comandaId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
     const item = await tx.comandaItem.findFirst({ where: { id: parsed.data.itemId, comanda: { arenaId: auth.arenaId, status: "OPEN" } }, include: { product: { select: { stockQuantity: true } } } });
     if (!item) throw new Error("Item não encontrado.");
     const nextQuantity = item.quantity + parsed.data.delta;
+    if (nextQuantity > 999 || item.unitPriceCents * nextQuantity > 2_147_483_647) throw new Error("Quantidade ou valor acima do limite permitido.");
     if (nextQuantity <= 0) { await tx.comandaItem.delete({ where: { id: item.id } }); return; }
     await tx.comandaItem.update({ where: { id: item.id }, data: { quantity: nextQuantity, totalCents: item.unitPriceCents * nextQuantity } });
+  });
+  revalidatePath("/comandas");
+}
+
+/** Edit a command line without overwriting a concurrent checkout or another operator's edit. */
+export async function editComandaItemAction(formData: FormData) {
+  const auth = await requirePermission("pos:command:items");
+  const parsed = z.object({
+    itemId: z.string().min(1),
+    quantity: z.coerce.number().int().min(0).max(999),
+    unitPriceCents: z.coerce.number().int().min(0).max(2_147_483_647),
+    expectedQuantity: z.coerce.number().int().min(1).max(2_147_483_647),
+    expectedUnitPriceCents: z.coerce.number().int().min(0).max(2_147_483_647)
+  }).safeParse(Object.fromEntries(["itemId", "quantity", "unitPriceCents", "expectedQuantity", "expectedUnitPriceCents"].map(key => [key, formData.get(key) ?? undefined])));
+  if (!parsed.success || !Number.isSafeInteger(parsed.data.quantity * parsed.data.unitPriceCents) || parsed.data.quantity * parsed.data.unitPriceCents > 2_147_483_647) throw new Error("Revise a quantidade e o valor do item.");
+  await withArenaTransaction(auth.arenaId, async tx => {
+    const owner = await tx.comandaItem.findFirst({ where: { id: parsed.data.itemId, comanda: { arenaId: auth.arenaId, status: "OPEN" } }, select: { comandaId: true } });
+    if (!owner) throw new Error("Item não encontrado nesta comanda aberta.");
+    await tx.$queryRaw`SELECT id FROM "Comanda" WHERE id = ${owner.comandaId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
+    const item = await tx.comandaItem.findFirst({ where: { id: parsed.data.itemId, comanda: { arenaId: auth.arenaId, status: "OPEN" } } });
+    if (!item) throw new Error("Item não encontrado nesta comanda aberta.");
+    if (item.quantity !== parsed.data.expectedQuantity || item.unitPriceCents !== parsed.data.expectedUnitPriceCents) throw new Error("O item foi alterado por outra operação. Atualize a comanda antes de editar.");
+    const { quantity, unitPriceCents } = parsed.data;
+    if (quantity === item.quantity && unitPriceCents === item.unitPriceCents) return;
+    if (quantity === 0) await tx.comandaItem.delete({ where: { id: item.id } });
+    else await tx.comandaItem.update({ where: { id: item.id }, data: { quantity, unitPriceCents, totalCents: quantity * unitPriceCents } });
+    await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName, action: quantity === 0 ? "COMANDA_ITEM_REMOVED" : "COMANDA_ITEM_UPDATED", entityId: item.comandaId, details: { itemId: item.id, productId: item.productId, before: { quantity: item.quantity, unitPriceCents: item.unitPriceCents }, after: { quantity, unitPriceCents } } } });
   });
   revalidatePath("/comandas");
 }
@@ -295,7 +328,9 @@ export async function finishComandaAction(formData: FormData) {
   }
   let itemDiscounts: unknown = [];
   try { itemDiscounts = JSON.parse(String(formData.get("itemDiscounts") ?? "[]")); } catch { throw new Error("Descontos inválidos."); }
-  const parsed = finishComandaSchema.safeParse({ discountMode: formData.get("discountMode") ?? "TOTAL", discountCents: formData.get("discountCents") ?? 0, itemDiscounts, quotedTotalCents: formData.get("quotedTotalCents") ?? undefined, comandaId: formData.get("comandaId"), fiscalCustomerDocument: formData.get("fiscalCustomerDocument") ?? "", shares, payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false, allowPartial: formData.get("allowPartial") ?? false, fiscalDocumentType: formData.get("fiscalDocumentType") ?? "" });
+  let splitItemIds: unknown = [];
+  try { splitItemIds = JSON.parse(String(formData.get("splitItemIds") ?? "[]")); } catch { throw new Error("Itens da divisão inválidos."); }
+  const parsed = finishComandaSchema.safeParse({ splitIncludesBookings: formData.get("splitIncludesBookings") ?? false, splitItemIds, discountMode: formData.get("discountMode") ?? "TOTAL", discountCents: formData.get("discountCents") ?? 0, itemDiscounts, quotedTotalCents: formData.get("quotedTotalCents") ?? undefined, comandaId: formData.get("comandaId"), fiscalCustomerDocument: formData.get("fiscalCustomerDocument") ?? "", shares, payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false, allowPartial: formData.get("allowPartial") ?? false, fiscalDocumentType: formData.get("fiscalDocumentType") ?? "" });
   if (!parsed.success) throw new Error("Comanda inválida.");
   if (parsed.data.payments.some(payment => /^(saldo\b|credito (do cliente|em conta)\b)/.test(payment.paymentMethod.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()))) throw new Error("Para usar saldo, ative Usar saldo. O valor será validado e descontado da conta do cliente.");
 
@@ -332,7 +367,7 @@ export async function finishComandaAction(formData: FormData) {
     const paymentTotalCents = parsed.data.payments.reduce((total, payment) => total + payment.amountCents, 0);
     const selectedDebts = comanda.playerId && debtIdsToSettle.length ? await tx.financialEntry.findMany({
       where: selectedComandaDebtWhere(auth.arenaId, debtIdsToSettle),
-      select: { id: true, source: true, playerId: true, amountCents: true, onlinePaymentId: true, onlinePaymentUrl: true, onlinePaymentClaimMethod: true, onlinePaymentClaimedAt: true, notes: true, onlinePaymentItems: { select: { checkout: { select: { status: true, mercadoPagoPaymentId: true, checkoutUrl: true } } } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } }, scheduleParticipant: { select: { playerId: true } }, sale: { select: { comanda: { select: { playerId: true } } } } }
+      select: { id: true, source: true, playerId: true, category: true, description: true, dueDate: true, competenceDate: true, externalReference: true, amountCents: true, onlinePaymentId: true, onlinePaymentUrl: true, onlinePaymentClaimMethod: true, onlinePaymentClaimedAt: true, notes: true, onlinePaymentItems: { select: { checkout: { select: { status: true, mercadoPagoPaymentId: true, checkoutUrl: true } } } }, settlements: { select: { amountCents: true, interestCents: true, discountCents: true } }, scheduleParticipant: { select: { playerId: true } }, sale: { select: { comanda: { select: { playerId: true } } } } }
     }) : [];
     if (selectedDebts.length !== debtIdsToSettle.length || selectedDebts.some((debt) => comandaDebtOwnerId(debt) !== comanda.playerId)) throw new Error("Um dos débitos selecionados não está disponível para este cliente.");
     if (selectedDebts.some(debt => Boolean(debt.onlinePaymentId || debt.onlinePaymentUrl || debt.onlinePaymentClaimMethod || debt.onlinePaymentClaimedAt) || debt.notes.includes("[MP_REVIEW:") || debt.onlinePaymentItems.some(({ checkout }) => ["PENDING", "REVIEW", "PAID"].includes(checkout.status) || (checkout.status === "FAILED" && Boolean(checkout.mercadoPagoPaymentId || checkout.checkoutUrl))))) throw new Error("Um dos débitos possui pagamento online emitido ou em análise. Confira e concilie a cobrança antes de quitá-lo na comanda.");
@@ -356,32 +391,74 @@ export async function finishComandaAction(formData: FormData) {
     const selectedDebtBalances = grossDebtBalances.map(debt => ({...debt,outstandingCents:debt.outstandingCents-(discounts.debts.find(line=>line.id===debt.financialEntryId)?.discountCents??0)})).filter(debt=>debt.outstandingCents>0);
     const selectedDebtTotalCents = selectedDebtBalances.reduce((total, debt) => total + debt.outstandingCents, 0);
     const grandTotalCents = totalCents + selectedDebtTotalCents;
-    const sharedParts = parsed.data.shares.length ? parsed.data.shares : [{ playerId: comanda.playerId, amountCents: totalCents }];
-    if (parsed.data.creditCents > sharedParts[0].amountCents + selectedDebtTotalCents) throw new Error("Os pagamentos e o saldo utilizado excedem as partes da comanda.");
+    const submittedParts = parsed.data.shares.length ? parsed.data.shares : [{ playerId: comanda.playerId, amountCents: totalCents }];
+    const splitItems = discounts.items.filter(item => parsed.data.splitItemIds.includes(item.id));
+    const includesBookings = parsed.data.splitIncludesBookings && parsed.data.shares.length > 0;
+    const bookingLines = discounts.debts.filter(line => line.netCents > 0);
+    const bookingTotal = bookingLines.reduce((sum,line) => sum + line.netCents,0);
+    const fullTotal = totalCents + (includesBookings ? bookingTotal : 0);
+    allocateComandaShares(submittedParts, fullTotal, 0, 0);
+    if (submittedParts[0].playerId !== comanda.playerId || submittedParts.slice(1).some(part => !part.playerId || part.amountCents <= 0)) throw new Error("A divisão deve manter o titular e identificar cada outra pessoa.");
+    const otherIds = submittedParts.slice(1).map(part => part.playerId!);
+    const otherPlayers = otherIds.length ? await tx.player.findMany({ where: { arenaId: auth.arenaId, id: { in: otherIds }, active: true }, select: { id: true, name: true } }) : [];
+    if (otherPlayers.length !== otherIds.length) throw new Error("Uma das pessoas selecionadas não está disponível nesta arena.");
+    if (parsed.data.splitItemIds.length && (!parsed.data.shares.length || new Set(parsed.data.splitItemIds).size !== parsed.data.splitItemIds.length || splitItems.length !== parsed.data.splitItemIds.length)) throw new Error("Os itens escolhidos para divisão não estão disponíveis nesta comanda.");
+    if (splitItems.length && submittedParts.slice(1).reduce((sum, part) => sum + part.amountCents, 0) > splitItems.reduce((sum, item) => sum + item.netCents, 0)) throw new Error("As partes dos outros clientes excedem o valor dos itens selecionados. Revise a divisão.");
+    const lineShares = includesBookings && !splitItems.length
+      ? allocateComandaLines(submittedParts, [{id:"PRODUCTS",amountCents:totalCents}, ...bookingLines.map(line => ({id:line.id,amountCents:line.netCents}))])
+      : [{id:"PRODUCTS",parts:submittedParts.map((part,index) => ({...part,amountCents:part.amountCents-(includesBookings && index===0 ? bookingTotal : 0)}))}];
+    const sharedParts = lineShares[0].parts;
+    const reservationTransfers: {parentId:string;entryId:string;playerId:string;amountCents:number}[] = [];
+    // Reassign only outstanding principal. Existing receipts and real discounts stay on the original charge.
+    // Parent/child links keep the reservation unpaid until every assigned part is settled.
+    for (const line of lineShares.slice(1)) {
+      const original = selectedDebts.find(debt => debt.id === line.id)!;
+      const moved = line.parts.slice(1).reduce((sum,part) => sum+part.amountCents,0);
+      if (!moved) continue;
+      if (moved > original.amountCents) throw new Error("Esta reserva possui juros que precisam ser conciliados antes da divisão.");
+      await tx.financialEntry.update({where:{id:original.id},data:{amountCents:{decrement:moved}}});
+      original.amountCents -= moved;
+      const balance = selectedDebtBalances.find(debt => debt.financialEntryId===original.id)!;
+      balance.outstandingCents -= moved;
+      for (const part of line.parts.slice(1).filter(part => part.amountCents>0)) {
+        const child = await tx.financialEntry.create({data:{arenaId:auth.arenaId,playerId:part.playerId!,reservationSplitParentId:original.id,type:"REVENUE",category:original.category,description:`Parte da reserva · ${original.description}`,source:"COMANDA_RESERVATION_SPLIT",externalReference:original.externalReference,dueDate:original.dueDate,competenceDate:original.competenceDate,notes:`Reserva dividida na comanda ${comanda.code}.`,amountCents:part.amountCents,status:"PENDING"}});
+        reservationTransfers.push({parentId:original.id,entryId:child.id,playerId:part.playerId!,amountCents:part.amountCents});
+        selectedDebts.push({...original,id:child.id,source:child.source,playerId:part.playerId,amountCents:part.amountCents,settlements:[],scheduleParticipant:null,sale:null});
+        selectedDebtBalances.push({financialEntryId:child.id,outstandingCents:part.amountCents});
+      }
+    }
+    const ownerDebtBalances = selectedDebtBalances.filter(balance => selectedDebts.find(debt => debt.id===balance.financialEntryId)?.playerId===comanda.playerId || comandaDebtOwnerId(selectedDebts.find(debt => debt.id===balance.financialEntryId)!)===comanda.playerId);
+    const ownerDebtTotal = ownerDebtBalances.reduce((sum,debt) => sum+debt.outstandingCents,0);
+    if (parsed.data.creditCents > sharedParts[0].amountCents + ownerDebtTotal) throw new Error("Os pagamentos e o saldo utilizado excedem a parte do titular da comanda.");
     const creditAppliedCents = parsed.data.creditCents;
-    // Preserve credit on the owner's products first; any remainder pays their own debts/reservation.
     const productCreditCents = Math.min(creditAppliedCents, sharedParts[0].amountCents);
     const debtCreditCents = creditAppliedCents - productCreditCents;
     const excessDisposition = String(formData.get("excessDisposition") ?? "");
     if(parsed.data.payments.reduce((sum,p)=>sum+p.amountCents,0)+creditAppliedCents>grandTotalCents && !["CREDIT","CHANGE"].includes(excessDisposition)) throw new Error("Escolha se deseja gerar saldo para o cliente ou devolver troco.");
     const paymentPolicy = applyComandaPaymentPolicy({ totalCents: grandTotalCents, creditCents: creditAppliedCents, payments: parsed.data.payments, excessDisposition: excessDisposition === "CREDIT" || excessDisposition === "CHANGE" ? excessDisposition : undefined, preventOverpayment: operational?.preventOverpayment ?? true, requireFullPayment: operational?.requireFullPayment ?? false, allowPartial: parsed.data.allowPartial, playerId: comanda.playerId });
     await assertComandaCashRegister(tx, auth.arenaId, operational?.cashRegisterRequired ?? false, paymentTotalCents > 0);
-    const creditDebtAllocation = allocatePaymentsToDebts(selectedDebtBalances, debtCreditCents ? [{ paymentMethod: "Saldo do cliente", amountCents: debtCreditCents }] : []);
+    const creditDebtAllocation = allocatePaymentsToDebts(ownerDebtBalances, debtCreditCents ? [{ paymentMethod: "Saldo do cliente", amountCents: debtCreditCents }] : []);
     const remainingDebtBalances = selectedDebtBalances.map(debt => ({ ...debt, outstandingCents: debt.outstandingCents - creditDebtAllocation.settlements.filter(settlement => settlement.financialEntryId === debt.financialEntryId).reduce((sum, settlement) => sum + settlement.amountCents, 0) })).filter(debt => debt.outstandingCents > 0);
     if (installmentTotalCents && (paymentPolicy.excessCents || paymentPolicy.changeCents)) throw new Error("O parcelamento não pode ultrapassar o total da comanda.");
-    const cashDebtAllocation = allocatePaymentsToDebts(remainingDebtBalances, installmentTotalCents ? parsed.data.payments.filter(payment => !payment.installmentCount) : paymentPolicy.appliedPayments);
-
-    const debtPaymentAllocation = { remainingPayments: cashDebtAllocation.remainingPayments, settlements: [...creditDebtAllocation.settlements, ...cashDebtAllocation.settlements] };
+    const cashPayments = installmentTotalCents ? parsed.data.payments.filter(payment => !payment.installmentCount) : paymentPolicy.appliedPayments;
+    // Holder claims precede other clients, including both their reservation and product portions.
+    const productClaimPrefix = "comanda-product:";
+    const claims = includesBookings ? sharedParts.flatMap((part,index) => [
+      ...remainingDebtBalances.filter(balance => comandaDebtOwnerId(selectedDebts.find(debt => debt.id===balance.financialEntryId)!)===part.playerId),
+      {financialEntryId:`${productClaimPrefix}${index}`,outstandingCents:part.amountCents-(index===0 ? productCreditCents : 0)}
+    ]) : remainingDebtBalances;
+    const cashDebtAllocation = allocatePaymentsToDebts(claims, cashPayments);
+    const productReceipts = includesBookings ? cashDebtAllocation.settlements.filter(row => row.financialEntryId.startsWith(productClaimPrefix)).map(({bankAccountId,paymentMethod,amountCents}) => ({bankAccountId,paymentMethod,amountCents})) : [];
+    const debtPaymentAllocation = {
+      remainingPayments: includesBookings ? [...productReceipts,...cashDebtAllocation.remainingPayments] : cashDebtAllocation.remainingPayments,
+      settlements: [...creditDebtAllocation.settlements,...cashDebtAllocation.settlements.filter(row => !row.financialEntryId.startsWith(productClaimPrefix))]
+    };
     const partialDebtPaymentCents = debtPaymentAllocation.settlements.reduce((total, settlement) => total + settlement.amountCents, 0);
     const settleSelectedDebts = Boolean(selectedDebts.length) && partialDebtPaymentCents >= selectedDebtTotalCents;
     const regularProductPaymentCents = debtPaymentAllocation.remainingPayments.reduce((total, payment) => total + payment.amountCents, 0);
     if (installmentTotalCents > totalCents - productCreditCents - regularProductPaymentCents) throw new Error("O parcelamento cobre os itens da comanda. Para quitar reservas e outros débitos, adicione outra forma de pagamento.");
     const comandaPaymentCents = regularProductPaymentCents + installmentTotalCents;
     const remainingCents = totalCents - comandaPaymentCents - productCreditCents;
-    if (sharedParts[0].playerId !== comanda.playerId || sharedParts.slice(1).some(part => !part.playerId || part.amountCents <= 0)) throw new Error("A divisão deve manter o titular e identificar cada outra pessoa.");
-    const otherIds = sharedParts.slice(1).map(part => part.playerId!);
-    const otherPlayers = otherIds.length ? await tx.player.findMany({ where: { arenaId: auth.arenaId, id: { in: otherIds }, active: true }, select: { id: true, name: true } }) : [];
-    if (otherPlayers.length !== otherIds.length) throw new Error("Uma das pessoas selecionadas não está disponível nesta arena.");
     const allocations = allocateComandaShares(sharedParts, totalCents, comandaPaymentCents, productCreditCents);
     const now = new Date();
     const sale = await tx.sale.create({
@@ -396,6 +473,10 @@ export async function finishComandaAction(formData: FormData) {
         items: { create: comanda.items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPriceCents: item.unitPriceCents, totalCents: discounts.items.find(line=>line.id===item.id)!.netCents, discountCents: discounts.items.find(line=>line.id===item.id)!.discountCents, variantKey: item.variantKey, compositionLabel: item.compositionLabel, stockRecipe: item.stockRecipe ?? undefined, fiscalProfile: item.product.fiscalProfile as object })) }
       }
     });
+    if (reservationTransfers.length) {
+      await tx.financialEntry.updateMany({where:{arenaId:auth.arenaId,id:{in:reservationTransfers.map(part=>part.entryId)}},data:{saleId:sale.id}});
+      await tx.auditEvent.create({data:{arenaId:auth.arenaId,actorId:auth.userId,actorName:auth.userName,action:"COMANDA_RESERVATION_SPLIT",entityId:comanda.id,details:{saleId:sale.id,shares:submittedParts,transfers:reservationTransfers}}});
+    }
     if (discounts.discountCents) {
       for (const line of discounts.items.filter(line=>line.discountCents>0)) await tx.comandaItem.update({where:{id:line.id},data:{discountCents:line.discountCents,totalCents:line.netCents}});
       for (const line of discounts.debts.filter(line=>line.discountCents>0)) await tx.financialSettlement.create({data:{arenaId:auth.arenaId,financialEntryId:line.id,saleId:sale.id,amountCents:0,discountCents:line.discountCents,paymentMethod:"Desconto na comanda",paidAt:now,notes:`Desconto na comanda ${comanda.code}.`}});
@@ -447,7 +528,7 @@ export async function finishComandaAction(formData: FormData) {
       const newSettledCents = debtPaymentAllocation.settlements
         .filter((settlement) => settlement.financialEntryId === debt.id)
         .reduce((total, settlement) => total + settlement.amountCents, 0);
-      if (!newSettledCents && !discounts.debts.some(line=>line.id===debt.id && line.discountCents>0)) continue;
+      if (!newSettledCents && !reservationTransfers.some(part=>part.parentId===debt.id) && !discounts.debts.some(line=>line.id===debt.id && line.discountCents>0)) continue;
       const outstandingCents = getOutstandingCents(debt.amountCents, [
         ...debt.settlements,
         { amountCents: newSettledCents }
@@ -461,7 +542,7 @@ export async function finishComandaAction(formData: FormData) {
       const payer = allocation.playerId === comanda.playerId ? comanda.label : otherPlayers.find(player => player.id === allocation.playerId)!.name;
       await tx.financialEntry.create({ data: { arenaId: auth.arenaId, saleId: sale.id, playerId: allocation.playerId, type: "REVENUE", category: "COMANDAS", description: parsed.data.shares.length ? `Parte da comanda ${comanda.code} · ${payer}` : `Conta a receber da comanda ${comanda.code}`, amountCents: allocation.outstandingCents, status: "PENDING", dueDate: now } });
     }
-    if (parsed.data.shares.length) await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName, action: "COMANDA_SPLIT", entityId: comanda.id, details: { saleId: sale.id, allocations } } });
+    if (parsed.data.shares.length) await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName, action: "COMANDA_SPLIT", entityId: comanda.id, details: { saleId: sale.id, allocations, splitItems, shares: submittedParts, reservationTransfers } } });
 
     if (parsed.data.fiscalDocumentType) {
       if (!parsed.data.payments.length && !creditAppliedCents) throw new Error("Informe um recebimento para emitir o documento fiscal da comanda.");
@@ -475,12 +556,22 @@ export async function finishComandaAction(formData: FormData) {
       });
     }
     await tx.comanda.update({ where: { id: comanda.id }, data: { status: "CLOSED", closedAt: now } });
+    if (includesBookings && (operational?.whatsappPaidEnabled || operational?.whatsappUnpaidEnabled)) {
+      const notices = submittedParts.map((part,index) => {
+        const debts = selectedDebtBalances.filter(balance => comandaDebtOwnerId(selectedDebts.find(debt=>debt.id===balance.financialEntryId)!)===part.playerId);
+        const debtTotal = debts.reduce((sum,debt)=>sum+debt.outstandingCents,0);
+        const received = debtPaymentAllocation.settlements.filter(row=>debts.some(debt=>debt.financialEntryId===row.financialEntryId)).reduce((sum,row)=>sum+row.amountCents,0);
+        return {playerId:part.playerId,amountCents:sharedParts[index].amountCents+debtTotal,outstandingCents:allocations[index].outstandingCents+debtTotal-received};
+      });
+      return enqueueComandaWhatsapp(tx,auth.arenaId,comanda,operational,notices);
+    }
     if (operational?.whatsappPaidEnabled || operational?.whatsappUnpaidEnabled) return enqueueComandaWhatsapp(tx, auth.arenaId, comanda, operational, allocations.map((part, index) => ({ playerId: part.playerId, amountCents: part.amountCents + (index === 0 ? selectedDebtTotalCents : 0), outstandingCents: part.outstandingCents + (index === 0 ? Math.max(0, selectedDebtTotalCents - partialDebtPaymentCents) : 0) })));
   }).catch((error: unknown) => { if (error && typeof error === "object" && "fiscalValidation" in error) return { error: error instanceof Error ? error.message : "Revise a configuração fiscal." }; throw error; });
   if (whatsappIds && !Array.isArray(whatsappIds)) return whatsappIds;
   if (parsed.data.fiscalDocumentType) after(async () => { try { const { dispatchComandaFiscal } = await import("@/lib/fiscal/focus-issuance"); await dispatchComandaFiscal(auth.arenaId, parsed.data.comandaId); } catch { console.warn("Emissão fiscal permanece pendente para consulta no painel fiscal."); } });
   if (whatsappIds?.length) after(async () => { for (const id of whatsappIds) { try { await dispatchComandaWhatsapp(auth.arenaId, id); } catch { console.warn("Mensagem da comanda permanece pendente", id); } } });
   revalidatePath("/comandas");
+  revalidatePath("/agenda");
   revalidatePath("/home");
   revalidatePath("/financeiro/lancamentos");
   revalidatePath("/financeiro/contas-a-receber");

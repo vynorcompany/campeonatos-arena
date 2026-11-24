@@ -14,7 +14,7 @@ import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { arenaDatabaseForTest } from "./helpers/arena-database";
 import * as operationalPolicy from "../src/lib/comandas/operational-policy";
-import { allocateComandaShares } from "../src/lib/comandas/split";
+import { allocateComandaLines, allocateComandaShares } from "../src/lib/comandas/split";
 import { allocatePaymentsToDebts, getOutstandingCents } from "../src/lib/finance/settlements";
 import { comandaDebtOwnerId, selectedComandaDebtWhere } from "../src/lib/finance/comanda-debts";
 import { cashReferenceDate } from "../src/lib/finance/cash-day";
@@ -40,7 +40,7 @@ async function fixture() {
   const mocks: Record<string, unknown> = { "@/lib/tournaments/registration-receivable": registrationReceivables, "@/lib/finance/card-installment-service": { createCardInstallmentEntries }, "@/lib/finance/card-installments": { customizedCardInstallments }, "@/lib/products/composition": composition, "@/lib/products/stock-aggregates": { consumeProductStock },
     "@/lib/finance/receiving-bank-account": { requireReceivingBankAccount }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id, userId: "goal-test", userName: "Wallet QA" }) },
     "@/lib/arena-database": { arenaDatabase: (scope: string) => arenaDatabaseForTest(runtime, scope) }, "@/lib/rls": { withArenaTransaction: transact },
-    "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/comandas/split": { allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents },
+    "@/lib/comandas/operational-policy": operationalPolicy, "@/lib/comandas/split": { allocateComandaLines, allocateComandaShares }, "@/lib/finance/settlements": { allocatePaymentsToDebts, getOutstandingCents },
     "@/lib/finance/comanda-debts": { comandaDebtOwnerId, selectedComandaDebtWhere }, "@/lib/finance/cash-day": { cashReferenceDate }, "@/lib/finance/cash-register-sales": { recordCashSaleIfOpen },
   };
   const actions: Record<string, (data: FormData) => Promise<unknown>> = {};
@@ -57,8 +57,75 @@ async function fixture() {
     return entry;
   };
   const cleanup = async () => { const ids = [arena.id, foreign.id]; try { await admin.scheduleOccurrence.deleteMany({ where: { arenaId: { in: ids } } }); await admin.financialSettlement.deleteMany({ where: { arenaId: { in: ids } } }); await admin.financialEntry.deleteMany({ where: { arenaId: { in: ids } } }); await admin.sale.deleteMany({ where: { arenaId: { in: ids } } }); await admin.comanda.deleteMany({ where: { arenaId: { in: ids } } }); await admin.arena.deleteMany({ where: { id: { in: ids } } }); } finally { await runtime.$disconnect(); await admin.$disconnect(); } };
-  return { admin, bank, arena, foreign, owner, other, command, debt, fund, balance, finish, booking, cleanup };
+  return { admin, bank, arena, foreign, owner, other, command, debt, fund, balance, finish, booking, cleanup, actions };
 }
+
+test("command item edits preserve exact prices, audit changes, and reject stale or invalid input", { skip: !isolated }, async () => {
+  const f = await fixture(); try {
+    const c = await f.command(); const item = await f.admin.comandaItem.findFirstOrThrow({ where: { comandaId: c.id } });
+    const edit = (extra: Record<string,string>) => f.actions.editComandaItemAction(form({ itemId: item.id, quantity:"2", unitPriceCents:"1234", expectedQuantity:"1", expectedUnitPriceCents:"1000", ...extra }));
+    await edit({}); const saved = await f.admin.comandaItem.findUniqueOrThrow({ where: { id:item.id } });
+    assert.equal(saved.unitPriceCents,1234); assert.equal(saved.quantity,2); assert.equal(saved.totalCents,2468);
+    assert.equal(await f.admin.auditEvent.count({where:{arenaId:f.arena.id,entityId:c.id,action:"COMANDA_ITEM_UPDATED"}}),1);
+    await assert.rejects(edit({unitPriceCents:"1500"}),/alterado por outra/);
+    const invalidEdits: Record<string,string>[] = [{quantity:"-1"},{quantity:"1000"},{unitPriceCents:"1.5"},{quantity:"999",unitPriceCents:"2147483647"}];
+    for (const extra of invalidEdits) await assert.rejects(edit(extra),/Revise/);
+    assert.equal((await f.admin.comandaItem.findUniqueOrThrow({where:{id:item.id}})).totalCents,2468);
+    await edit({quantity:"0",expectedQuantity:"2",expectedUnitPriceCents:"1234"});
+    assert.equal(await f.admin.comandaItem.count({where:{id:item.id}}),0);
+    assert.equal(await f.admin.auditEvent.count({where:{arenaId:f.arena.id,entityId:c.id,action:"COMANDA_ITEM_REMOVED"}}),1);
+    assert.equal(await f.admin.sale.count({where:{comandaId:c.id}}),0);
+  } finally { await f.cleanup(); }
+});
+
+test("command item editing cannot change another arena or a closed command", { skip: !isolated }, async () => {
+  const f = await fixture(); try {
+    const p=await f.admin.product.create({data:{arenaId:f.foreign.id,name:"Foreign edit QA",priceCents:1000,isService:true}});
+    const foreign=await f.admin.comanda.create({data:{arenaId:f.foreign.id,label:"Foreign edit",code:randomUUID(),items:{create:{productId:p.id,quantity:1,unitPriceCents:1000,totalCents:1000}}},include:{items:true}});
+    const c=await f.command();const item=await f.admin.comandaItem.findFirstOrThrow({where:{comandaId:c.id}});
+    const edit=(id:string)=>f.actions.editComandaItemAction(form({itemId:id,quantity:"0",unitPriceCents:"1000",expectedQuantity:"1",expectedUnitPriceCents:"1000"}));
+    await assert.rejects(edit(foreign.items[0].id),/não encontrado/);
+    await f.finish(c.id,0,[],1000);
+    await assert.rejects(edit(item.id),/não encontrado/);
+    assert.equal((await f.admin.comandaItem.findUniqueOrThrow({where:{id:item.id}})).totalCents,1000);
+    assert.equal((await f.admin.comandaItem.findUniqueOrThrow({where:{id:foreign.items[0].id}})).totalCents,1000);
+  } finally { await f.cleanup(); }
+});
+
+test("a price edit racing checkout cannot overwrite a closed command or silently charge a new quote", { skip: !isolated }, async () => {
+  const f=await fixture();try{
+    const c=await f.command();const item=await f.admin.comandaItem.findFirstOrThrow({where:{comandaId:c.id}});
+    const outcomes=await Promise.allSettled([
+      f.actions.editComandaItemAction(form({itemId:item.id,quantity:"1",unitPriceCents:"1200",expectedQuantity:"1",expectedUnitPriceCents:"1000"})),
+      f.finish(c.id,0,[],1000,{quotedTotalCents:"1000"})
+    ]);
+    assert.equal(outcomes.filter(r=>r.status==="fulfilled").length,1);
+    const saved=await f.admin.comanda.findUniqueOrThrow({where:{id:c.id},include:{items:true,sale:true}});
+    if(saved.status==="CLOSED"){assert.equal(saved.items[0].totalCents,1000);assert.equal(saved.sale?.totalCents,1000);}
+    else{assert.equal(saved.items[0].totalCents,1200);assert.equal(saved.sale,null);}
+  }finally{await f.cleanup();}
+});
+
+test("splitting selected products keeps unselected consumption with the holder and audits the selected lines", { skip: !isolated }, async () => {
+  const f=await fixture();try{
+    await f.admin.arenaOperationalSettings.update({where:{arenaId:f.arena.id},data:{requireFullPayment:false}});
+    const c=await f.command();const chosen=await f.admin.comandaItem.findFirstOrThrow({where:{comandaId:c.id}});
+    const unselected=await f.admin.product.create({data:{arenaId:f.arena.id,name:"Unselected service QA",priceCents:500,isService:true}});
+    await f.admin.comandaItem.create({data:{comandaId:c.id,productId:unselected.id,quantity:1,unitPriceCents:500,totalCents:500}});
+    const other=await f.command();const foreignLine=await f.admin.comandaItem.findFirstOrThrow({where:{comandaId:other.id}});
+    const shares=JSON.stringify([{playerId:f.owner.id,amountCents:800},{playerId:f.other.id,amountCents:700}]);
+    await assert.rejects(f.finish(c.id,0,[],0,{shares,splitItemIds:JSON.stringify([foreignLine.id])}),/não estão disponíveis/);
+    await assert.rejects(f.finish(c.id,0,[],0,{shares,splitItemIds:JSON.stringify([chosen.id,chosen.id])}),/não estão disponíveis/);
+    await assert.rejects(f.finish(c.id,0,[],0,{shares:JSON.stringify([{playerId:f.owner.id,amountCents:400},{playerId:f.other.id,amountCents:1100}]),splitItemIds:JSON.stringify([chosen.id])}),/excedem/);
+    assert.equal(await f.admin.sale.count({where:{comandaId:c.id}}),0);
+    await f.finish(c.id,0,[],0,{shares,splitItemIds:JSON.stringify([chosen.id])});
+    const sale=await f.admin.sale.findUniqueOrThrow({where:{comandaId:c.id}});
+    const entries=await f.admin.financialEntry.findMany({where:{saleId:sale.id},orderBy:{amountCents:"asc"}});
+    assert.deepEqual(entries.map(e=>[e.playerId,e.amountCents]),[[f.other.id,700],[f.owner.id,800]]);
+    const audit=await f.admin.auditEvent.findFirstOrThrow({where:{arenaId:f.arena.id,entityId:c.id,action:"COMANDA_SPLIT"}});
+    assert.match(JSON.stringify(audit.details),new RegExp(chosen.id));assert.doesNotMatch(JSON.stringify(audit.details),new RegExp(foreignLine.id));
+  }finally{await f.cleanup();}
+});
 
 test("wallet alone pays an automatically linked reservation once without a second income entry", { skip: !isolated }, async () => {
   const f = await fixture(); try {
@@ -278,5 +345,76 @@ test("discount combines with partial payment and client credit while preserving 
   assert.equal(paid.status,"PENDING");assert.equal(await f.balance(),0);
   const sale=await f.admin.sale.findUniqueOrThrow({where:{comandaId:c.id}});assert.equal(sale.totalCents,750);
   assert.equal((await f.admin.financialEntry.aggregate({where:{arenaId:f.arena.id,saleId:sale.id,status:"PENDING"},_sum:{amountCents:true}}))._sum.amountCents,250);
+ }finally{await f.cleanup();}
+});
+
+test("full split distributes linked reservations without creating cash and retains prior payments", {skip:!isolated}, async()=>{
+ const f=await fixture();try{
+  const c=await f.command();const booking=await f.booking(c.id,6000);
+  await f.admin.financialSettlement.create({data:{arenaId:f.arena.id,financialEntryId:booking.id,amountCents:1000,paymentMethod:"PIX"}});
+  await f.admin.financialEntry.update({where:{id:booking.id},data:{status:"PARTIAL"}});
+  await f.finish(c.id,0,[],0,{allowPartial:"true",splitIncludesBookings:"true",shares:JSON.stringify([{playerId:f.owner.id,amountCents:3000},{playerId:f.other.id,amountCents:3000}])});
+  const parent=await f.admin.financialEntry.findUniqueOrThrow({where:{id:booking.id},include:{reservationSplitParts:true,settlements:true}});
+  assert.equal(parent.amountCents,3500);assert.equal(parent.reservationSplitParts.length,1);assert.equal(parent.reservationSplitParts[0].amountCents,2500);assert.equal(parent.reservationSplitParts[0].playerId,f.other.id);
+  assert.equal(parent.settlements.reduce((n,r)=>n+r.amountCents,0),1000);
+  const outstanding=await f.admin.financialEntry.findMany({where:{arenaId:f.arena.id,status:{in:["PENDING","PARTIAL"]}},include:{settlements:true}});
+  assert.equal(outstanding.reduce((n,r)=>n+getOutstandingCents(r.amountCents,r.settlements),0),6000);
+  assert.equal(await f.admin.financialSettlement.count({where:{arenaId:f.arena.id}}),1);
+ }finally{await f.cleanup();}
+});
+
+test("split partial receipts pay holder products and reservation before other clients", {skip:!isolated},async()=>{
+ const f=await fixture();try{
+  const c=await f.command();const booking=await f.booking(c.id,5000);
+  await f.finish(c.id,0,[],3000,{allowPartial:"true",splitIncludesBookings:"true",shares:JSON.stringify([{playerId:f.owner.id,amountCents:3000},{playerId:f.other.id,amountCents:3000}])});
+  const entries=await f.admin.financialEntry.findMany({where:{arenaId:f.arena.id},include:{settlements:true}});
+  const ownOutstanding=entries.filter(r=>r.playerId===f.owner.id && ["PARTIAL","PENDING"].includes(r.status)).reduce((n,r)=>n+getOutstandingCents(r.amountCents,r.settlements),0);
+  const otherOutstanding=entries.filter(r=>r.playerId===f.other.id && ["PARTIAL","PENDING"].includes(r.status)).reduce((n,r)=>n+getOutstandingCents(r.amountCents,r.settlements),0);
+  assert.equal(ownOutstanding,0);assert.equal(otherOutstanding,3000);
+  assert.equal(entries.find(r=>r.id===booking.id)?.status,"PAID");
+  assert.equal(entries.filter(r=>r.status==="PAID" && r.source==="COMANDA").reduce((n,r)=>n+r.amountCents,0)+entries.flatMap(r=>r.settlements).reduce((n,r)=>n+r.amountCents,0),3000);
+ }finally{await f.cleanup();}
+});
+
+test("selected product split keeps reservation entirely with holder",{skip:!isolated},async()=>{
+ const f=await fixture();try{
+  const c=await f.command();const booking=await f.booking(c.id,5000);const item=await f.admin.comandaItem.findFirstOrThrow({where:{comandaId:c.id}});
+  await f.finish(c.id,0,[],0,{allowPartial:"true",splitIncludesBookings:"true",splitItemIds:JSON.stringify([item.id]),shares:JSON.stringify([{playerId:f.owner.id,amountCents:5500},{playerId:f.other.id,amountCents:500}])});
+  assert.equal(await f.admin.financialEntry.count({where:{reservationSplitParentId:booking.id}}),0);
+  assert.equal((await f.admin.financialEntry.findUniqueOrThrow({where:{id:booking.id}})).amountCents,5000);
+ }finally{await f.cleanup();}
+});
+
+test("reservation-only split uses wallet solely on holder and retains real cash totals",{skip:!isolated},async()=>{
+ const f=await fixture();try{
+  const c=await f.command(false);const booking=await f.booking(c.id,5001);await f.fund(2501);
+  await f.finish(c.id,2501,[],0,{allowPartial:"true",splitIncludesBookings:"true",shares:JSON.stringify([{playerId:f.owner.id,amountCents:2501},{playerId:f.other.id,amountCents:2500}])});
+  const parent=await f.admin.financialEntry.findUniqueOrThrow({where:{id:booking.id},include:{reservationSplitParts:{include:{settlements:true}},settlements:true}});
+  assert.equal(parent.status,"PAID");assert.equal(parent.reservationSplitParts[0].status,"PENDING");
+  assert.equal(parent.reservationSplitParts[0].settlements.length,0);assert.equal(parent.settlements[0].paymentMethod,"Saldo do cliente");assert.equal(await f.balance(),0);
+  assert.equal(await f.admin.financialEntry.count({where:{arenaId:f.arena.id,category:"COMANDAS",status:"PAID"}}),0);
+ }finally{await f.cleanup();}
+});
+
+test("reservation split with total discount and full cash preserves original price minus discount",{skip:!isolated},async()=>{
+ const f=await fixture();try{
+  const c=await f.command();const booking=await f.booking(c.id,5000);
+  await f.finish(c.id,0,[],4800,{discountCents:"1200",splitIncludesBookings:"true",shares:JSON.stringify([{playerId:f.owner.id,amountCents:2400},{playerId:f.other.id,amountCents:2400}])});
+  const parent=await f.admin.financialEntry.findUniqueOrThrow({where:{id:booking.id},include:{reservationSplitParts:{include:{settlements:true}},settlements:true}});
+  assert.equal(parent.status,"PAID");assert.equal(parent.reservationSplitParts[0].status,"PAID");
+  const bookingCash=[...parent.settlements,...parent.reservationSplitParts.flatMap(p=>p.settlements)].reduce((n,r)=>n+r.amountCents,0);
+  assert.equal(bookingCash,4000);assert.equal(parent.settlements.reduce((n,r)=>n+r.discountCents,0),1000);
+  assert.equal(parent.amountCents+parent.reservationSplitParts.reduce((n,p)=>n+p.amountCents,0),5000);
+ }finally{await f.cleanup();}
+});
+
+test("invalid payer cannot transfer any booking balance and cross-arena split relation is rejected",{skip:!isolated},async()=>{
+ const f=await fixture();try{
+  const c=await f.command(false);const booking=await f.booking(c.id,5000);
+  const foreignPlayer=await f.admin.player.create({data:{arenaId:f.foreign.id,name:"Foreign"}});
+  await assert.rejects(f.finish(c.id,0,[],0,{allowPartial:"true",splitIncludesBookings:"true",shares:JSON.stringify([{playerId:f.owner.id,amountCents:2500},{playerId:foreignPlayer.id,amountCents:2500}])}),/nesta arena/);
+  assert.equal((await f.admin.financialEntry.findUniqueOrThrow({where:{id:booking.id}})).amountCents,5000);
+  assert.equal(await f.admin.financialEntry.count({where:{reservationSplitParentId:booking.id}}),0);
+  await assert.rejects(f.admin.financialEntry.create({data:{arenaId:f.foreign.id,playerId:foreignPlayer.id,reservationSplitParentId:booking.id,type:"REVENUE",category:"QA",description:"Invalid",amountCents:1}}));
  }finally{await f.cleanup();}
 });
