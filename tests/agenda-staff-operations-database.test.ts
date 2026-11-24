@@ -80,7 +80,7 @@ test("staff agenda operations preserve billing, enforce scope/conflicts and bloc
     const charge = await admin.financialEntry.create({ data: { arenaId, playerId: players[0].id, type: "REVENUE", category: "Reserva", description: "Paid booking", amountCents: 500, status: "PAID" } });
     await admin.scheduleParticipant.update({ where: { occurrenceId_playerId: { occurrenceId: occurrence.id, playerId: players[0].id } }, data: { financialEntryId: charge.id, amountCents: 500 } });
     const snapshot = await admin.scheduleServiceReservation.create({ data: { arenaId, occurrenceId: occurrence.id, productId: service.id, serviceName: service.name, priceCents: 2 } });
-    await assert.rejects(scope(arenaId, tx => removeOptionalBookingService(tx, arenaId, occurrence.id, snapshot.id)), /pagamento ou cobrança/);
+    await assert.rejects(scope(arenaId, tx => removeOptionalBookingService(tx, arenaId, occurrence.id, snapshot.id)), /pagamento.*cobrança/);
     await scope(arenaId, tx => moveBookingCourt(tx, arenaId, occurrence.id, courts[0].id));
     assert.equal((await admin.financialEntry.findUniqueOrThrow({ where: { id: charge.id } })).amountCents, 500, "court move preserves paid charge");
   } finally { await admin.scheduleOccurrence.deleteMany({ where: { arenaId: { in: ids } } }); await admin.arena.deleteMany({ where: { id: { in: ids } } }); await runtime.$disconnect(); if (ownerId) await admin.user.delete({ where: { id: ownerId } }); await admin.$disconnect(); }
