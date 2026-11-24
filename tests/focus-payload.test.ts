@@ -27,3 +27,10 @@ test("Focus: identificação opcional valida CPF/CNPJ e limita emissão simplifi
  assert.throws(()=>buildFocusNfce({...identified,customerDocument:"123"},issuer,"SANDBOX",date),/CPF ou CNPJ válido/);
  assert.throws(()=>buildFocusNfce({...identified,totalCents:1000000},issuer,"SANDBOX",date),/endereço completos/);
 });
+
+test("Focus: desconto conserva valor bruto e unitário, declara desconto e concilia total líquido",()=>{
+ const value=sale();value.totalCents=2500;value.items[0].totalCents=2500;value.items[0].discountCents=500;value.payments[0].amountCents=2500;
+ const payload=buildFocusNfce(value,issuer,"SANDBOX",date);
+ assert.equal(payload.items[0].valor_bruto,"30.00");assert.equal(payload.items[0].valor_desconto,"5.00");assert.equal(payload.items[0].valor_unitario_comercial,"30.00");assert.equal(payload.items[0].pis_base_calculo,"25.00");
+ value.items[0].discountCents=-500;assert.throws(()=>buildFocusNfce(value,issuer,"SANDBOX",date),/divergente/);
+});

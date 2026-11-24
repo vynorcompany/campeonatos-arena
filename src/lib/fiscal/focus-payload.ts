@@ -23,7 +23,7 @@ export function validFiscalCpf(value: string) {
   return true;
 }
 const money = (cents: number) => (cents / 100).toFixed(2);
-export type FocusSale = { customerDocument?: string; customerName?: string; totalCents: number; items: { productId: string; quantity: number; unitPriceCents: number; totalCents: number; fiscalProfile: unknown; product: { name: string; isService: boolean } }[]; payments: { paymentMethod: string; amountCents: number }[] };
+export type FocusSale = { customerDocument?: string; customerName?: string; totalCents: number; items: { productId: string; quantity: number; unitPriceCents: number; totalCents: number; discountCents?: number; fiscalProfile: unknown; product: { name: string; isService: boolean } }[]; payments: { paymentMethod: string; amountCents: number }[] };
 export function focusPayment(method: string) {
   const normalized = method.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
   const codes: Record<string, string> = { dinheiro: "01", cash: "01", cheque: "02", credito: "03", credit_card: "03", "cartao de credito": "03", debito: "04", debit_card: "04", "cartao de debito": "04", boleto: "15", "boleto bancario": "15", "pix estatico": "20", "pix chave": "20", "pix (estatico)": "20", "saldo do cliente": "21", "transferencia bancaria": "18", transferencia: "18" };
@@ -54,7 +54,8 @@ export function buildFocusNfce(sale: FocusSale, issuer: FiscalIssuer & { focusCn
     for (const [name,cst,rate,unitRate] of [["PIS",profile.pisCst,profile.pisRate,profile.pisUnitRate],["Cofins",profile.cofinsCst,profile.cofinsRate,profile.cofinsUnitRate]]) {
       if (!["04","05","06","07","08","09","49","99"].includes(cst) || Number(rate)>0 || Number(unitRate)>0 || (["49","99"].includes(cst) && (rate === "" || Number(rate)!==0))) throw new FocusFiscalValidationError(`${item.product.name}: informe ${name} compatível com saída sem destaque; em outras saídas/operações informe alíquota zero explicitamente ou revise a tributação.`);
     }
-    if (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.unitPriceCents * item.quantity !== item.totalCents) throw new FocusFiscalValidationError(`${item.product.name}: quantidade ou total divergente.`);
+    const discountCents = item.discountCents ?? 0;
+    if (!Number.isSafeInteger(discountCents) || discountCents < 0 || !Number.isSafeInteger(item.totalCents) || item.totalCents < 0 || !Number.isInteger(item.quantity) || item.quantity <= 0 || item.unitPriceCents * item.quantity !== item.totalCents + discountCents) throw new FocusFiscalValidationError(`${item.product.name}: quantidade ou total divergente.`);
     const quantity = item.quantity * Number(profile.tributaryFactor);
     if (quantity < 0.0001 || !Number.isFinite(quantity)) throw new FocusFiscalValidationError(`${item.product.name}: quantidade tributável abaixo da precisão fiscal.`);
     return {
@@ -63,7 +64,7 @@ export function buildFocusNfce(sale: FocusSale, issuer: FiscalIssuer & { focusCn
       codigo_ncm: profile.ncm, ...(profile.cest?{cest:profile.cest}:{}), cfop: profile.cfop,
       unidade_comercial: profile.commercialUnit, unidade_tributavel: profile.tributaryUnit,
       quantidade_comercial: String(item.quantity), quantidade_tributavel: quantity.toFixed(4),
-      valor_unitario_comercial: money(item.unitPriceCents), valor_unitario_tributavel: (item.totalCents/100/quantity).toFixed(10), valor_bruto: money(item.totalCents),
+      valor_unitario_comercial: money(item.unitPriceCents), valor_unitario_tributavel: ((item.totalCents+discountCents)/100/quantity).toFixed(10), valor_bruto: money(item.totalCents+discountCents), ...(discountCents?{valor_desconto:money(discountCents)}:{}),
       codigo_barras_comercial: profile.gtin, codigo_barras_tributavel: profile.gtinTrib,
       icms_origem: profile.origin, icms_situacao_tributaria: profile.icmsCode,
       pis_situacao_tributaria: profile.pisCst, cofins_situacao_tributaria: profile.cofinsCst,

@@ -45,7 +45,7 @@ test("paginação de boletos recorrentes respeita o contexto da arena no Postgre
         recurrenceId: recurrence.id, playerId: complete.id,
       } });
       const query = {
-        where: recurringBoletoEntryWhere(arenaA.id, new Date("2026-10-29T12:00:00.000Z")),
+        where: { AND: [recurringBoletoEntryWhere(arenaA.id, new Date("2026-10-29T12:00:00.000Z")), { recurrenceId: recurrence.id }] },
         select: { id: true, player: { select: { email: true } } },
         orderBy: [{ dueDate: "asc" }, { id: "asc" }], take: 250,
       } satisfies Prisma.FinancialEntryFindManyArgs;

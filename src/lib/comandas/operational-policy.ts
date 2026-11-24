@@ -1,3 +1,4 @@
+export { calculateComandaDiscounts } from "./discounts";
 import type { Prisma } from "@prisma/client";
 import { arenaToday } from "@/lib/calendar/arena-wall-clock";
 import { cashReferenceDate } from "@/lib/finance/cash-day";

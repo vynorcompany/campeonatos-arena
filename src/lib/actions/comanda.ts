@@ -9,7 +9,7 @@ import { appendComandaProduct, confirmPortalOrderItem, submitPortalOrder } from 
 import { after } from "next/server";
 import { enqueueComandaWhatsapp } from "@/lib/comandas/whatsapp-outbox";
 import { dispatchComandaWhatsapp } from "@/lib/comandas/whatsapp-delivery";
-import { applyComandaPaymentPolicy, assertComandaMayOpen, assertComandaCashRegister } from "@/lib/comandas/operational-policy";
+import { calculateComandaDiscounts, applyComandaPaymentPolicy, assertComandaMayOpen, assertComandaCashRegister } from "@/lib/comandas/operational-policy";
 import { allocateComandaShares } from "@/lib/comandas/split";
 import { deleteComandaWithAudit } from "@/lib/comandas/delete-with-audit";
 import { arenaDatabase } from "@/lib/arena-database";
@@ -56,6 +56,10 @@ const paymentsSchema = z.array(z.object({
 })).max(8);
 
 const finishComandaSchema = z.object({
+  discountMode: z.enum(["TOTAL", "ITEMS"]).default("TOTAL"),
+  discountCents: z.coerce.number().int().min(0).max(2147483647).default(0),
+  itemDiscounts: z.array(z.object({kind:z.enum(["ITEM","DEBT"]),id:z.string().min(1),amountCents:z.number().int().min(0).max(2147483647)})).max(500).default([]),
+  quotedTotalCents: z.coerce.number().int().min(0).max(2147483647).optional(),
   fiscalCustomerDocument: z.string().trim().max(18).default(""),
   comandaId: z.string().min(1),
   shares: z.array(z.object({ playerId: z.string().min(1).nullable(), amountCents: z.coerce.number().int().nonnegative() })).max(20).default([]),
@@ -289,7 +293,9 @@ export async function finishComandaAction(formData: FormData) {
   if (typeof rawDebtIds === "string" && rawDebtIds.trim()) {
     try { debtIds = JSON.parse(rawDebtIds); } catch { throw new Error("Débitos inválidos."); }
   }
-  const parsed = finishComandaSchema.safeParse({ comandaId: formData.get("comandaId"), fiscalCustomerDocument: formData.get("fiscalCustomerDocument") ?? "", shares, payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false, allowPartial: formData.get("allowPartial") ?? false, fiscalDocumentType: formData.get("fiscalDocumentType") ?? "" });
+  let itemDiscounts: unknown = [];
+  try { itemDiscounts = JSON.parse(String(formData.get("itemDiscounts") ?? "[]")); } catch { throw new Error("Descontos inválidos."); }
+  const parsed = finishComandaSchema.safeParse({ discountMode: formData.get("discountMode") ?? "TOTAL", discountCents: formData.get("discountCents") ?? 0, itemDiscounts, quotedTotalCents: formData.get("quotedTotalCents") ?? undefined, comandaId: formData.get("comandaId"), fiscalCustomerDocument: formData.get("fiscalCustomerDocument") ?? "", shares, payments, debtIds, creditCents: formData.get("creditCents") ?? 0, allowEmpty: formData.get("allowEmpty") ?? false, allowPartial: formData.get("allowPartial") ?? false, fiscalDocumentType: formData.get("fiscalDocumentType") ?? "" });
   if (!parsed.success) throw new Error("Comanda inválida.");
   if (parsed.data.payments.some(payment => /^(saldo\b|credito (do cliente|em conta)\b)/.test(payment.paymentMethod.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()))) throw new Error("Para usar saldo, ative Usar saldo. O valor será validado e descontado da conta do cliente.");
 
@@ -319,7 +325,7 @@ export async function finishComandaAction(formData: FormData) {
       if (operational?.whatsappPaidEnabled) return enqueueComandaWhatsapp(tx, auth.arenaId, comanda, operational, [{ playerId: comanda.playerId, amountCents: 0, outstandingCents: 0 }]);
       return;
     }
-    const totalCents = comanda.items.reduce((total, item) => total + item.totalCents, 0);
+    const grossProductCents = comanda.items.reduce((total, item) => total + item.totalCents, 0);
     const clientCreditCents = comanda.playerId ? Math.max(0, (await tx.clientBalanceMovement.aggregate({ where: { arenaId: auth.arenaId, playerId: comanda.playerId, kind: "MONEY" }, _sum: { amountCents: true } }))._sum.amountCents ?? 0) : 0;
     if (parsed.data.creditCents && !comanda.playerId) throw new Error("Saldo de cliente só pode ser usado em comandas vinculadas a um cliente.");
     if (parsed.data.creditCents > clientCreditCents) throw new Error("O saldo disponível do cliente foi alterado. Atualize a comanda e tente novamente.");
@@ -330,13 +336,24 @@ export async function finishComandaAction(formData: FormData) {
     }) : [];
     if (selectedDebts.length !== debtIdsToSettle.length || selectedDebts.some((debt) => comandaDebtOwnerId(debt) !== comanda.playerId)) throw new Error("Um dos débitos selecionados não está disponível para este cliente.");
     if (selectedDebts.some(debt => Boolean(debt.onlinePaymentId || debt.onlinePaymentUrl || debt.onlinePaymentClaimMethod || debt.onlinePaymentClaimedAt) || debt.notes.includes("[MP_REVIEW:") || debt.onlinePaymentItems.some(({ checkout }) => ["PENDING", "REVIEW", "PAID"].includes(checkout.status) || (checkout.status === "FAILED" && Boolean(checkout.mercadoPagoPaymentId || checkout.checkoutUrl))))) throw new Error("Um dos débitos possui pagamento online emitido ou em análise. Confira e concilie a cobrança antes de quitá-lo na comanda.");
-    const selectedDebtBalances = selectedDebts
+    const grossDebtBalances = selectedDebts
       .map((debt) => ({
         financialEntryId: debt.id,
         outstandingCents: getOutstandingCents(debt.amountCents, debt.settlements)
       }))
       .filter((debt) => debt.outstandingCents > 0);
-    if (selectedDebtBalances.length !== selectedDebts.length) throw new Error("Um dos débitos selecionados já foi quitado.");
+    if (grossDebtBalances.length !== selectedDebts.length) throw new Error("Um dos débitos selecionados já foi quitado.");
+    const quotedTotal = grossProductCents + grossDebtBalances.reduce((sum, debt) => sum + debt.outstandingCents, 0);
+    if (parsed.data.quotedTotalCents !== undefined && parsed.data.quotedTotalCents !== quotedTotal) throw new Error("Os valores da comanda ou da reserva mudaram. Atualize e confira o desconto antes de finalizar.");
+    const discounts = calculateComandaDiscounts({ mode: parsed.data.discountMode, discountCents: parsed.data.discountCents, itemDiscounts: parsed.data.itemDiscounts,
+      items: comanda.items.map(item => ({id:item.id,amountCents:item.totalCents})),
+      debts: grossDebtBalances.filter(debt => automaticDebtIds.includes(debt.financialEntryId)).map(debt => ({id:debt.financialEntryId,amountCents:debt.outstandingCents})) });
+    const totalCents = grossProductCents - discounts.productDiscountCents;
+    // Keep pending debt snapshots in sync with discounts; persistence happens in this same transaction.
+    for (const discount of discounts.debts.filter(line => line.discountCents > 0)) {
+      selectedDebts.find(debt => debt.id === discount.id)!.settlements.push({amountCents:0,interestCents:0,discountCents:discount.discountCents});
+    }
+    const selectedDebtBalances = grossDebtBalances.map(debt => ({...debt,outstandingCents:debt.outstandingCents-(discounts.debts.find(line=>line.id===debt.financialEntryId)?.discountCents??0)})).filter(debt=>debt.outstandingCents>0);
     const selectedDebtTotalCents = selectedDebtBalances.reduce((total, debt) => total + debt.outstandingCents, 0);
     const grandTotalCents = totalCents + selectedDebtTotalCents;
     const sharedParts = parsed.data.shares.length ? parsed.data.shares : [{ playerId: comanda.playerId, amountCents: totalCents }];
@@ -376,9 +393,14 @@ export async function finishComandaAction(formData: FormData) {
         paymentMethod: parsed.data.payments.length + (creditAppliedCents ? 1 : 0) === 1 ? (creditAppliedCents ? "Saldo do cliente" : parsed.data.payments[0].paymentMethod) : parsed.data.payments.length || creditAppliedCents ? "MÚLTIPLO" : "",
         status: remainingCents ? (comandaPaymentCents + productCreditCents ? "PARTIAL" : "PENDING") : "PAID",
         totalCents,
-        items: { create: comanda.items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPriceCents: item.unitPriceCents, totalCents: item.totalCents, variantKey: item.variantKey, compositionLabel: item.compositionLabel, stockRecipe: item.stockRecipe ?? undefined, fiscalProfile: item.product.fiscalProfile as object })) }
+        items: { create: comanda.items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPriceCents: item.unitPriceCents, totalCents: discounts.items.find(line=>line.id===item.id)!.netCents, discountCents: discounts.items.find(line=>line.id===item.id)!.discountCents, variantKey: item.variantKey, compositionLabel: item.compositionLabel, stockRecipe: item.stockRecipe ?? undefined, fiscalProfile: item.product.fiscalProfile as object })) }
       }
     });
+    if (discounts.discountCents) {
+      for (const line of discounts.items.filter(line=>line.discountCents>0)) await tx.comandaItem.update({where:{id:line.id},data:{discountCents:line.discountCents,totalCents:line.netCents}});
+      for (const line of discounts.debts.filter(line=>line.discountCents>0)) await tx.financialSettlement.create({data:{arenaId:auth.arenaId,financialEntryId:line.id,saleId:sale.id,amountCents:0,discountCents:line.discountCents,paymentMethod:"Desconto na comanda",paidAt:now,notes:`Desconto na comanda ${comanda.code}.`}});
+      await tx.auditEvent.create({data:{arenaId:auth.arenaId,actorId:auth.userId,actorName:auth.userName,action:"COMANDA_DISCOUNT_APPLIED",entityId:comanda.id,details:{saleId:sale.id,mode:parsed.data.discountMode,discountCents:discounts.discountCents,items:discounts.items,debts:discounts.debts}}});
+    }
     const cashReceivedCents = parsed.data.payments
       .filter((payment) => ["dinheiro", "cash"].includes(payment.paymentMethod.trim().toLocaleLowerCase("pt-BR")))
       .reduce((total, payment) => total + payment.amountCents, 0) - paymentPolicy.changeCents;
@@ -425,7 +447,7 @@ export async function finishComandaAction(formData: FormData) {
       const newSettledCents = debtPaymentAllocation.settlements
         .filter((settlement) => settlement.financialEntryId === debt.id)
         .reduce((total, settlement) => total + settlement.amountCents, 0);
-      if (!newSettledCents) continue;
+      if (!newSettledCents && !discounts.debts.some(line=>line.id===debt.id && line.discountCents>0)) continue;
       const outstandingCents = getOutstandingCents(debt.amountCents, [
         ...debt.settlements,
         { amountCents: newSettledCents }

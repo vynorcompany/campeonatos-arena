@@ -96,7 +96,8 @@ test("zero-value commands keep the checkout available for debts linked to the cl
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
 
-  assert.match(card, /!totalCents && !bookingTotalCents && !selectedDebtIds\.length/);
+  assert.match(card, /!checkoutTotalCents && !paymentTotalCents && !appliedCreditCents/);
+  assert.match(card, /debtIds: JSON\.stringify\(selectedDebtIds\)/);
   assert.match(card, /setCheckoutOpen\(true\)/);
   assert.match(card, /event\.stopPropagation\(\); setDetailsOpen\(false\)/);
   assert.match(commandActions, /!comanda\.items\.length && !debtIdsToSettle\.length/);
