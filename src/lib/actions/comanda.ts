@@ -1,4 +1,5 @@
 "use server";
+
 import { lockTournamentRegistrationEntriesForReceipt, syncTournamentRegistrationAfterReceipt } from "@/lib/tournaments/registration-receivable";
 import { createCardInstallmentEntries } from "@/lib/finance/card-installment-service";
 import { customizedCardInstallments } from "@/lib/finance/card-installments";
@@ -80,6 +81,10 @@ function formatComandaCode() {
 export async function createComandaAction(formData: FormData) {
   const auth = await requirePermission("pos:command:create");
   const prisma = arenaDatabase(auth.arenaId);
+  const requestedDate = formData.get("date");
+  if (requestedDate && requestedDate !== cashReferenceDate(new Date()).toISOString().slice(0, 10)) {
+    throw new Error("Comandas só podem ser abertas no dia vigente.");
+  }
   const parsed = comandaSchema.safeParse({
     type: formData.get("type"),
     cardNumber: formData.get("cardNumber") || undefined,

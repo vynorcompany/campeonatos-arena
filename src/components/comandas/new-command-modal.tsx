@@ -30,6 +30,7 @@ export function NewCommandModal({ players, closeHref, action, cardsEnabled = fal
     setError(null);
     const formData = new FormData();
     formData.set("type", "CLIENT");
+    formData.set("date", new URL(closeHref, window.location.origin).searchParams.get("date") ?? arenaDateInput(new Date()));
     formData.set("playerId", playerId);
     if (cardsEnabled && cardNumber.trim()) formData.set("cardNumber", cardNumber.trim());
     startTransition(async () => {

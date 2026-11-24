@@ -42,7 +42,9 @@ test("comanda policies enforce delinquency, cash, full payment, surplus, wallet 
     const actions: Record<string, (form: FormData) => Promise<any>> = {};
     vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/comanda.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: actions, FormData, Date, crypto: globalThis.crypto, require: (name: string) => mocks[name] ?? (name.startsWith("@/") ? {} : nodeRequire(name)) });
     const form = (values: Record<string, string>) => { const data = new FormData(); for (const [key, value] of Object.entries(values)) data.set(key, value); return data; };
-    const open = (cardNumber?: string, playerId = player.id) => actions.createComandaAction(form({ type: "CLIENT", playerId, ...(cardNumber ? { cardNumber } : {}) }));
+    await assert.rejects(actions.createComandaAction(form({ type: "CLIENT", playerId: player.id, date: "2000-01-01" })), /dia vigente/);
+    await assert.rejects(actions.createComandaAction(form({ type: "AVULSA", label: "Future", date: "2099-01-01" })), /dia vigente/);
+    const open = (cardNumber?: string, playerId = player.id) => actions.createComandaAction(form({ type: "CLIENT", playerId, date: cashReferenceDate(new Date()).toISOString().slice(0, 10), ...(cardNumber ? { cardNumber } : {}) }));
     const finish = (id: string, amount: number, extra: Record<string, string> = {}) => actions.finishComandaAction(form({ comandaId: id, payments: JSON.stringify(amount ? [{ bankAccountId: bank.id, paymentMethod: "PIX", amountCents: amount }] : []), debtIds: "[]", ...extra }));
     const createBill = () => admin.comanda.create({ data: { arenaId: arena.id, playerId: player.id, label: player.name, code: `POLICY-${randomUUID()}`, items: { create: { productId: product.id, quantity: 1, unitPriceCents: 1000, totalCents: 1000 } } } });
     const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 2);
