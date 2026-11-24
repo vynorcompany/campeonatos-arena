@@ -29,6 +29,7 @@ export async function assertCourtBookingMayBeEdited(tx: ArenaTransaction, arenaI
         is: {
           OR: [
             ...(!preservePayments ? [{ status: { in: ["PAID", "PARTIAL"] } }, { settlements: { some: {} } }] : []),
+            { reservationSplitParts: { some: {} } },
             { onlineProvider: { not: "" } },
             { onlinePaymentId: { not: "" } },
             { onlinePaymentUrl: { not: "" } },
@@ -38,5 +39,5 @@ export async function assertCourtBookingMayBeEdited(tx: ArenaTransaction, arenaI
     },
     select: { id: true },
   });
-  if (committedCharge) throw new Error("Esta reserva já tem pagamento ou cobrança online vinculada. Faça o ajuste financeiro antes de editá-la.");
+  if (committedCharge) throw new Error("Esta reserva já tem pagamento, divisão entre clientes ou cobrança online vinculada. Faça o ajuste financeiro antes de editá-la.");
 }

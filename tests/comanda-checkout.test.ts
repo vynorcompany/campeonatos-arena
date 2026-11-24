@@ -21,7 +21,7 @@ test("command checkout persists split payments and an open receivable for the un
   assert.match(actions, /remainingCents/);
   assert.match(actions, /status: "PENDING"/);
   assert.match(card, /command-checkout-modal/);
-  assert.match(card, /Adicionar forma de pagamento/);
+  assert.match(card, /Adicionar pagamento/);
   assert.match(card, /Conta a receber/);
 });
 
@@ -142,7 +142,7 @@ test("commands protect an open client tab and expose the complete checkout contr
   assert.match(actions, /requireRole\("ADMIN"\)/);
   assert.match(card, /onClick=\{openDetails\}/);
   assert.match(card, /command-details-modal/);
-  assert.match(card, /Apagar comanda/);
+  assert.match(card, /aria-label="Excluir comanda"/);
   assert.match(card, /Dividir comanda/);
   assert.match(card, /Incluir débitos/);
 });

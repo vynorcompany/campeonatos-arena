@@ -92,7 +92,8 @@ test("comanda editing opens before checkout and client selection supports typing
   assert.match(card, /Finalizar comanda/);
   assert.match(styleRules("commands-list-items"), /grid-template-columns: repeat\(auto-fill,\s*minmax\(min\(100%,\s*260px\),\s*320px\)\)/);
   assert.match(modal, /Buscar cliente/);
-  assert.match(modal, /matchingPlayers/);
+  assert.match(modal, /SmartEntitySelect/);
+  assert.match(modal, /Abrir comanda/);
   assert.doesNotMatch(modal, /<select name="playerId"/);
 });
 

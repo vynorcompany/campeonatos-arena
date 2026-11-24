@@ -58,6 +58,7 @@ export async function cancelCourtBookingAction(formData: FormData) {
       const occurrences = parsed.data.mode === "FREE" || !occurrence.bookingSeriesId
         ? [occurrence.id]
         : (await tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, bookingSeriesId: occurrence.bookingSeriesId, startsAt: { gte: occurrence.startsAt }, status: { not: "CANCELED" } }, select: { id: true } })).map((item) => item.id);
+      if (await tx.financialEntry.count({where:{arenaId:auth.arenaId,scheduleParticipant:{occurrenceId:{in:occurrences}},reservationSplitParts:{some:{}}}})) throw new Error("Esta reserva foi dividida entre clientes. Concilie as partes no financeiro antes de cancelar cobranças.");
       return tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, source: "SCHEDULE_BOOKING", externalReference: { in: occurrences }, status: "PENDING", settlements: { none: { amountCents: { gt: 0 } } } }, select: { id: true, onlineProvider: true, onlinePaymentId: true, onlinePaymentUrl: true, onlinePaymentClaimMethod: true } });
     });
     if (charges.some((entry) => (entry.onlinePaymentUrl || entry.onlinePaymentClaimMethod) && !entry.onlinePaymentId)) throw new Error("Há uma cobrança online sendo emitida. Aguarde a confirmação antes de cancelar a reserva e a cobrança.");
@@ -85,6 +86,9 @@ export async function cancelCourtBookingAction(formData: FormData) {
     const occurrenceIds = parsed.data.mode === "FREE" || !occurrence.bookingSeriesId
       ? [occurrence.id]
       : (await tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, bookingSeriesId: occurrence.bookingSeriesId, startsAt: { gte: occurrence.startsAt }, status: { not: "CANCELED" } }, select: { id: true } })).map((item) => item.id);
+    const linkedEntries = await tx.financialEntry.findMany({where:{arenaId:auth.arenaId,scheduleParticipant:{occurrenceId:{in:occurrenceIds}}},select:{id:true}});
+    for (const entry of linkedEntries.sort((a,b)=>a.id.localeCompare(b.id))) await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id=${entry.id} AND "arenaId"=${auth.arenaId} FOR UPDATE`;
+    if (await tx.financialEntry.count({where:{arenaId:auth.arenaId,id:{in:linkedEntries.map(entry=>entry.id)},reservationSplitParts:{some:{}}}})) throw new Error("Esta reserva foi dividida entre clientes. Concilie as partes no financeiro antes de cancelar a reserva.");
     if (parsed.data.cancelOpenCharges === "yes") {
       const charges = await tx.financialEntry.findMany({ where: { arenaId: auth.arenaId, source: "SCHEDULE_BOOKING", externalReference: { in: occurrenceIds }, status: "PENDING", settlements: { none: { amountCents: { gt: 0 } } } }, select: { id: true, onlinePaymentId: true, onlinePaymentUrl: true, onlinePaymentClaimMethod: true } });
       if (charges.some((entry) => (entry.onlinePaymentId && !handledPayments.has(entry.onlinePaymentId) && !preservedEntries.has(entry.id)) || ((!entry.onlinePaymentId && (entry.onlinePaymentUrl || entry.onlinePaymentClaimMethod))))) throw new Error("Uma cobrança online mudou durante o cancelamento. Atualize a página e tente novamente.");

@@ -2436,6 +2436,11 @@ model StudentSubscription {
 }
 
 model FinancialEntry {
+  reservationSplitParentId String?
+  reservationSplitParent FinancialEntry? @relation("ReservationSplit", fields: [arenaId, reservationSplitParentId], references: [arenaId, id], onDelete: NoAction, onUpdate: NoAction)
+  reservationSplitParts FinancialEntry[] @relation("ReservationSplit")
+  @@unique([arenaId, id])
+  @@index([arenaId, reservationSplitParentId])
   originalAmountCents Int?
   creationInterestCents Int?
   creationDiscountCents Int?

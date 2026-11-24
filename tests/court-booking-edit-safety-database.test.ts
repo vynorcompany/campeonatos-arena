@@ -26,16 +26,19 @@ test("edição da reserva não apaga nem reescreve cobrança paga, parcial ou in
 
       await assertCourtBookingMayBeEdited(tx, arena.id, booking.id);
       await tx.financialEntry.update({ where: { id: entry.id }, data: { status: "PAID" } });
-      await assert.rejects(assertCourtBookingMayBeEdited(tx, arena.id, booking.id), /pagamento ou cobrança online vinculada/);
+      await assert.rejects(assertCourtBookingMayBeEdited(tx, arena.id, booking.id), /pagamento.*cobrança online vinculada/);
 
       await tx.financialEntry.update({ where: { id: entry.id }, data: { status: "PENDING" } });
       const settlement = await tx.financialSettlement.create({ data: { arenaId: arena.id, financialEntryId: entry.id, amountCents: 1000, paymentMethod: "PIX" } });
-      await assert.rejects(assertCourtBookingMayBeEdited(tx, arena.id, booking.id), /pagamento ou cobrança online vinculada/);
+      await assert.rejects(assertCourtBookingMayBeEdited(tx, arena.id, booking.id), /pagamento.*cobrança online vinculada/);
       await tx.financialSettlement.delete({ where: { id: settlement.id } });
 
       await tx.financialEntry.update({ where: { id: entry.id }, data: { onlineProvider: "MERCADO_PAGO" } });
-      await assert.rejects(assertCourtBookingMayBeEdited(tx, arena.id, booking.id), /pagamento ou cobrança online vinculada/);
+      await assert.rejects(assertCourtBookingMayBeEdited(tx, arena.id, booking.id), /pagamento.*cobrança online vinculada/);
       await tx.financialEntry.update({ where: { id: entry.id }, data: { onlineProvider: "" } });
+      const split = await tx.financialEntry.create({data:{arenaId:arena.id,playerId,reservationSplitParentId:entry.id,type:"REVENUE",category:"Reserva",description:"Parte",amountCents:1000}});
+      await assert.rejects(assertCourtBookingMayBeEdited(tx,arena.id,booking.id,true),/divisão entre clientes/);
+      await tx.financialEntry.delete({where:{id:split.id}});
       await tx.scheduleOccurrence.update({ where: { id: booking.id }, data: { status: "PENDING_PAYMENT" } });
       await assert.rejects(assertCourtBookingMayBeEdited(tx, arena.id, booking.id), /aguarda pagamento/);
 
