@@ -128,7 +128,7 @@ test("closed commands are excluded from the active command grid without a duplic
 
   assert.match(page, /const commandWhere:[\s\S]*?arenaId: auth\.arenaId,[\s\S]*?status: "OPEN"/);
   assert.doesNotMatch(page, /ServerListPagination|commandPage/);
-  assert.match(page, /const \[comandas[\s\S]{0,650}?where: commandWhere/);
+  assert.match(page, /tx\.comanda\.findMany\(\{\s*where: commandWhere/);
   assert.doesNotMatch(card, /setInterval/);
   assert.equal((page.match(/<VisiblePageRefresh/g) ?? []).length, 1);
 });

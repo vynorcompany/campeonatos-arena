@@ -1,4 +1,6 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
+
 import { useFilterMemory } from "@/components/filters/filter-memory";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -39,7 +41,7 @@ export function WhatsAppContactDirectory({ accountJid, canSend, onOpenConversati
   }, [accountJid, router]);
 
   useEffect(() => { setContacts([]); setStatus(""); setError(""); void synchronize(); }, [synchronize]);
-  const visible = contacts.filter(contact => `${contact.name} ${contact.phone}`.toLocaleLowerCase("pt-BR").includes(query.trim().toLocaleLowerCase("pt-BR")));
+  const visible = contacts.filter(contact => matchesSearch(`${contact.name} ${contact.phone}`, query));
 
   return <>
     <button type="button" title="Contatos do WhatsApp" aria-label="Contatos do WhatsApp" onClick={() => setOpen(true)}><WhatsAppIcon name="users" /></button>

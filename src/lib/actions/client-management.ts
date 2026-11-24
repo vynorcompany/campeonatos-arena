@@ -1,4 +1,5 @@
 "use server";
+import { capitalizeClientName } from "@/lib/clients/name-search";
 import { ClientMergeConflict, transferClientHistory } from "@/lib/clients/merge-history";
 import { changeLessonCredits } from "@/lib/academy/lesson-credits";
 
@@ -121,7 +122,7 @@ export async function importClientsAction(formData: FormData) {
       if (document && !/^\d{11}$/.test(document) && !/^[A-Z0-9]{12}\d{2}$/.test(document)) continue;
       const company=document.length===14; const normalizedCpf=company?"":document;
       if (knownPhones.has(normalizedPhone) || (document && knownCpfs.has(document))) continue;
-      await tx.player.create({ data: { arenaId: auth.arenaId, name, phone: normalizedPhone, cpf: normalizedCpf, personType:company?"PJ":"PF", cnpj:company?document:"" } }); imported += 1;
+      await tx.player.create({ data: { arenaId: auth.arenaId, name: capitalizeClientName(name), phone: normalizedPhone, cpf: normalizedCpf, personType:company?"PJ":"PF", cnpj:company?document:"" } }); imported += 1;
       knownPhones.add(normalizedPhone); if (document) knownCpfs.add(document);
     }
   });

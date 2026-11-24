@@ -1,4 +1,6 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
+
 import { useMemo, useState } from "react";
 import { useFilterMemory } from "@/components/filters/filter-memory";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -13,9 +15,8 @@ export function TeacherPortalMakeupPlanner({arenaSlug,students,slots}:{arenaSlug
  const [query,setQuery]=useFilterMemory("teacher.makeups.query","");
  const [slotQuery,setSlotQuery]=useFilterMemory("teacher.makeups.slotQuery","");
  const pending=useMemo(()=>students.filter(s=>s.pendingMakeups.length),[students]);
- const normalized=(s:string)=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
- const visible=pending.filter(s=>normalized(s.name).includes(normalized(query)));
- const availableSlots=slots.filter(s=>normalized(s.label).includes(normalized(slotQuery)));
+ const visible=pending.filter(s=>matchesSearch(s.name, query));
+ const availableSlots=slots.filter(s=>matchesSearch(s.label, slotQuery));
  const awaiting=students.filter(s=>s.requestedMakeups>s.pendingMakeups.length);
  const valid=selected.filter(id=>pending.some(s=>s.pendingMakeups.includes(id)));
  const visibleIds=visible.flatMap(s=>s.pendingMakeups),all=visibleIds.length>0&&visibleIds.every(id=>valid.includes(id));

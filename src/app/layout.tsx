@@ -40,7 +40,7 @@ export async function generateViewport(): Promise<Viewport> {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={documentUtilities}>
-      <body><SystemTooltips /><PortalPwaProvider enabled={portalPwaEnabled()}>{children}</PortalPwaProvider><Suspense fallback={null}><NotificationTarget /></Suspense><SystemUpdateNotice initialRevision={releaseRevision(process.env.RAILWAY_GIT_COMMIT_SHA)} /></body>
+      <body className="tw:[&_input]:caret-current! tw:[&_textarea]:caret-current! tw:[&_[contenteditable=true]]:caret-current!"><SystemTooltips /><PortalPwaProvider enabled={portalPwaEnabled()}>{children}</PortalPwaProvider><Suspense fallback={null}><NotificationTarget /></Suspense><SystemUpdateNotice initialRevision={releaseRevision(process.env.RAILWAY_GIT_COMMIT_SHA)} /></body>
     </html>
   );
 }

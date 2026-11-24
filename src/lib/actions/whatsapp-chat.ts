@@ -1,4 +1,5 @@
 "use server";
+import { capitalizeClientName } from "@/lib/clients/name-search";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -249,7 +250,7 @@ export async function createWhatsAppContactAction(formData: FormData) {
   const auth = await requireWhatsAppManage();
   const parsed = contactSchema.safeParse({ name: formData.get("name"), phone: formData.get("phone") });
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Contato inválido.");
-  const player = await arenaDatabase(auth.arenaId).player.create({ data: { arenaId: auth.arenaId, name: parsed.data.name, phone: parsed.data.phone } });
+  const player = await arenaDatabase(auth.arenaId).player.create({ data: { arenaId: auth.arenaId, name: capitalizeClientName(parsed.data.name), phone: parsed.data.phone } });
   revalidatePath("/whatsapp");
   return { id: player.id, name: player.name };
 }

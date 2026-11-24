@@ -1,3 +1,4 @@
+import { matchesSearch } from "@/lib/clients/name-search";
 type AthleteOption = { id: string; name: string };
 
 function normalizeAthleteSearch(value: string) {
@@ -7,6 +8,6 @@ function normalizeAthleteSearch(value: string) {
 export function searchAthleteOptions<Athlete extends AthleteOption>(athletes: Athlete[], query: string, excludedId?: string) {
   const term = normalizeAthleteSearch(query.trim());
   return athletes.filter((athlete) =>
-    athlete.id !== excludedId && (!term || normalizeAthleteSearch(athlete.name).includes(term)),
+    athlete.id !== excludedId && (!term || matchesSearch(athlete.name, query)),
   );
 }

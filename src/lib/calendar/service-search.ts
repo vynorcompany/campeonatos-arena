@@ -1,5 +1,5 @@
-/** Match names without requiring accents or letter case in the search. */
+import { matchesSearch } from "@/lib/clients/name-search";
+/** Search words may be separated in the service name. */
 export function serviceMatchesSearch(name: string, query: string) {
-  const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
-  return normalize(name).includes(normalize(query));
+  return matchesSearch(name, query);
 }

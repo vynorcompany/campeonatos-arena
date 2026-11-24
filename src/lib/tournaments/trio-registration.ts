@@ -1,3 +1,4 @@
+import { capitalizeClientName } from "@/lib/clients/name-search";
 import type { Player, Prisma } from "@prisma/client";
 
 export function validateRegistrationThird(format: string | undefined, input: { thirdName?: string; thirdPhone?: string; thirdCpf?: string; leadCpf?: string; partnerCpf?: string }) {
@@ -19,7 +20,7 @@ export async function ensureRegistrationTrio(tx: Prisma.TransactionClient, arena
   const roster: Player[] = [];
   for (const [name, cpf, phone] of [[registration.leadName, registration.leadCpf, registration.leadPhone], [registration.partnerName, registration.partnerCpf, registration.partnerPhone], [registration.thirdName, registration.thirdCpf, registration.thirdPhone]]) {
     const existing = await tx.player.findFirst({ where: { arenaId, cpf, mergedIntoPlayerId: null }, orderBy: [{ active: "desc" }, { createdAt: "asc" }, { id: "asc" }] });
-    roster.push(existing ?? await tx.player.create({ data: { arenaId, name, cpf, phone } }));
+    roster.push(existing ?? await tx.player.create({ data: { arenaId, name: capitalizeClientName(name), cpf, phone } }));
   }
   const teams = await tx.categoryPair.findMany({ where: { competitionId: competition.id }, include: { players: true } });
   if (teams.some(team => team.players.length === 3 && team.players.every(member => roster.some(player => player.id === member.playerId)))) return true;

@@ -1,4 +1,5 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
 
 import { useFilterMemory } from "@/components/filters/filter-memory";
 import { cx } from "@/lib/ui/classes";
@@ -32,6 +33,6 @@ export function TeacherPortalStudentList({ arenaSlug, students, classGroups }: {
   const [query, setQuery] = useFilterMemory("teacher.students.query", "");
   const [plan, setPlan] = useFilterMemory("teacher.students.plan", "all");
   const plans = useMemo(() => [...new Set(students.map((student) => student.planName))].sort((a, b) => a.localeCompare(b, "pt-BR")), [students]);
-  const visibleStudents = useMemo(() => { const normalized = query.trim().toLocaleLowerCase("pt-BR"); return students.filter((student) => (plan === "all" || student.planName === plan) && (!normalized || student.name.toLocaleLowerCase("pt-BR").includes(normalized))); }, [plan, query, students]);
+  const visibleStudents = useMemo(() => { const normalized = query.trim().toLocaleLowerCase("pt-BR"); return students.filter((student) => (plan === "all" || student.planName === plan) && (!normalized || matchesSearch(student.name, normalized))); }, [plan, query, students]);
   return <><div className={viewStyles.teacher_portal_student_filters}><label><span>Buscar aluno</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Digite o nome" type="search" /></label><label><span>Plano</span><select value={plan} onChange={(event) => setPlan(event.target.value)}><option value="all">Todos os planos</option>{plans.map((item) => <option value={item} key={item}>{item}</option>)}</select></label><small>{visibleStudents.length} de {students.length} aluno(s)</small></div><div className={viewStyles.teacher_portal_student_list}><>{visibleStudents.map((student) => <StudentCard key={student.id} arenaSlug={arenaSlug} student={student} classGroups={classGroups} />)}{!visibleStudents.length ? <p className={viewStyles.teacher_portal_empty_filter}>Nenhum aluno corresponde à busca.</p> : null}</></div></>;
 }

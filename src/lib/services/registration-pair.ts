@@ -1,3 +1,4 @@
+import { capitalizeClientName } from "@/lib/clients/name-search";
 import { ensureRegistrationTrio } from "@/lib/tournaments/trio-registration";
 import type { Prisma } from "@prisma/client";
 
@@ -35,7 +36,7 @@ export async function ensureTournamentPairFromRegistration(
     const player = cpf.length === 11
       ? await tx.player.findFirst({ where: { arenaId: input.arenaId, cpf, mergedIntoPlayerId: null }, orderBy: [{ active: "desc" }, { createdAt: "asc" }, { id: "asc" }] })
       : await tx.player.findFirst({ where: { arenaId: input.arenaId, name, cpf: "", mergedIntoPlayerId: null }, orderBy: [{ active: "desc" }, { createdAt: "asc" }, { id: "asc" }] });
-    return player ?? tx.player.create({ data: { arenaId: input.arenaId, name, cpf } });
+    return player ?? tx.player.create({ data: { arenaId: input.arenaId, name: capitalizeClientName(name), cpf } });
   }
 
   const leadPlayer = await resolvePlayer(leadName, input.leadCpf, input.leadPlayerId);

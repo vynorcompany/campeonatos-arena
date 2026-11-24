@@ -1,4 +1,5 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
 import { Children, isValidElement, useEffect, useId, useMemo, useRef, useState, type ReactNode, type SelectHTMLAttributes } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal, flushSync } from "react-dom";
@@ -22,8 +23,7 @@ export function SmartEntitySelect({compactCorners=false,createKind,contextId,fin
  const all=useMemo(()=>[...options(children),...created].filter((o,i,a)=>a.findIndex(x=>x.value===o.value)===i),[children,created]);
  const current=String(props.value??chosen),selected=all.find(o=>o.value===current);
  const title=label||props["aria-label"]||({playerId:"Cliente",clientId:"Cliente",supplierId:"Fornecedor",category:"Categoria",categoryId:"Categoria"}[String(props.name)]??"Pesquisar");
- const normalize=(v:string)=>v.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("pt-BR");
- const visible=all.filter(o=>normalize(o.label).includes(normalize(query))).slice(0,40);
+ const visible=all.filter(o=>matchesSearch(o.label, query)).slice(0,40);
  useEffect(()=>{input.current?.setCustomValidity(props.required&&!current?"Selecione uma opção da lista.":"");},[current,props.required]);
  useEffect(()=>{const form=native.current?.form;if(!form)return;const reset=()=>{setChosen(String(props.defaultValue??options(children)[0]?.value??""));setQuery("");setOpen(false);};form.addEventListener("reset",reset);return()=>form.removeEventListener("reset",reset);},[props.defaultValue,children]);
  useEffect(()=>{if(!open)return;const place=()=>{const r=input.current?.getBoundingClientRect();if(!r)return;const below=innerHeight-r.bottom-12,height=Math.min(260,Math.max(100,below>=130?below:r.top-12));const scale=(Number.parseFloat(getComputedStyle(document.documentElement).zoom)||1)*(Number.parseFloat(getComputedStyle(document.body).zoom)||1);setPosition({left:Math.max(8,Math.min(r.left,innerWidth-r.width-8))/scale,width:Math.min(r.width,innerWidth-16)/scale,top:(below>=130?r.bottom+4:Math.max(8,r.top-height-4))/scale,maxHeight:height/scale});};const outside=(e:PointerEvent)=>{if(!host.current?.contains(e.target as Node)&&!popup.current?.contains(e.target as Node))setOpen(false);};place();addEventListener("resize",place);addEventListener("scroll",place,true);document.addEventListener("pointerdown",outside);return()=>{removeEventListener("resize",place);removeEventListener("scroll",place,true);document.removeEventListener("pointerdown",outside);};},[open]);

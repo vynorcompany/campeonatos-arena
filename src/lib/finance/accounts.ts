@@ -28,7 +28,7 @@ function ledgerWhere(arenaId: string, type: "REVENUE" | "EXPENSE", filters: Ledg
   }
   else if (filters.planId) where.planId = filters.planId;
   if (filters.productId) conditions.push({ OR: [{ productId: filters.productId }, { sale: { items: { some: { productId: filters.productId } } } }] });
-  if (filters.name) conditions.push({ OR: [{ billingPlayer: { name: { contains: filters.name, mode: "insensitive" } } }, { counterpartyName: { contains: filters.name, mode: "insensitive" } }, { player: { name: { contains: filters.name, mode: "insensitive" } } }, { supplier: { name: { contains: filters.name, mode: "insensitive" } } }, { scheduleParticipant: { player: { name: { contains: filters.name, mode: "insensitive" } } } }, { sale: { customerName: { contains: filters.name, mode: "insensitive" } } }] });
+  if (filters.name) conditions.push(...filters.name.trim().split(/\s+/).filter(Boolean).map(term => ({ OR: [{ billingPlayer: { name: { contains: term, mode: "insensitive" } } }, { counterpartyName: { contains: term, mode: "insensitive" } }, { player: { name: { contains: term, mode: "insensitive" } } }, { supplier: { name: { contains: term, mode: "insensitive" } } }, { scheduleParticipant: { player: { name: { contains: term, mode: "insensitive" } } } }, { sale: { customerName: { contains: term, mode: "insensitive" } } }] })));
   if (start || end) {
     const range = { ...(start && !filters.includeEarlier ? { gte: start } : {}), ...(end ? { lte: end } : {}) };
     // An undated obligation must remain visible. Paid entries without a due

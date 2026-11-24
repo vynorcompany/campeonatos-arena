@@ -1,4 +1,5 @@
 "use client";
+import { matchesSearch } from "@/lib/clients/name-search";
 import { ServerListPagination } from "@/components/ui/list-pagination";
 import { AgentActionBadge } from "@/components/ui/agent-action-badge";
 import { CardInstallmentFields } from "./card-installment-fields";
@@ -173,20 +174,20 @@ export function AccountsLedger({
   const partyLabel = type === "REVENUE" ? "Cliente" : "Favorecido";
   const filterLabel = type === "REVENUE" ? "Cliente" : "Nome";
   const matchingSuppliers = useMemo(
-    () => supplierOptions.filter((supplier) => supplier.name.toLocaleLowerCase("pt-BR").includes(counterpartyName.toLocaleLowerCase("pt-BR"))).slice(0, 6),
+    () => supplierOptions.filter((supplier) => matchesSearch(supplier.name, counterpartyName)).slice(0, 6),
     [counterpartyName, supplierOptions],
   );
   const hasExactSupplier = supplierOptions.some((supplier) => supplier.name.toLocaleLowerCase("pt-BR") === counterpartyName.trim().toLocaleLowerCase("pt-BR"));
   const matchingClients = useMemo(
-    () => clients.filter((client) => client.name.toLocaleLowerCase("pt-BR").includes(counterpartyName.toLocaleLowerCase("pt-BR"))).slice(0, 6),
+    () => clients.filter((client) => matchesSearch(client.name, counterpartyName)).slice(0, 6),
     [clients, counterpartyName],
   );
   const matchingEditedClients = useMemo(
-    () => clients.filter((client) => client.name.toLocaleLowerCase("pt-BR").includes(editCounterpartyName.toLocaleLowerCase("pt-BR"))).slice(0, 6),
+    () => clients.filter((client) => matchesSearch(client.name, editCounterpartyName)).slice(0, 6),
     [clients, editCounterpartyName],
   );
   const matchingFilterClients = useMemo(
-    () => clients.filter((client) => client.name.toLocaleLowerCase("pt-BR").includes(clientFilter.toLocaleLowerCase("pt-BR"))).slice(0, 6),
+    () => clients.filter((client) => matchesSearch(client.name, clientFilter)).slice(0, 6),
     [clientFilter, clients],
   );
   const sortRouter = useRouter(), sortPath = usePathname(), sortParams = useSearchParams();

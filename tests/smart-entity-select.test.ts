@@ -32,7 +32,7 @@ test("não recria fornecedor inativo e rejeita nome incompleto",async()=>{
 });
 test("seletor preserva valor canônico, busca acentos e criação em modal sem sair do formulário",()=>{
  const ui=readFileSync("src/components/forms/smart-entity-select.tsx","utf8");
- assert.match(ui,/role="combobox"/);assert.match(ui,/role="listbox"/);assert.match(ui,/select\.dispatchEvent/);assert.match(ui,/normalize\("NFD"\)/);assert.match(ui,/createSmartLookupAction\(form\)/);assert.match(ui,/createPortal/);assert.match(ui,/e\.stopPropagation\(\)/);
+ assert.match(ui,/role="combobox"/);assert.match(ui,/role="listbox"/);assert.match(ui,/select\.dispatchEvent/);assert.match(ui,/matchesSearch\(o\.label, query\)/);assert.match(ui,/createSmartLookupAction\(form\)/);assert.match(ui,/createPortal/);assert.match(ui,/e\.stopPropagation\(\)/);
  const plan=readFileSync("src/components/sponsorship/fixed-court-enrollment.tsx","utf8");assert.match(plan,/<SmartEntitySelect createKind="client"/);assert.match(plan,/name="paymentMethod" required/);
 });
 test("seletor mantém a primeira opção implícita e valores controlados sem trocar o identificador",async()=>{
