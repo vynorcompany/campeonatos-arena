@@ -335,13 +335,34 @@ export function AccountsLedger({
       </section>
 
       {newEntryOpen ? (
-        <Modal open title={`Novo lançamento · ${title}`} width="tw:max-w-[1080px]" heightClassName="tw:gap-3! tw:bg-[#f5f8fc]! tw:[&>header]:rounded-lg tw:[&>header]:border-0 tw:[&>header]:bg-[#174983] tw:[&>header]:p-2 tw:[&>header]:text-white tw:[&>div:last-child]:bg-white tw:[&>div:last-child]:rounded-md tw:[&>div:last-child]:p-2 tw:h-[min(960px,calc(var(--workspace-viewport-height,100dvh)_-_32px))]! tw:max-h-[calc(var(--workspace-viewport-height,100dvh)_-_24px)]!" onClose={() => setNewEntryOpen(false)} footer={<div className="tw:flex tw:flex-wrap tw:justify-end tw:gap-2"><button type="button" className={viewStyles.button} onClick={() => setNewEntryOpen(false)}>Cancelar</button><button type="submit" form={newEntryFormId} className={viewStyles.button_button_primary} disabled={pending}>{pending ? "Salvando..." : recurring ? "Criar recorrência" : "Salvar lançamento"}</button></div>}>
+        <Modal open title={`Novo lançamento · ${title}`} width="tw:max-w-[1080px]" heightClassName="tw:gap-3! tw:bg-[#f5f8fc]! tw:[&>header]:rounded-lg tw:[&>header]:border-0 tw:[&>header]:bg-[#174983] tw:[&>header]:p-2 tw:[&>header]:text-white tw:[&>div:last-child]:bg-white tw:[&>div:last-child]:rounded-md tw:[&>div:last-child]:p-2 tw:h-[min(960px,calc(var(--workspace-viewport-height,100dvh)_-_32px))]! tw:max-h-[calc(var(--workspace-viewport-height,100dvh)_-_24px)]!" onClose={() => setNewEntryOpen(false)} footer={<div className="tw:flex tw:flex-wrap tw:justify-end tw:gap-2"><button type="button" className={viewStyles.button} onClick={() => setNewEntryOpen(false)}>Cancelar</button><button type="submit" form={newEntryFormId} className={viewStyles.button_button_primary} disabled={pending}>{pending ? "Salvando..." : recurring ? "Criar recorrência" : "Salvar lançamento"}</button>{type === "EXPENSE" ? <button type="submit" form={newEntryFormId} name="saveAndCreateNew" value="true" className={viewStyles.button_button_success} disabled={pending}>Salvar e criar novo Lançamento</button> : null}</div>}>
             {message && !message.startsWith("Dados incompletos do cliente:") ? <p className="form-message form-message-error" role="alert">{message}</p> : null}
             <form id={newEntryFormId} onSubmit={(event) => {
               event.preventDefault();
               if (!category) { setMessage("Selecione uma categoria financeira."); return; }
-              const form = new FormData(event.currentTarget);
-              run(() => recurring ? createFinancialRecurrenceAction(form) : createFinancialEntryAction(form), () => setNewEntryOpen(false));
+              if (pendingRef.current) return;
+              const formElement = event.currentTarget;
+              const submitter = (event.nativeEvent as SubmitEvent).submitter;
+              const createAnother = type === "EXPENSE" && submitter instanceof HTMLButtonElement && submitter.name === "saveAndCreateNew";
+              const form = new FormData(formElement);
+              run(() => recurring ? createFinancialRecurrenceAction(form) : createFinancialEntryAction(form), () => {
+                if (!createAnother) { setNewEntryOpen(false); return; }
+                // Keep the payee, category, dates and bank account in the mounted form.
+                for (const name of ["description", "notes"]) {
+                  const field = formElement.elements.namedItem(name);
+                  if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) field.value = "";
+                }
+                setNewEntryAmountCents(0);
+                setDiscount("");
+                setDiscountMode("AMOUNT");
+                setEntryInterest(0);
+                setPaid(false);
+                setRecurring(false);
+                setCardInstallments(false);
+                setNotice("Lançamento salvo. Preencha o próximo lançamento.");
+                const description = formElement.elements.namedItem("description");
+                if (description instanceof HTMLInputElement) description.focus();
+              });
             }} className={`${viewStyles.grid_form} tw:gap-y-3! tw:content-start tw:[zoom:0.9]`}>
               <input type="hidden" name="type" value={type} />
               <input type="hidden" name="status" value={paid && !recurring ? "PAID" : "PENDING"} />
