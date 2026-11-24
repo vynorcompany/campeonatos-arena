@@ -2331,6 +2331,7 @@ model ComandaBookingService {
 }
 
 model ComandaItem {
+  discountCents Int @default(0)
   variantKey String @default("")
   compositionLabel String @default("")
   stockRecipe Json?
@@ -2351,6 +2352,7 @@ model ComandaItem {
 }
 
 model SaleItem {
+  discountCents Int @default(0)
   fiscalProfile Json?
   variantKey String @default("")
   compositionLabel String @default("")

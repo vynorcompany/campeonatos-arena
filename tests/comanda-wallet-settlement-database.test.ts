@@ -215,3 +215,68 @@ test("paying an event debt with a comanda updates the registration and refuses a
     assert.equal(await f.admin.financialSettlement.count({ where: { financialEntryId: onlineDebt.id } }), 0);
   } finally { await f.cleanup(); }
 });
+
+test("total discount settles reservation and products once, records original amounts and excludes unrelated debts", { skip: !isolated }, async () => {
+  const f = await fixture(); try {
+    const c = await f.command(); const booking = await f.booking(c.id, 3000); const oldDebt = await f.debt(500);
+    await f.finish(c.id, 0, [oldDebt.id], 3500, { discountMode: "TOTAL", discountCents: "1000", quotedTotalCents: "4500" });
+    const paid = await f.admin.financialEntry.findUniqueOrThrow({ where: { id: booking.id }, include: { settlements: true } });
+    assert.equal(paid.amountCents, 3000); assert.equal(paid.status, "PAID");
+    assert.equal(paid.settlements.reduce((s,r)=>s+r.discountCents,0),750);
+    assert.equal(paid.settlements.reduce((s,r)=>s+r.amountCents,0),2250);
+    assert.equal(getOutstandingCents(paid.amountCents, paid.settlements),0);
+    const old = await f.admin.financialEntry.findUniqueOrThrow({ where: { id: oldDebt.id }, include: { settlements: true } });
+    assert.equal(old.status,"PAID"); assert.equal(old.settlements.reduce((s,r)=>s+r.discountCents,0),0);
+    const sale = await f.admin.sale.findUniqueOrThrow({where:{comandaId:c.id},include:{items:true,payments:true}});
+    assert.equal(sale.totalCents,750); assert.equal(sale.items[0].discountCents,250); assert.equal(sale.items[0].unitPriceCents,1000); assert.equal(sale.items[0].totalCents,750);
+    assert.equal(sale.payments.reduce((s,r)=>s+r.amountCents,0),750);
+    assert.equal(await f.admin.auditEvent.count({where:{entityId:c.id,action:"COMANDA_DISCOUNT_APPLIED"}}),1);
+    await assert.rejects(f.finish(c.id,0,[],3500,{discountCents:"1000"}),/não está disponível/);
+    assert.equal(await f.admin.financialEntry.count({where:{arenaId:f.arena.id,amountCents:3000}}),1);
+  } finally { await f.cleanup(); }
+});
+
+test("per-item discounts independently adjust products and a reservation; 100% discounts settle with no fictitious cash", { skip: !isolated }, async()=>{
+ const f=await fixture();try{
+  const c=await f.command();const d=await f.booking(c.id,2500);
+  const item=await f.admin.comandaItem.findFirstOrThrow({where:{comandaId:c.id}});
+  await f.finish(c.id,0,[],0,{discountMode:"ITEMS",itemDiscounts:JSON.stringify([{kind:"ITEM",id:item.id,amountCents:1000},{kind:"DEBT",id:d.id,amountCents:2500}]),allowEmpty:"true"});
+  const e=await f.admin.financialEntry.findUniqueOrThrow({where:{id:d.id},include:{settlements:true}});
+  assert.equal(e.status,"PAID");assert.equal(e.settlements.length,1);assert.equal(e.settlements[0].amountCents,0);assert.equal(e.settlements[0].discountCents,2500);
+  const sale=await f.admin.sale.findUniqueOrThrow({where:{comandaId:c.id},include:{payments:true,items:true}});assert.equal(sale.status,"PAID");assert.equal(sale.totalCents,0);assert.equal(sale.payments.length,0);
+  assert.equal(sale.items[0].discountCents,1000);assert.equal((await f.admin.comandaItem.findUniqueOrThrow({where:{id:item.id}})).totalCents,0);
+  assert.equal(await f.admin.financialEntry.count({where:{arenaId:f.arena.id,category:"COMANDAS"}}),0);
+ }finally{await f.cleanup();}
+});
+
+test("discount cannot target a foreign item or unrelated debt, exceed a line, accumulate modes or use a stale quote", {skip:!isolated},async()=>{
+ const f=await fixture();try{
+  const c=await f.command();const d=await f.booking(c.id,1000);const old=await f.debt(500);
+  const item=await f.admin.comandaItem.findFirstOrThrow({where:{comandaId:c.id}});
+  const invalidDiscounts: Record<string,string>[] = [
+   {discountMode:"ITEMS",itemDiscounts:JSON.stringify([{kind:"ITEM",id:"foreign-item",amountCents:1}])},
+   {discountMode:"ITEMS",itemDiscounts:JSON.stringify([{kind:"DEBT",id:old.id,amountCents:1}])},
+   {discountCents:"2001"},
+   {discountMode:"ITEMS",itemDiscounts:JSON.stringify([{kind:"ITEM",id:item.id,amountCents:1001}])},
+   {discountMode:"ITEMS",discountCents:"1"},
+   {discountCents:"1",quotedTotalCents:"1999"},
+  ];
+  for(const extra of invalidDiscounts) await assert.rejects(f.finish(c.id,0,[],1999,extra));
+  assert.equal(await f.admin.sale.count({where:{comandaId:c.id}}),0);
+  assert.equal(await f.admin.financialSettlement.count({where:{financialEntryId:d.id}}),0);
+  assert.equal((await f.admin.comanda.findUniqueOrThrow({where:{id:c.id}})).status,"OPEN");
+ }finally{await f.cleanup();}
+});
+
+test("discount combines with partial payment and client credit while preserving net outstanding balances",{skip:!isolated},async()=>{
+ const f=await fixture();try{
+  await f.fund(500);const c=await f.command();const d=await f.booking(c.id,3000);
+  await f.finish(c.id,500,[],1000,{discountCents:"1000",allowPartial:"true"});
+  const paid=await f.admin.financialEntry.findUniqueOrThrow({where:{id:d.id},include:{settlements:true}});
+  assert.equal(paid.settlements.reduce((s,r)=>s+r.discountCents,0),750);
+  assert.equal(getOutstandingCents(paid.amountCents,paid.settlements),1250);
+  assert.equal(paid.status,"PENDING");assert.equal(await f.balance(),0);
+  const sale=await f.admin.sale.findUniqueOrThrow({where:{comandaId:c.id}});assert.equal(sale.totalCents,750);
+  assert.equal((await f.admin.financialEntry.aggregate({where:{arenaId:f.arena.id,saleId:sale.id,status:"PENDING"},_sum:{amountCents:true}}))._sum.amountCents,250);
+ }finally{await f.cleanup();}
+});

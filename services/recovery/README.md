@@ -21,3 +21,7 @@ Run `node services/recovery/full-drill.mjs /absolute/private/config.json` as the
 ### Owner custody of the recovery key
 
 The encryption key must also exist outside the server and its backup filesystem. The owner should transfer it through an authenticated private channel to encrypted offline storage, verify that the copy has the same checksum without sharing its contents, and keep recovery instructions with access restricted to authorized custodians. Never paste the key into chat, tickets, Git, publication metadata or screenshots. Until this custody is verified, recovery from total loss of the server and its local key remains unproven.
+
+## Transient read failures and diagnostics
+
+Read-only Railway metadata and SSH status reads retry at most once for transport timeouts or interrupted connections. Authentication and host-key failures are not retried. Restores, payments and stream snapshots are not automatically replayed. A failed copy keeps the previous successful manifest intact and records only a closed stage/error code in the private failure receipt; provider output, keys and command arguments are never copied into that receipt. A failed run continues to be reported as failed; a later successful run produces a separate verified status.

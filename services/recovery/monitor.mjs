@@ -1,3 +1,4 @@
+import { recoveryReadCommand } from "./read-command.mjs";
 import { execFileSync } from 'node:child_process';
 import { readFile, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -24,7 +25,7 @@ export async function archiveHealth(config){
  try{
   const service=config.snapshots.find(snapshot=>snapshot.kind==='postgres-status');if(!service)throw new Error('Database status source missing.');
   const file=join(directory,'ssh-config');await writeFile(file,railway(config,['ssh','config','--dry-run','-p',config.projectId,'-e',config.environmentId,'-s',service.serviceId,'--alias','arena-health','-i',config.identityFile]),{mode:0o600});
-  const raw=execFileSync('ssh',['-T','-F',file,'-o','BatchMode=yes','-o','IdentitiesOnly=yes','-o','StrictHostKeyChecking=yes','-o','UserKnownHostsFile='+config.knownHosts,'arena-health',snapshotCommand(service)],{encoding:'utf8',timeout:60_000,stdio:['ignore','pipe','pipe']});
+  const raw=recoveryReadCommand('ssh',['-T','-F',file,'-o','BatchMode=yes','-o','IdentitiesOnly=yes','-o','StrictHostKeyChecking=yes','-o','UserKnownHostsFile='+config.knownHosts,'arena-health',snapshotCommand(service)],{encoding:'utf8',timeout:25_000,stdio:['ignore','pipe','pipe']});
   const status=JSON.parse(raw);if(!status||typeof status!=="object"||!("lastArchivedAt" in status))throw new Error("Invalid archive probe response.");observed=true;const archived=Date.parse(status.lastArchivedAt),latest=Date.parse(status.latestWriteAt);
   ok=Number.isFinite(archived)&&!(latest>archived&&Date.now()-archived>300_000);
   await atomicJson(join(config.directory,'archive-status.json'),{ok,checkedAt:new Date().toISOString(),lastArchivedAt:status.lastArchivedAt,latestWriteAt:status.latestWriteAt});
