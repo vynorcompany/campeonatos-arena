@@ -305,7 +305,7 @@ export function PublicStandings({
       </header>
       <div className="portal-workspace tw:mx-auto tw:grid tw:w-full tw:max-w-[1240px] tw:min-w-0 tw:gap-5 tw:px-4 tw:py-6 tw:min-[700px]:px-8 tw:min-[700px]:py-8">
       <PortalPwaExperience showInstallControl={false} />
-      <PortalPwaExperience showInstallControl />
+      <PortalPwaExperience showInstallControl compact={requestedSection === "home"} />
       {requestedSection !== "home" ? (
         <div className="tw:min-w-0 tw:border-b tw:border-[var(--portal-line)] tw:pb-3">
           <h1 className="tw:sr-only">{sectionTitle}</h1>
