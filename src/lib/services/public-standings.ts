@@ -20,6 +20,7 @@ export type ArenaPublicStandings = {
     slug: string;
     athletePortalShowLeagues: boolean;
     athletePortalShowBooking: boolean;
+    onlineBookingEnabled: boolean;
     athletePortalShowReservations: boolean;
     athletePortalShowLessons: boolean;
     athletePortalShowClasses: boolean;
@@ -71,6 +72,7 @@ export async function getPublicArenaShell(arenaSlug: string): Promise<PublicAren
       slug: true,
       athletePortalShowLeagues: true,
       athletePortalShowBooking: true,
+      onlineBookingEnabled: true,
       athletePortalShowReservations: true,
       athletePortalShowLessons: true,
       athletePortalShowClasses: true,
@@ -98,6 +100,7 @@ export async function getArenaPublicStandings(
       slug: true,
       athletePortalShowLeagues: true,
       athletePortalShowBooking: true,
+      onlineBookingEnabled: true,
       athletePortalShowReservations: true,
       athletePortalShowLessons: true,
       athletePortalShowClasses: true,

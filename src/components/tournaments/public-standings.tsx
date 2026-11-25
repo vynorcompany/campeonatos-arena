@@ -387,7 +387,7 @@ export function PublicStandings({
       )}
       {requestedSection === "profile" ? <div className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-start tw:justify-between tw:gap-4"><details className="tw:min-w-0"><summary className="tw:min-h-9 tw:cursor-pointer tw:text-xs">Privacidade e termos</summary><div className="tw:pt-2"><ArenaLegalLinks arenaSlug={arena.slug} showCookieNotice={false}/></div></details><form action={logoutAthletePortalAction}><input type="hidden" name="arenaSlug" value={arena.slug}/><button type="submit" data-portal-neutral className="tw:min-h-9 tw:cursor-pointer tw:rounded-md tw:border-0 tw:bg-transparent tw:px-2 tw:py-2 tw:text-xs tw:font-normal tw:text-[#9c382d] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:dark:text-[#ffb9ab] tw:dark:focus-visible:outline-[#a5caff]">Sair da conta</button></form></div> : null}
       </div>
-      <PortalBottomNav items={menuItems} safeArea={portalPwaEnabled()} current={requestedSection === "booking" ? "schedule" : requestedSection} href={portalHref} />
+      <PortalBottomNav items={menuItems} bookingAvailable={arena.onlineBookingEnabled} safeArea={portalPwaEnabled()} current={requestedSection === "booking" ? "schedule" : requestedSection} href={portalHref} />
       </main></PortalTheme></FilterMemoryProvider>
   );
 }

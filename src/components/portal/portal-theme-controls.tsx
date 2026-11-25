@@ -22,7 +22,17 @@ export function PortalThemeProvider({
   children: React.ReactNode;
   className: string;
 }) {
-  const [theme, setTheme] = useState(initialTheme);
+  const [preference, setPreference] = useState(initialTheme);
+  // CSS already ignores overrides on mobile before hydration.
+  const [desktop, setDesktop] = useState(true);
+  const theme = desktop ? preference : "system";
+  useEffect(() => {
+    const viewport = window.matchMedia("(min-width: 1100px)");
+    const update = () => setDesktop(viewport.matches);
+    update();
+    viewport.addEventListener("change", update);
+    return () => viewport.removeEventListener("change", update);
+  }, []);
   // Floating dialogs render under body; restore its previous scope when leaving the Portal.
   useEffect(() => {
     const previous = document.body.getAttribute("data-portal-theme");
@@ -33,7 +43,7 @@ export function PortalThemeProvider({
     };
   }, [theme]);
   function choose(value: PortalThemePreference) {
-    setTheme(value);
+    setPreference(value);
     document.cookie = `arena_portal_theme=${value}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
   }
   return (
@@ -69,7 +79,7 @@ export function PortalThemeToggle() {
   if (!context) return null;
   const label = options.find((option) => option.value === context.theme)!.label;
   return (
-    <details ref={root} className="tw:relative tw:shrink-0">
+    <details ref={root} className="tw:relative tw:hidden tw:shrink-0 tw:min-[1100px]:block">
       <summary
         aria-label={`Tema do portal: ${label}`}
         title={`Tema do portal: ${label}`}

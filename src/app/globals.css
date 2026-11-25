@@ -2,11 +2,16 @@
 @import "tailwindcss/theme.css" layer(theme) prefix(tw);
 @import "tailwindcss/utilities.css" layer(utilities) prefix(tw);
 
-/* Portal preference overrides the OS only inside the Portal. Other pages keep OS behavior. */
+/* Mobile always follows the device; a saved Portal override applies only on desktop. */
 @custom-variant dark {
-  &:where([data-portal-theme="dark"], [data-portal-theme="dark"] *) { @slot; }
+  @media (min-width: 1100px) {
+    &:where([data-portal-theme="dark"], [data-portal-theme="dark"] *) { @slot; }
+  }
   @media (prefers-color-scheme: dark) {
-    &:not(:where([data-portal-theme="light"], [data-portal-theme="light"] *)) { @slot; }
+    @media (max-width: 1099px) { @slot; }
+    @media (min-width: 1100px) {
+      &:not(:where([data-portal-theme="light"], [data-portal-theme="light"] *)) { @slot; }
+    }
   }
 }
 

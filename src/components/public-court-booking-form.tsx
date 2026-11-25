@@ -92,7 +92,7 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
 
   if (!courts.length) return <div className="tw:grid tw:gap-3">{datePicker}<p className={viewStyles.public_booking_empty}>Não há horários disponíveis para reserva online nesta data.</p>{pendingNotice}{message ? <p className={viewStyles.public_booking_message} role="status">{message}</p> : null}</div>;
 
-  const surface = "tw:rounded-lg tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:dark:border-[#293648] tw:dark:bg-[#0b1a30]";
+  const surface = "tw:min-w-0 tw:max-w-full tw:rounded-lg tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:dark:border-[#293648] tw:dark:bg-[#0b1a30]";
   const toggleService = (id: string, checked: boolean) => {
     setSelectedServiceIds(ids=>checked ? [...ids,id] : ids.filter(item=>item!==id));
     const service=availableServices.find(item=>item.id===id);
@@ -104,12 +104,12 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
   };
   const periods = [{ label: "Manhã", start: 0, end: 720 }, { label: "Tarde", start: 720, end: 1080 }, { label: "Noite", start: 1080, end: 1440 }];
   const slotButton = "tw:min-h-10 tw:min-w-0 tw:rounded-md tw:border tw:px-2 tw:py-2 tw:text-center tw:text-sm tw:font-normal tw:tabular-nums tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#1e5ea8]";
-  return <form className="tw:grid tw:min-w-0 tw:gap-6 tw:text-black tw:dark:text-[#eff3f8]" onSubmit={event => { event.preventDefault(); if (!reviewing) { setReviewing(true); return; } submit(event.currentTarget); }}>
+  return <form className="tw:grid tw:w-full tw:min-w-0 tw:max-w-full tw:grid-cols-[minmax(0,1fr)] tw:gap-6 tw:text-black tw:dark:text-[#eff3f8]" onSubmit={event => { event.preventDefault(); if (!reviewing) { setReviewing(true); return; } submit(event.currentTarget); }}>
     <ol aria-label="Etapas da reserva" className="tw:m-0 tw:grid tw:list-none tw:grid-cols-3 tw:gap-3 tw:border-b tw:border-[#d8e5e9] tw:p-0 tw:pb-4 tw:dark:border-[#293648] tw:viewport-700:gap-2">
       {["Escolha seu horário", "Revise a reserva", "Confirme e jogue"].map((label,index) => <li key={label} aria-current={index === (reviewing ? 1 : 0) ? "step" : undefined} className={cx("tw:flex tw:items-center tw:gap-2 tw:text-sm tw:viewport-700:items-start tw:viewport-700:text-xs",index === (reviewing ? 1 : 0) ? "tw:font-medium tw:text-[#174983] tw:dark:text-[#9bc5ff]" : "tw:text-black tw:dark:text-[#bdd9e6]")}><span className={cx("tw:grid tw:size-7 tw:shrink-0 tw:place-items-center tw:rounded-full",index === (reviewing ? 1 : 0) ? "tw:bg-[#174983] tw:text-white" : "tw:bg-[#edf2f7] tw:dark:bg-[#213148]")}>{index+1}</span>{label}</li>)}
     </ol>
     <div className="tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)_300px] tw:items-start tw:gap-6 tw:max-[1000px]:grid-cols-1">
-    <div className="tw:grid tw:min-w-0 tw:gap-5">
+    <div className="tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)] tw:gap-5">
     {reviewing ? <section className={surface} aria-label="Revisão da reserva"><h2 tabIndex={-1} className="tw:m-0 tw:text-xl tw:font-medium">Confira sua reserva</h2><dl className="tw:my-4 tw:grid tw:min-w-0 tw:grid-cols-[repeat(auto-fit,minmax(min(100%,230px),1fr))] tw:gap-3">
       <div className="tw:min-w-0 tw:rounded-md tw:border tw:border-[#c5d8ef] tw:border-l-4 tw:border-l-[#215da5] tw:bg-[#f2f7fe] tw:p-4 tw:dark:border-[#3b4e66] tw:dark:border-l-[#78b3ff] tw:dark:bg-[#15263c]">
         <dt className="tw:flex tw:items-center tw:gap-2 tw:text-xs tw:font-normal"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="tw:size-4 tw:shrink-0 tw:text-[#215da5] tw:dark:text-[#9bc5ff]"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M12 5v14M3 12h18M7 5v14M17 5v14"/></svg>Quadra</dt>
@@ -121,17 +121,17 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
         <dd className="tw:mx-0 tw:mb-0 tw:mt-1 tw:text-xs tw:font-normal">Duração: {duration(durationMinutes)}</dd>
       </div>
     </dl><p className="tw:my-3 tw:text-sm">{selectedServices.length ? selectedServices.map(service => service.name).join(" · ") : "Sem serviços adicionais"}</p><button type="button" className={ui.secondary} onClick={() => { setReviewing(false); setCreatedGameId(""); setCalendarUrl(""); setMessage(""); }}>Alterar horário ou serviços</button></section> : <>
-    <section aria-label="Horários disponíveis" className="tw:grid tw:min-w-0 tw:gap-3">
+    <section aria-label="Horários disponíveis" className="tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)] tw:gap-3">
       <h2 className="tw:m-0 tw:text-xl tw:font-medium">Escolha quando jogar</h2>{datePicker}
     </section>
-    <section aria-label="Duração da reserva" className={cx(surface,"tw:sticky tw:top-2 tw:z-20 tw:shadow-sm tw:flex tw:flex-wrap tw:items-center tw:gap-3")}>
+    <section aria-label="Duração da reserva" className="tw:sticky tw:top-2 tw:z-20 tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)] tw:gap-2">
       <span className="tw:text-sm tw:font-medium">Duração</span>
-      <div className="tw:flex tw:min-w-0 tw:flex-1 tw:gap-2 tw:overflow-x-auto tw:pb-1">{allowedDurations.map(minutes=><button type="button" key={minutes} data-duration-minutes={minutes} aria-pressed={durationMinutes===minutes} className={cx(slotButton,"tw:min-w-14 tw:shrink-0",durationMinutes===minutes ? "tw:border-[#174983] tw:bg-[#174983] tw:text-white" : "tw:border-[#cad8e7] tw:bg-white tw:text-black tw:dark:border-[#3b4e66] tw:dark:bg-[#101c2d] tw:dark:text-[#eff3f8]")} onClick={()=>setDurationMinutes(minutes)}>{duration(minutes)}</button>)}</div>
+      <div className={cx(surface,"tw:flex tw:flex-wrap tw:gap-2 tw:shadow-sm")}>{allowedDurations.map(minutes=><button type="button" key={minutes} data-duration-minutes={minutes} aria-pressed={durationMinutes===minutes} className={cx(slotButton,"tw:min-w-14 tw:shrink-0 tw:rounded-[5px]",durationMinutes===minutes ? "tw:border-[#174983] tw:bg-[#174983] tw:text-white" : "tw:border-[#cad8e7] tw:bg-white tw:text-black tw:dark:border-[#3b4e66] tw:dark:bg-[#101c2d] tw:dark:text-[#eff3f8]")} onClick={()=>setDurationMinutes(minutes)}>{duration(minutes)}</button>)}</div>
       {selectedServices.some(service=>service.rules.minimumMinutes) ? <p className="tw:m-0 tw:basis-full tw:text-xs tw:text-black tw:dark:text-[#9bc5ff]">Durações liberadas pelos serviços selecionados.</p> : null}
     </section>
     <section aria-label="Quadras e horários" className="tw:min-w-0">
       {railEdges.previous || railEdges.next ? <div className="tw:mb-2 tw:flex tw:items-center tw:justify-end tw:gap-2"><span className="tw:mr-auto tw:text-xs">Deslize para ver as quadras</span>{([-1, 1] as const).map(direction => <button type="button" key={direction} aria-label={direction < 0 ? "Quadras anteriores" : "Próximas quadras"} disabled={direction < 0 ? !railEdges.previous : !railEdges.next} onClick={() => scrollCourts(direction)} className="tw:grid tw:size-8 tw:place-items-center tw:rounded-md tw:border tw:border-[#cad8e7] tw:bg-white tw:text-[#174983] tw:disabled:opacity-35 tw:dark:border-[#3b4e66] tw:dark:bg-[#15263c] tw:dark:text-[#9bc5ff]"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="tw:size-4"><path d={direction < 0 ? "m14 6-6 6 6 6" : "m10 6 6 6-6 6"}/></svg></button>)}</div> : null}
-      <CalendarDragScroll scrollRef={courtRail} dragFromControls className="tw:relative tw:grid tw:min-w-0 tw:auto-cols-[max(210px,calc((100%-24px)/3))] tw:grid-rows-[auto_auto_auto_auto] tw:grid-flow-col tw:gap-3 tw:overflow-x-auto tw:pb-2 tw:snap-x tw:snap-mandatory tw:viewport-700:auto-cols-[85%] tw:viewport-700:grid-rows-1">
+      <CalendarDragScroll scrollRef={courtRail} dragFromControls className="tw:relative tw:grid tw:w-full tw:min-w-0 tw:max-w-full tw:auto-cols-[max(210px,calc((100%-24px)/3))] tw:grid-rows-[auto_auto_auto_auto] tw:grid-flow-col tw:gap-3 tw:overflow-x-auto tw:pb-2 tw:snap-x tw:snap-mandatory tw:viewport-700:auto-cols-[85%] tw:viewport-700:grid-rows-1">
       {courts.map(item => <section key={item.id} data-selected-court={item.id === courtId} data-slot-minutes={item.slotMinutes} aria-label={`Horários da quadra ${item.name}`} className={cx("tw:row-span-4 tw:grid tw:min-w-0 tw:snap-start tw:grid-rows-subgrid tw:viewport-700:row-span-1 tw:viewport-700:self-start tw:viewport-700:grid-rows-[auto_auto_auto_auto] tw:overflow-hidden tw:rounded-lg tw:border",item.id === courtId ? "tw:border-[#174983] tw:ring-1 tw:ring-[#174983] tw:dark:border-[#9bc5ff] tw:dark:ring-[#9bc5ff]" : "tw:border-[#d8e5e9] tw:dark:border-[#3b4e66]")}>
         <h3 className="tw:m-0 tw:flex tw:items-center tw:gap-2 tw:border-b tw:border-[#d8e5e9] tw:bg-[#f3f7fc] tw:px-3 tw:py-4 tw:text-base tw:font-medium tw:dark:border-[#293648] tw:dark:bg-[#15263c]"><i className="tw:size-2.5 tw:shrink-0 tw:rounded-full" style={{backgroundColor:item.color}}/>{item.name}</h3>
         {periods.map(period => { const valid=availableCourts.find(option=>option.court.id===item.id)?.slots.map(option=>option.slot) ?? [];
