@@ -34,6 +34,7 @@ export function PublicClientAuthForm({ arenaSlug, returnTo, initialMode = "LOGIN
 
   return <section className={viewStyles.public_client_auth}>
     <header><h2>{mode === "LOGIN" ? "Entre para acessar" : mode === "REGISTER" ? "Crie sua conta" : mode === "REGISTER_CONFIRM" ? "Confirme seu telefone" : mode === "RESET_REQUEST" ? "Recupere sua senha" : "Crie uma nova senha"}</h2><p>{mode === "REGISTER_CONFIRM" ? "Digite o código recebido pelo WhatsApp para concluir seu cadastro." : mode.startsWith("RESET") ? "Enviaremos um código de confirmação para o WhatsApp cadastrado." : mode === "LOGIN" ? "" : "Use seu telefone para criar seu cadastro."}</p></header>
+    <Link href="/portal/recuperar-email" className={viewStyles.public_client_auth_forgot}>Recuperar senha por e-mail</Link>
     {!mode.startsWith("RESET") ? <div className={viewStyles.public_client_auth_tabs} role="group" aria-label="Acesso ao portal"><button type="button" aria-pressed={mode === "LOGIN"} className={cx(mode === "LOGIN" ? "active" : "")} onClick={() => setMode("LOGIN")}>Entrar</button><button type="button" aria-pressed={mode.startsWith("REGISTER")} className={cx(mode.startsWith("REGISTER") ? "active" : "")} onClick={() => setMode("REGISTER")}>Criar conta</button></div> : null}
     {mode === "LOGIN" ? <form action={loginAction}><BotTrap/>
       <input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="returnTo" value={returnTo ?? ""} />

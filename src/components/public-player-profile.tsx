@@ -1,5 +1,6 @@
 "use client";
 
+import { AthleteRecoveryEmailSettings } from "@/components/auth/athlete-email-access-forms";
 import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -14,7 +15,7 @@ const padelCategories = ["Iniciante", "7ª categoria", "6ª categoria", "5ª cat
 const field = "tw:min-h-10 tw:w-full tw:min-w-0 tw:rounded-md tw:border tw:border-[var(--portal-line,#cbd4df)] tw:bg-[var(--portal-surface,white)] tw:px-3 tw:py-2 tw:text-sm tw:font-normal tw:text-[var(--portal-ink,#202c3c)] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:dark:focus-visible:outline-[#a5caff]";
 const label = "tw:grid tw:min-w-0 tw:gap-1.5 tw:text-xs tw:font-normal";
 
-type Player = { name: string; phone: string; email: string; bio: string; birthDate: string; photoUrl: string; gender: string; padelCategories: string[]; padelSide: string };
+type Player = { recoveryEmail?: string | null; name: string; phone: string; email: string; bio: string; birthDate: string; photoUrl: string; gender: string; padelCategories: string[]; padelSide: string };
 
 export function PublicPlayerProfile({ arenaSlug, player, financialStatus = null }: { arenaSlug: string; player: Player; financialStatus?: "healthy" | "open" | null }) {
   const [state, action] = useFormState(updatePublicPlayerProfileAction, initialState);
@@ -54,5 +55,6 @@ export function PublicPlayerProfile({ arenaSlug, player, financialStatus = null 
       {state.error ? <p role="alert" className="tw:m-0 tw:text-sm tw:text-[#a02119] tw:dark:text-[#ffb9ab]">{state.error}</p> : null}
       {state.success ? <p role="status" className="tw:m-0 tw:text-sm tw:text-[#087443] tw:dark:text-[#79d7a8]">{state.success}</p> : null}
     </form>
+    <AthleteRecoveryEmailSettings recoveryEmail={player.recoveryEmail}/>
   </section>;
 }
