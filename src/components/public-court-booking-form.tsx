@@ -5,7 +5,7 @@ import { serviceRuleDetails } from "@/lib/calendar/service-booking-rules";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { servicePriceCents } from "@/lib/products/service-pricing";
 
-import { eligibleBookingDurations, type PublicBookingCourt as Court } from "@/lib/calendar/public-booking-options";
+import { eligibleBookingDurations, serviceBookingIssue, type PublicBookingCourt as Court } from "@/lib/calendar/public-booking-options";
 import { peakServiceOccupancy, type PortalBookingService } from "@/lib/calendar/service-capacity";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./public-court-booking-form.utilities";
@@ -41,6 +41,8 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
   const slot = chosen?.slots.find(option=>option.slot.startsAt===requestedStartsAt)?.slot ?? chosen?.slots[0]?.slot;
   const startsAt = slot?.startsAt ?? courts[0]?.slots[0]?.startsAt ?? "";
   const weekday = startsAt ? new Date(`${startsAt.slice(0,10)}T12:00:00`).getDay() : 0;
+  const [serviceFeedbackId, setServiceFeedbackId] = useState<string | null>(null);
+  useEffect(() => { setServiceFeedbackId(null); }, [courtId, startsAt, durationMinutes, selectedServiceIds, courts, services]);
   const [message, setMessage] = useState("");
   const [calendarUrl, setCalendarUrl] = useState("");
   const [createdGameId, setCreatedGameId] = useState("");
@@ -79,7 +81,8 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
     const compatible=court && slot ? eligibleBookingDurations(court,slot,nextServices) : [];
     const potential=courts.flatMap(candidate=>candidate.slots.map(time=>({court:candidate,slot:time,durations:eligibleBookingDurations(candidate,time,nextServices)}))).find(candidate=>candidate.durations.length);
     const available=Math.max(0,service.limit-peakServiceOccupancy(service.busy,dateMinute(startsAt),dateMinute(startsAt)+durationMinutes));
-    return {...service,compatible,potential,available};
+    const issue=serviceBookingIssue({service,court,slot,durationMinutes,selectedServices:nextServices,courts});
+    return {...service,compatible,potential,available,issue};
   });
   const serviceConflict = !slot;
   const requiresPayment = paymentOnlineEnabled && selectedTotalCents > 0;
@@ -94,13 +97,19 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
 
   const surface = "tw:min-w-0 tw:max-w-full tw:rounded-lg tw:border tw:border-[#d8e5e9] tw:bg-white tw:p-4 tw:dark:border-[#293648] tw:dark:bg-[#0b1a30]";
   const toggleService = (id: string, checked: boolean) => {
-    setSelectedServiceIds(ids=>checked ? [...ids,id] : ids.filter(item=>item!==id));
     const service=availableServices.find(item=>item.id===id);
-    if(checked && service?.potential && !service.compatible.includes(durationMinutes)) {
-      const next=service.potential;
-      setCourtId(next.court.id);setStartsAt(next.slot.startsAt);
-      setDurationMinutes(next.durations.includes(durationMinutes) ? durationMinutes : next.durations[0]);
-    }
+    if (checked && service?.issue) { setServiceFeedbackId(id); return; }
+    setServiceFeedbackId(null);
+    setSelectedServiceIds(ids=>checked ? [...ids,id] : ids.filter(item=>item!==id));
+  };
+  const applyCompatibleService = (id: string) => {
+    const next=availableServices.find(item=>item.id===id)?.potential;
+    if (!next) return;
+    setCourtId(next.court.id);
+    setStartsAt(next.slot.startsAt);
+    setDurationMinutes(next.durations.includes(durationMinutes) ? durationMinutes : next.durations[0]);
+    setSelectedServiceIds(ids=>ids.includes(id) ? ids : [...ids,id]);
+    setServiceFeedbackId(null);
   };
   const periods = [{ label: "Manhã", start: 0, end: 720 }, { label: "Tarde", start: 720, end: 1080 }, { label: "Noite", start: 1080, end: 1440 }];
   const slotButton = "tw:min-h-10 tw:min-w-0 tw:rounded-md tw:border tw:px-2 tw:py-2 tw:text-center tw:text-sm tw:font-normal tw:tabular-nums tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#1e5ea8]";
@@ -148,7 +157,7 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
       const clock=(minute:number)=>`${String(Math.floor(minute/60)).padStart(2,"0")}:${String(minute%60).padStart(2,"0")}`;
       const windowLabel=dayWindow ? dayWindow.startMinute===0 && dayWindow.endMinute===1440 ? "Durante o funcionamento" : `${clock(dayWindow.startMinute)}–${clock(dayWindow.endMinute)}` : "Sem disponibilidade neste dia";
       return <article key={service.id} className={cx(surface,"tw:grid tw:min-w-0 tw:content-start tw:gap-3",checked && "tw:border-[#174983] tw:ring-1 tw:ring-[#174983] tw:dark:border-[#9bc5ff] tw:dark:ring-[#9bc5ff]")}>
-        <label className="tw:flex tw:cursor-pointer tw:items-center tw:gap-3 tw:text-sm tw:font-medium tw:text-black tw:dark:text-[#eff3f8]"><input aria-label={`Adicionar ${service.name}`} type="checkbox" checked={checked} disabled={pending || (!checked && !service.potential)} onChange={event=>toggleService(service.id,event.target.checked)} className="tw:size-4 tw:shrink-0 tw:accent-[#174983]"/>{service.name}</label>
+        <label className="tw:flex tw:cursor-pointer tw:items-center tw:gap-3 tw:text-sm tw:font-medium tw:text-black tw:dark:text-[#eff3f8]"><input aria-label={`Adicionar ${service.name}`} type="checkbox" checked={checked} disabled={pending} aria-disabled={!checked && Boolean(service.issue)} aria-describedby={serviceFeedbackId === service.id && service.issue ? `booking-service-issue-${service.id}` : undefined} onChange={event=>toggleService(service.id,event.target.checked)} className="tw:size-4 tw:shrink-0 tw:accent-[#174983]"/>{service.name}</label>
         <div className="tw:grid tw:min-w-0 tw:grid-cols-[100px_minmax(0,1fr)] tw:gap-3 tw:viewport-700:grid-cols-[80px_minmax(0,1fr)]">
           <div className="tw:relative tw:aspect-square tw:self-start tw:overflow-hidden tw:rounded-md tw:bg-[#e8f0fb]" title="Imagem ilustrativa"><img alt="" loading="lazy" src={illustration ? "/images/booking-services.webp" : "/portal-padel-hero.webp"} className={cx("tw:absolute tw:top-0 tw:h-full tw:max-w-none tw:object-cover",illustration ? "tw:w-[200%]" : "tw:w-full",illustration==="rackets" ? "tw:right-0" : "tw:left-0")}/></div>
           <div className="tw:grid tw:min-w-0 tw:content-start tw:gap-2">
@@ -159,6 +168,10 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
             <span className="tw:text-xs">{service.compatible.includes(durationMinutes) ? `${service.available} disponível(is)` : service.potential ? "Escolha um horário compatível" : "Indisponível nesta data"}</span>
           </div>
         </div>
+        {serviceFeedbackId === service.id && service.issue ? <div id={`booking-service-issue-${service.id}`} role="status" aria-live="polite" aria-atomic="true" className="tw:grid tw:gap-2 tw:rounded-[5px] tw:border tw:border-[#bd8b24] tw:bg-[#fff8e7] tw:p-3 tw:text-xs tw:leading-relaxed tw:text-[#654500] tw:dark:border-[#8f773f] tw:dark:bg-[#332b17] tw:dark:text-[#ffe2a1]">
+          <p className="tw:m-0">{service.issue}</p>
+          {service.potential ? <><p className="tw:m-0">Opção disponível: {service.potential.court.name} · {service.potential.slot.label} · {duration(service.potential.durations.includes(durationMinutes) ? durationMinutes : service.potential.durations[0])}</p><button type="button" disabled={pending} onClick={() => applyCompatibleService(service.id)} className="tw:min-h-10 tw:w-fit tw:cursor-pointer tw:rounded-[5px] tw:border-0 tw:bg-[#174983] tw:px-3 tw:py-2 tw:text-xs tw:font-normal tw:text-white tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:disabled:opacity-60">Usar horário compatível</button></> : null}
+        </div> : null}
         <details className="tw:text-xs"><summary className="tw:w-fit tw:cursor-pointer tw:py-1 tw:text-[#174983] tw:underline-offset-2 tw:dark:text-[#9bc5ff]">Dias e horários</summary><dl className="tw:mb-0 tw:mt-2 tw:grid tw:gap-2">{service.rules.dailyWindows ? service.rules.dailyWindows.map(window=><div key={window.weekday} className="tw:flex tw:flex-wrap tw:justify-between tw:gap-2"><dt>{["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][window.weekday]}</dt><dd className="tw:m-0 tw:tabular-nums">{clock(window.startMinute)}–{clock(window.endMinute)}</dd></div>) : details.filter(detail=>detail.label!=="Quadras").map(detail=><div key={detail.label} className="tw:grid tw:grid-cols-[auto_minmax(0,1fr)] tw:gap-2"><dt>{detail.label}</dt><dd className="tw:m-0 tw:break-words">{detail.value}</dd></div>)}</dl></details>
       </article>;
     })}</section> : null}
