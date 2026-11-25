@@ -24,7 +24,7 @@ export function LoginForm() {
       <div className={viewStyles.field}>
         <label htmlFor="password">Senha</label>
         <input id="password" name="password" type="password" autoComplete="current-password" placeholder="Digite sua senha" required />
-        <Link className={viewStyles.login_forgot_link} href="/recuperar-senha">Esqueci minha senha</Link>
+        <Link className={viewStyles.login_forgot_link} href="/recuperar-senha">Recuperar senha</Link>
       </div>
 
       {state?.error ? <p className={viewStyles.form_error}>{state.error}</p> : null}
