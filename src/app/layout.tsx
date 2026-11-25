@@ -20,7 +20,7 @@ const baseMetadata: Metadata = {
   applicationName: "VX4",
   description: "VX4 — gestão de arenas, reservas, eventos e acesso do atleta.",
   icons: {
-    icon: [{ url: "/favicon.ico?v=vx4-1", type: "image/x-icon", sizes: "16x16 32x32 48x48 64x64" }, { url: "/brand/vx4-app-512.png?v=vx4-1", type: "image/png", sizes: "512x512" }],
+    icon: [{ url: "/favicon.ico?v=vx4-2", type: "image/x-icon", sizes: "16x16 32x32 48x48 64x64" }, { url: "/brand/vx4-favicon.png?v=vx4-2", type: "image/png", sizes: "64x64" }, { url: "/icon.svg?v=vx4-2", type: "image/svg+xml", sizes: "any" }],
     apple: "/apple-touch-icon.png?v=vx4-1"
   }
 };
@@ -34,7 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export async function generateViewport(): Promise<Viewport> {
   const pathname = (await headers()).get("x-portal-pathname") ?? "";
   return portalPwaEnabled() && isPortalPwaPath(pathname)
-    ? { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#174983" }
+    ? { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#174983", colorScheme: "light dark" }
     : { width: "device-width", initialScale: 1 };
 }
 

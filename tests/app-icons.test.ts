@@ -5,6 +5,23 @@ import sharp from "sharp";
 
 const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
+test("browser favicons have transparent corners and visible artwork at every size", async () => {
+  const ico = readFileSync("public/favicon.ico");
+  const images = [readFileSync("public/brand/vx4-favicon.png")];
+  for (let index = 0; index < ico.readUInt16LE(4); index++) {
+    const entry = 6 + index * 16;
+    const length = ico.readUInt32LE(entry + 8), offset = ico.readUInt32LE(entry + 12);
+    images.push(ico.subarray(offset, offset + length));
+  }
+  for (const image of images) {
+    const { data, info } = await sharp(image).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    for (const pixel of [0, info.width - 1, (info.height - 1) * info.width, info.width * info.height - 1]) {
+      assert.equal(data[pixel * 4 + 3], 0);
+    }
+    assert.ok(data.some((value: number, index: number) => index % 4 === 3 && value > 200));
+  }
+});
+
 test("ícones de navegador e iOS têm formatos e dimensões válidos", () => {
   for (const name of ["apple-touch-icon.png", "apple-touch-icon-precomposed.png"]) {
     const png = readFileSync(`public/${name}`);

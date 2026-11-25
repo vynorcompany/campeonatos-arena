@@ -1,7 +1,6 @@
 import { AthletePortalWordmark } from "../athlete-portal-wordmark";
 import { FilterMemoryProvider } from "@/components/filters/filter-memory";
 import { viewStyles } from "./app-shell.utilities";
-import Image from "next/image";
 import Link from "next/link";
 import { SidebarUserMenu } from "./sidebar-user-menu";
 import type { ArenaMembership } from "@/types/auth";
@@ -38,7 +37,6 @@ type AppShellProps = {
 export function AppShell({
   filterScope = "",
   arenaName,
-  arenaLogoUrl,
   activeArenaId,
   memberships,
   userName,
@@ -62,18 +60,8 @@ export function AppShell({
         <div className={viewStyles.sidebar_inner}>
           <div className={viewStyles.sidebar_top}>
             <div className={viewStyles.brand_lockup_sidebar_brand_lockup}>
-              <div className={viewStyles.brand_logo_wrap}>
-                <Image
-                  src={arenaLogoUrl || "/arena-profile.jpg"}
-                  alt={`Logo de ${arenaName}`}
-                  width={48}
-                  height={48}
-                  className={viewStyles.brand_logo}
-                  priority
-                />
-              </div>
+              <div className="tw:[grid-area:logo] tw:pb-4"><AthletePortalWordmark compact surface="dark" /></div>
               <div className={viewStyles.sidebar_brand_copy}>
-                <AthletePortalWordmark compact surface="dark" />
                 <strong>{arenaName}</strong>
               </div>
               <ArenaNotificationBell key={activeArenaId ?? ""} notifications={notifications} />

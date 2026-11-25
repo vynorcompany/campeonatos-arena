@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { AthletePortalWordmark } from "@/components/athlete-portal-wordmark";
 import type { PortalMenuIcon, PortalMenuItem } from "@/lib/portal/menu";
 import type { PortalSection } from "@/lib/portal/navigation";
 export function PortalIcon({ icon, className = "tw:size-5" }: { icon: PortalMenuIcon; className?: string }) {
@@ -24,9 +25,9 @@ export function ArenaSwitchIcon() {
 }
 export const portalCard = "tw:rounded-2xl tw:border tw:border-[#e1e4e9] tw:bg-white tw:shadow-[0_3px_16px_rgba(21,37,60,.04)] tw:dark:border-[#293648] tw:dark:bg-[#101c2d]";
 export const portalInteractive = "tw:transition-[translate,box-shadow,border-color,background-color] tw:duration-200 tw:motion-safe:hover:-translate-y-1 tw:hover:border-[#91a6c4] tw:hover:shadow-[0_12px_28px_rgba(14,41,79,.12)] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-4 tw:focus-visible:outline-[#07408f] tw:active:translate-y-0 tw:motion-reduce:translate-x-0 tw:motion-reduce:translate-y-0 tw:motion-reduce:transition-none";
-export function PortalSidebar({ items, current, href, arenaName, logoUrl }: { items: PortalMenuItem[]; current: string; href: (section: PortalSection) => string; arenaName: string; logoUrl: string }) {
+export function PortalSidebar({ items, current, href, arenaName }: { items: PortalMenuItem[]; current: string; href: (section: PortalSection) => string; arenaName: string; logoUrl: string }) {
   return <aside className="tw:sticky tw:top-0 tw:hidden tw:h-dvh tw:w-60 tw:shrink-0 tw:flex-col tw:border-r tw:border-[#e1e4e9] tw:bg-white tw:p-5 tw:dark:border-[#293648] tw:dark:bg-[#101c2d] tw:min-[1100px]:flex">
-    <Link href={href("home")} className="tw:flex tw:items-center tw:gap-3 tw:py-3 tw:text-inherit tw:no-underline">{logoUrl ? <img src={logoUrl} alt="" className="tw:size-11 tw:rounded-xl tw:object-contain"/> : <span className="tw:grid tw:size-11 tw:place-items-center tw:rounded-xl tw:bg-[#174983] tw:font-bold tw:text-white">{arenaName.slice(0,2)}</span>}<span className="tw:min-w-0"><small className="tw:block tw:text-[10px] tw:font-bold tw:tracking-[.14em] tw:text-[#606874] tw:dark:text-[#aab4c2]">VX4</small><strong className="tw:mt-1 tw:block tw:break-words tw:text-sm tw:leading-snug">{arenaName}</strong></span></Link>
+    <Link href={href("home")} className="tw:grid tw:gap-4 tw:py-3 tw:text-inherit tw:no-underline"><AthletePortalWordmark compact/><strong className="tw:block tw:break-words tw:text-base tw:font-semibold tw:leading-snug">{arenaName}</strong></Link>
     <nav className="tw:mt-6 tw:min-h-0 tw:flex-1 tw:overflow-y-auto tw:pr-1" aria-label="Navegação do portal">{[...new Set(items.map(item=>item.group))].map(group=><div key={group} className="tw:mb-5"><p className="tw:m-0 tw:mb-2 tw:px-3 tw:text-[10px] tw:font-semibold tw:tracking-[.12em] tw:text-[#606874] tw:dark:text-[#aab4c2] tw:uppercase">{group}</p>{items.filter(item=>item.group===group).map(item=><Link key={item.section} href={href(item.section)} aria-current={current===item.section ? "page" : undefined} className={`tw:mb-1 tw:flex tw:min-h-11 tw:items-center tw:gap-3 tw:rounded-xl tw:px-3 tw:py-2 tw:text-[13px] tw:font-medium tw:no-underline tw:transition-colors tw:focus-visible:outline-2 tw:focus-visible:outline-[#07408f] ${current===item.section ? "tw:bg-[#174983] tw:text-white tw:dark:bg-[#174983] tw:dark:text-white" : "tw:text-[#606874] tw:hover:bg-[#174983] tw:hover:text-white tw:focus-visible:bg-[#174983] tw:focus-visible:text-white tw:dark:text-[#b8c0cc] tw:dark:hover:bg-[#174983] tw:dark:hover:text-white tw:dark:focus-visible:bg-[#174983] tw:dark:focus-visible:text-white"}`}><PortalIcon icon={item.icon}/>{item.label}</Link>)}</div>)}</nav>
   </aside>;
 }
