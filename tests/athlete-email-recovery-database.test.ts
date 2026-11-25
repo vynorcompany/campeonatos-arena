@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import test from "node:test";
 import { PrismaClient } from "@prisma/client";
 import { athleteEmailKinds as kinds, issueAthleteEmailToken, confirmAthleteRecoveryEmail, resetAthletePasswordByEmail, athleteEmailTokenHash } from "../src/lib/auth/athlete-email-recovery";
@@ -12,7 +12,7 @@ test("verified recovery email: identity binding, replay, concurrent reset, revoc
   const suffix = randomUUID();
   const ids: string[] = [];
   try {
-    const identity = await db.athleteIdentity.create({ data: { phone: `email-${suffix}`, passwordHash: "old-hash" } }); ids.push(identity.id);
+    const identity = await db.athleteIdentity.create({ data: { phone: `55619${randomInt(10000000, 99999999)}`, passwordHash: "old-hash" } }); ids.push(identity.id);
     const other = await db.athleteIdentity.create({ data: { phone: `other-${suffix}`, passwordHash: "other-hash" } }); ids.push(other.id);
     const email = `${suffix}@example.invalid`;
     const verify = (await issueAthleteEmailToken(auth, identity.id, email, kinds.verify))!;
@@ -28,12 +28,14 @@ test("verified recovery email: identity binding, replay, concurrent reset, revoc
       const player = await db.player.create({ data: { arenaId: arena.id, name: "Email recovery synthetic", phone: identity.phone } });
       const account = await db.playerAccount.create({ data: { arenaId: arena.id, playerId: player.id, phone: identity.phone, passwordHash: "old-hash", identityId: identity.id } });
       linked.push(account.id);
+      await db.playerVerificationCode.create({ data: { arenaId: arena.id, phone: identity.phone.slice(2), purpose: "RESET", codeHash: "synthetic-hash", expiresAt: new Date(Date.now() + 60_000) } });
       await db.playerSession.create({ data: { playerAccountId: account.id, athleteIdentityId: identity.id, token: randomUUID(), expiresAt: new Date(Date.now() + 60_000) } });
     }
     const reset = (await issueAthleteEmailToken(auth, identity.id, email, kinds.reset))!;
     const results = await Promise.all([resetAthletePasswordByEmail(auth, reset.token, "new-hash"), resetAthletePasswordByEmail(auth, reset.token, "new-hash")]);
     assert.deepEqual(results.sort(), [false, true]);
     assert.equal(await db.playerSession.count({ where: { athleteIdentityId: identity.id } }), 0);
+    assert.equal(await db.playerVerificationCode.count({ where: { phone: identity.phone.slice(2), usedAt: null } }), 0);
     assert.equal(await db.playerAccount.count({ where: { id: { in: linked }, passwordHash: "new-hash" } }), 2);
     assert.equal((await db.athleteIdentity.findUniqueOrThrow({ where: { id: other.id } })).passwordHash, "other-hash");
     const expired = (await issueAthleteEmailToken(auth, identity.id, email, kinds.reset))!;
@@ -46,6 +48,8 @@ test("verified recovery email: identity binding, replay, concurrent reset, revoc
     assert.equal((await db.accountActionToken.findUniqueOrThrow({ where: { id: stale.id } })).tokenHash, athleteEmailTokenHash(stale.token));
   } finally {
     const accounts = await db.playerAccount.findMany({ where: { identityId: { in: ids } }, select: { playerId: true } });
+    const identities = await db.athleteIdentity.findMany({ where: { id: { in: ids } }, select: { phone: true } });
+    await db.playerVerificationCode.deleteMany({ where: { phone: { in: identities.map(i => i.phone.slice(2)) } } });
     await db.player.deleteMany({ where: { id: { in: accounts.map(a => a.playerId) } } });
     await db.athleteIdentity.deleteMany({ where: { id: { in: ids } } });
     await auth.$disconnect();
