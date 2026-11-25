@@ -102,7 +102,7 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
     setServiceFeedbackId(null);
     setSelectedServiceIds(ids=>checked ? [...ids,id] : ids.filter(item=>item!==id));
   };
-  const useCompatibleService = (id: string) => {
+  const applyCompatibleService = (id: string) => {
     const next=availableServices.find(item=>item.id===id)?.potential;
     if (!next) return;
     setCourtId(next.court.id);
@@ -170,7 +170,7 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
         </div>
         {serviceFeedbackId === service.id && service.issue ? <div id={`booking-service-issue-${service.id}`} role="status" aria-live="polite" aria-atomic="true" className="tw:grid tw:gap-2 tw:rounded-[5px] tw:border tw:border-[#bd8b24] tw:bg-[#fff8e7] tw:p-3 tw:text-xs tw:leading-relaxed tw:text-[#654500] tw:dark:border-[#8f773f] tw:dark:bg-[#332b17] tw:dark:text-[#ffe2a1]">
           <p className="tw:m-0">{service.issue}</p>
-          {service.potential ? <><p className="tw:m-0">Opção disponível: {service.potential.court.name} · {service.potential.slot.label} · {duration(service.potential.durations.includes(durationMinutes) ? durationMinutes : service.potential.durations[0])}</p><button type="button" disabled={pending} onClick={() => useCompatibleService(service.id)} className="tw:min-h-10 tw:w-fit tw:cursor-pointer tw:rounded-[5px] tw:border-0 tw:bg-[#174983] tw:px-3 tw:py-2 tw:text-xs tw:font-normal tw:text-white tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:disabled:opacity-60">Usar horário compatível</button></> : null}
+          {service.potential ? <><p className="tw:m-0">Opção disponível: {service.potential.court.name} · {service.potential.slot.label} · {duration(service.potential.durations.includes(durationMinutes) ? durationMinutes : service.potential.durations[0])}</p><button type="button" disabled={pending} onClick={() => applyCompatibleService(service.id)} className="tw:min-h-10 tw:w-fit tw:cursor-pointer tw:rounded-[5px] tw:border-0 tw:bg-[#174983] tw:px-3 tw:py-2 tw:text-xs tw:font-normal tw:text-white tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:disabled:opacity-60">Usar horário compatível</button></> : null}
         </div> : null}
         <details className="tw:text-xs"><summary className="tw:w-fit tw:cursor-pointer tw:py-1 tw:text-[#174983] tw:underline-offset-2 tw:dark:text-[#9bc5ff]">Dias e horários</summary><dl className="tw:mb-0 tw:mt-2 tw:grid tw:gap-2">{service.rules.dailyWindows ? service.rules.dailyWindows.map(window=><div key={window.weekday} className="tw:flex tw:flex-wrap tw:justify-between tw:gap-2"><dt>{["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][window.weekday]}</dt><dd className="tw:m-0 tw:tabular-nums">{clock(window.startMinute)}–{clock(window.endMinute)}</dd></div>) : details.filter(detail=>detail.label!=="Quadras").map(detail=><div key={detail.label} className="tw:grid tw:grid-cols-[auto_minmax(0,1fr)] tw:gap-2"><dt>{detail.label}</dt><dd className="tw:m-0 tw:break-words">{detail.value}</dd></div>)}</dl></details>
       </article>;
