@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { normalizeBrazilianPhone } from "../phone";
 import type { PrismaClient } from "@prisma/client";
 
 export const athleteEmailKinds = { verify: "ATHLETE_EMAIL_VERIFY", reset: "ATHLETE_EMAIL_RESET" } as const;
@@ -41,14 +42,15 @@ export async function resetAthletePasswordByEmail(db: PrismaClient, token: strin
     if (!identity?.recoveryEmailVerifiedAt || identity.recoveryEmail !== record.email) return false;
     const claim = await tx.accountActionToken.updateMany({ where: { id: record.id, usedAt: null, expiresAt: { gt: new Date() } }, data: { usedAt: new Date() } });
     if (!claim.count) return false;
+    const canonicalPhone = normalizeBrazilianPhone(identity.phone);
     const accounts = await tx.playerAccount.findMany({ where: { identityId }, select: { id: true, arenaId: true } });
     await tx.athleteIdentity.update({ where: { id: identityId }, data: { passwordHash } });
     await tx.playerAccount.updateMany({ where: { identityId }, data: { passwordHash } });
     await tx.playerSession.deleteMany({ where: { OR: [{ athleteIdentityId: identityId }, { playerAccountId: { in: accounts.map(a => a.id) } }] } });
     await tx.accountActionToken.updateMany({ where: { athleteIdentityId: identityId, kind: { in: Object.values(athleteEmailKinds) }, usedAt: null }, data: { usedAt: new Date() } });
-    await tx.playerVerificationCode.updateMany({ where: { phone: identity.phone, purpose: "RESET", arenaId: { in: accounts.map(a => a.arenaId) }, usedAt: null }, data: { usedAt: new Date() } });
-    await tx.loginAttempt.deleteMany({ where: { email: { in: [`athlete:${identity.phone}`, `athlete-email:${identityId}`] } } });
-    await tx.playerAuthAttempt.deleteMany({ where: { phone: identity.phone, arenaId: { in: accounts.map(a => a.arenaId) } } });
+    await tx.playerVerificationCode.updateMany({ where: { phone: { in: [canonicalPhone, identity.phone] }, purpose: "RESET", arenaId: { in: accounts.map(a => a.arenaId) }, usedAt: null }, data: { usedAt: new Date() } });
+    await tx.loginAttempt.deleteMany({ where: { email: { in: [`athlete:${canonicalPhone}`, `athlete:${identity.phone}`, `athlete-email:${identityId}`] } } });
+    await tx.playerAuthAttempt.deleteMany({ where: { phone: { in: [canonicalPhone, identity.phone] }, arenaId: { in: accounts.map(a => a.arenaId) } } });
     return true;
   });
 }
