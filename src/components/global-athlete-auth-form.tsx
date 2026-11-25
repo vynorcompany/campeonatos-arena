@@ -47,7 +47,7 @@ export function GlobalAthleteAuthForm() {
   </div>;
 
   return <section className={viewStyles.public_client_auth}>
-    <header><h2>{mode === "LOGIN" ? "Entre no VX4" : mode === "REQUEST" || mode === "RECOVERY" ? "Recupere sua senha" : "Crie uma nova senha"}</h2>{mode === "REQUEST" || mode === "CONFIRM" ? <p>Enviaremos um código para o WhatsApp cadastrado.</p> : null}</header>
+    <header><h2>{mode === "LOGIN" ? "Entre no VX4" : mode === "REQUEST" || mode === "RECOVERY" ? "Recupere sua senha" : "Crie uma nova senha"}</h2>{mode === "REQUEST" || mode === "CONFIRM" ? <p>{mode === "CONFIRM" ? "Digite o código recebido pelo WhatsApp do VX4 (Vynor Company)." : "Você receberá um código pelo WhatsApp do VX4 (Vynor Company)."}</p> : null}</header>
     {mode === "RECOVERY" ? <PortalRecoveryChoice onWhatsApp={() => { setShowFeedback(false); setMode("REQUEST"); }} onBack={() => { setShowFeedback(false); setMode("LOGIN"); }}/> : mode === "LOGIN" ? <form key={mode} action={action} onSubmit={() => setShowFeedback(true)}><BotTrap/>
       <label className={viewStyles.field}>Telefone<input name="phone" inputMode="tel" autoComplete="tel" required /></label>
       <label className={viewStyles.field}>Senha<input name="password" type="password" autoComplete="current-password" required /></label>
