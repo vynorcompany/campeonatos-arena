@@ -72,6 +72,6 @@ export function PublicClientAuthForm({ arenaSlug, returnTo, initialMode = "LOGIN
       <div className={viewStyles.public_client_auth_actions}><button type="button" className={viewStyles.button_button_small} onClick={() => setMode("LOGIN")}>Voltar</button><SubmitButton label="Salvar nova senha" pendingLabel="Salvando..." className={viewStyles.button_button_primary} /></div>
     </form>}
     {state.error ? <p className={viewStyles.form_error} role="alert">{state.error}</p> : notice ? <p className="form-message form-message-success" role="status">{notice}</p> : null}
-    <div className="tw:mt-4 tw:border-t tw:border-[var(--line)] tw:pt-4"><ArenaLegalLinks arenaSlug={arenaSlug}/></div>
+    <div className="tw:mt-4 tw:border-t tw:border-[var(--line)] tw:pt-4"><ArenaLegalLinks arenaSlug={arenaSlug} showCookieNotice={false}/></div>
   </section>;
 }

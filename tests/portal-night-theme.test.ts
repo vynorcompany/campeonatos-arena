@@ -19,7 +19,7 @@ test("mobile dark portal keeps the blue identity across its main surfaces", () =
   assert.match(comandas, /var\(--portal-surface,white\)/);
   assert.match(comandas, /var\(--portal-ink,#133047\)/);
   assert.match(login, /tw:dark:\[&_.public-client-auth>header_h2\]:text-\[#eaf3ff\]/);
-  assert.match(login, /tw:dark:\[&_.public-client-auth_input:not\(\[type=checkbox\]\):not\(\[type=radio\]\):not\(\[type=hidden\]\)\]:bg-\[#102441\]/);
+  assert.match(login, /tw:dark:\[&_.public-client-auth_input:not\(\[type=checkbox\]\):not\(\[type=radio\]\):not\(\[type=hidden\]\)\]:bg-\[#14263d\]/);
 });
 
 test("league booking action remains legible in both themes", () => {
