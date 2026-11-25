@@ -21,7 +21,7 @@ export type PublicClientAuthState = { error: string | null; notice?: string; req
 
 const loginSchema = z.object({ arenaSlug: z.string().trim().min(1), returnTo: z.string().trim().default(""), phone: z.string().trim().min(8), password: z.string().min(8, "A senha deve ter ao menos 8 caracteres.") });
 const globalLoginSchema = z.object({ phone: z.string().trim().min(8), password: z.string().min(8, "A senha deve ter ao menos 8 caracteres.") });
-const registerSchema = loginSchema.extend({ name: z.string().trim().min(3, "Informe nome e sobrenome.").refine((name) => name.split(/\s+/).filter(Boolean).length >= 2, "Informe nome e sobrenome.").transform(capitalizeClientName), confirmPassword: z.string().min(8) }).refine((data) => data.password === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
+const registerSchema = loginSchema.extend({ email: z.string().trim().max(254).email("Informe um e-mail válido.").transform(value => value.toLowerCase()), name: z.string().trim().min(3, "Informe nome e sobrenome.").refine((name) => name.split(/\s+/).filter(Boolean).length >= 2, "Informe nome e sobrenome.").transform(capitalizeClientName), confirmPassword: z.string().min(8) }).refine((data) => data.password === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
 const registrationCodeSchema = z.string().trim().regex(/^\d{6}$/, "Informe o código de 6 dígitos.");
 const resetSchema = z.object({ arenaSlug: z.string().trim().min(1), phone: z.string().trim().min(8), code: z.string().trim().length(6), newPassword: z.string().min(8), confirmPassword: z.string().min(8) }).refine((data) => data.newPassword === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
 
@@ -118,7 +118,7 @@ async function matchesIdentityPassword(identity: { passwordHash: string; account
 export async function registerPublicClientAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
   if (String(formData.get("contactWebsite") ?? "").trim()) return { error: "Não foi possível validar o formulário. Recarregue a página e tente novamente." };
   if (formData.get("termsAccepted") !== "on" || formData.get("legalVersion") !== legalVersion) return { error: "Leia e aceite a versão atual dos Termos de Uso e consulte a Política de Privacidade para criar a conta." };
-  const parsed = registerSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), returnTo: formData.get("returnTo"), name: formData.get("name"), phone: formData.get("phone"), password: formData.get("password"), confirmPassword: formData.get("confirmPassword") });
+  const parsed = registerSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), returnTo: formData.get("returnTo"), name: formData.get("name"), email: formData.get("email"), phone: formData.get("phone"), password: formData.get("password"), confirmPassword: formData.get("confirmPassword") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const phone = normalizePhone(parsed.data.phone);
   if (phone.length < 10) return { error: "Informe um telefone válido." };
@@ -146,7 +146,9 @@ export async function registerPublicClientAction(_: PublicClientAuthState, formD
   const player = await findPlayerByPhone(arena.id, phone);
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
   const account = await withArenaTransaction(arena.id, async (tx) => {
-    const linkedPlayer = player ?? await tx.player.create({ data: { arenaId: arena.id, name: capitalizeClientName(parsed.data.name), phone } });
+    const linkedPlayer = player
+      ? await tx.player.update({ where: { id: player.id, arenaId: arena.id }, data: { email: parsed.data.email } })
+      : await tx.player.create({ data: { arenaId: arena.id, name: capitalizeClientName(parsed.data.name), phone, email: parsed.data.email } });
     const athleteIdentity = identity ?? await tx.athleteIdentity.create({ data: { phone, passwordHash } });
     return tx.playerAccount.create({ data: { arenaId: arena.id, phone, playerId: linkedPlayer.id, passwordHash, identityId: athleteIdentity.id, termsAcceptedAt: new Date(), termsVersion: legalVersion, privacyNoticeVersion: legalVersion } });
   });
@@ -157,7 +159,7 @@ export async function registerPublicClientAction(_: PublicClientAuthState, formD
 export async function confirmPublicClientRegistrationAction(_: PublicClientAuthState, formData: FormData): Promise<PublicClientAuthState> {
   if (String(formData.get("contactWebsite") ?? "").trim()) return { error: "Não foi possível validar o formulário. Recarregue a página e tente novamente." };
   if (formData.get("termsAccepted") !== "on" || formData.get("legalVersion") !== legalVersion) return { error: "Leia e aceite a versão atual dos Termos de Uso e consulte a Política de Privacidade para criar a conta." };
-  const parsed = registerSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), returnTo: formData.get("returnTo"), name: formData.get("name"), phone: formData.get("phone"), password: formData.get("password"), confirmPassword: formData.get("confirmPassword") });
+  const parsed = registerSchema.safeParse({ arenaSlug: formData.get("arenaSlug"), returnTo: formData.get("returnTo"), name: formData.get("name"), email: formData.get("email"), phone: formData.get("phone"), password: formData.get("password"), confirmPassword: formData.get("confirmPassword") });
   const parsedCode = registrationCodeSchema.safeParse(formData.get("code"));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   if (!parsedCode.success) return { error: parsedCode.error.issues[0]?.message ?? "Código inválido." };
@@ -181,7 +183,9 @@ export async function confirmPublicClientRegistrationAction(_: PublicClientAuthS
     const claim = await tx.playerVerificationCode.updateMany({ where: { id: verification.id, arenaId: arena.id, phone, purpose: "REGISTER", codeHash: verification.codeHash, usedAt: null, expiresAt: { gt: new Date() }, attempts: { lt: 5 } }, data: { usedAt: new Date() } });
     if (!claim.count) return null;
     if (await tx.playerAccount.findUnique({ where: { arenaId_phone: { arenaId: arena.id, phone } }, select: { id: true } })) return null;
-    const linkedPlayer = player ?? await tx.player.create({ data: { arenaId: arena.id, name: capitalizeClientName(parsed.data.name), phone } });
+    const linkedPlayer = player
+      ? await tx.player.update({ where: { id: player.id, arenaId: arena.id }, data: { email: parsed.data.email } })
+      : await tx.player.create({ data: { arenaId: arena.id, name: capitalizeClientName(parsed.data.name), phone, email: parsed.data.email } });
     const athleteIdentity = identity ?? await tx.athleteIdentity.create({ data: { phone, passwordHash } });
     return tx.playerAccount.create({ data: { arenaId: arena.id, phone, playerId: linkedPlayer.id, passwordHash, identityId: athleteIdentity.id, termsAcceptedAt: new Date(), termsVersion: legalVersion, privacyNoticeVersion: legalVersion } });
   });

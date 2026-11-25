@@ -55,6 +55,6 @@ export function PublicPlayerProfile({ arenaSlug, player, financialStatus = null 
       {state.error ? <p role="alert" className="tw:m-0 tw:text-sm tw:text-[#a02119] tw:dark:text-[#ffb9ab]">{state.error}</p> : null}
       {state.success ? <p role="status" className="tw:m-0 tw:text-sm tw:text-[#087443] tw:dark:text-[#79d7a8]">{state.success}</p> : null}
     </form>
-    <AthleteRecoveryEmailSettings recoveryEmail={player.recoveryEmail}/>
+    <AthleteRecoveryEmailSettings recoveryEmail={player.recoveryEmail} contactEmail={player.email}/>
   </section>;
 }

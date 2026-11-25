@@ -8,6 +8,7 @@ import { confirmPublicClientRegistrationAction, confirmPublicPasswordResetAction
 import Link from "next/link";
 import { legalVersion } from "@/lib/legal/version";
 import { ArenaLegalLinks } from "@/components/legal/arena-legal-links";
+import { EmailInput } from "@/components/forms/email-input";
 import { BotTrap } from "@/components/forms/bot-trap";
 import { SubmitButton } from "@/components/forms/submit-button";
 
@@ -24,7 +25,7 @@ export function PublicClientAuthForm({ arenaSlug, returnTo, initialMode = "LOGIN
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [requestPhone, setRequestPhone] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [registration, setRegistration] = useState({ name: "", phone: "", password: "", confirmPassword: "" });
+  const [registration, setRegistration] = useState({ name: "", email: "", phone: "", password: "", confirmPassword: "" });
   const updateRegistration = (key: keyof typeof registration, value: string) => setRegistration((current) => ({ ...current, [key]: value }));
   useEffect(() => { if (registerState.requested) setMode("REGISTER_CONFIRM"); }, [registerState]);
   useEffect(() => { if (resetRequestState.requested) setMode("RESET_CONFIRM"); }, [resetRequestState]);
@@ -46,14 +47,15 @@ export function PublicClientAuthForm({ arenaSlug, returnTo, initialMode = "LOGIN
       <input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="returnTo" value={returnTo ?? ""} />
       <label className={viewStyles.field}>Nome e sobrenome<input name="name" autoComplete="name" placeholder="Ex.: Maria Silva" value={registration.name} onChange={(event) => updateRegistration("name", event.currentTarget.value)} required /></label>
       <label className={viewStyles.field}>Telefone<input name="phone" inputMode="tel" autoComplete="tel" value={registration.phone} onChange={(event) => updateRegistration("phone", event.currentTarget.value)} required /></label>
+      <label className={viewStyles.field}>E-mail<EmailInput name="email" defaultValue={registration.email} onInput={event => updateRegistration("email", event.currentTarget.value.replace(/\s/g, ""))} maxLength={254} required errorClassName="tw:dark:text-[#ffb9ab]"/></label>
       <label className={viewStyles.field}>Crie uma senha<input name="password" type="password" autoComplete="new-password" minLength={8} value={registration.password} onChange={(event) => updateRegistration("password", event.currentTarget.value)} required /></label>
       <label className={viewStyles.field}>Repita a senha<input name="confirmPassword" type="password" autoComplete="new-password" minLength={8} value={registration.confirmPassword} onChange={(event) => updateRegistration("confirmPassword", event.currentTarget.value)} required /></label>
-      <p className="tw:m-0 tw:text-xs tw:leading-relaxed tw:text-[var(--muted)]">Nome, telefone e senha são necessários para seu acesso. As informações de perfil são opcionais. Não informe dados de terceiros sem autorização.</p>
+      <p className="tw:m-0 tw:text-xs tw:leading-relaxed tw:text-[var(--muted)]">Nome, telefone, e-mail e senha são necessários para seu acesso. As informações de perfil são opcionais. Não informe dados de terceiros sem autorização.</p>
       <label className="tw:flex tw:items-start tw:gap-3 tw:text-xs tw:leading-relaxed"><input name="termsAccepted" type="checkbox" required checked={termsAccepted} onChange={event => setTermsAccepted(event.currentTarget.checked)} className="tw:mt-0.5 tw:size-5 tw:shrink-0 tw:accent-[#175a40]"/><span>Concordo com os <Link href={`/classificacao/${encodeURIComponent(arenaSlug)}/legal/termos`} target="_blank" rel="noopener noreferrer" className="tw:font-semibold tw:underline">Termos de Uso</Link> e estou ciente da <Link href={`/classificacao/${encodeURIComponent(arenaSlug)}/legal/privacidade`} target="_blank" rel="noopener noreferrer" className="tw:font-semibold tw:underline">Política de Privacidade</Link>.</span></label>
       <SubmitButton label="Criar conta" pendingLabel="Criando conta..." className={viewStyles.button_button_primary} />
     </form> : mode === "REGISTER_CONFIRM" ? <form action={registerConfirmAction} onSubmit={(event) => setRegistrationAction((event.nativeEvent as SubmitEvent).submitter?.getAttribute("data-registration-action") === "REQUEST" ? "REQUEST" : "CONFIRM")}><BotTrap/><input type="hidden" name="legalVersion" value={legalVersion}/><input type="hidden" name="termsAccepted" value={termsAccepted ? "on" : ""}/>
       <input type="hidden" name="arenaSlug" value={arenaSlug} /><input type="hidden" name="returnTo" value={returnTo ?? ""} />
-      <input type="hidden" name="name" value={registration.name} /><input type="hidden" name="phone" value={registration.phone} />
+      <input type="hidden" name="email" value={registration.email} /><input type="hidden" name="name" value={registration.name} /><input type="hidden" name="phone" value={registration.phone} />
       <input type="hidden" name="password" value={registration.password} /><input type="hidden" name="confirmPassword" value={registration.confirmPassword} />
       <label className={viewStyles.field}>Código de 6 dígitos<input name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" required /></label>
       <div className={`${viewStyles.public_client_auth_actions} tw:flex-wrap tw:items-center tw:[&>button]:shrink-0 tw:max-[420px]:[&>button:nth-child(2)]:w-full tw:max-[420px]:[&>button:nth-child(2)]:justify-center`}><button type="button" className={viewStyles.button_button_small} onClick={() => setMode("REGISTER")}>Voltar</button><SubmitButton label="Confirmar cadastro" pendingLabel="Confirmando..." className={`${viewStyles.button_button_primary} tw:order-2`} /><button type="submit" data-registration-action="REQUEST" formAction={registerAction} formNoValidate className={`${viewStyles.button_button_small} tw:order-1`}>Reenviar código</button></div>
