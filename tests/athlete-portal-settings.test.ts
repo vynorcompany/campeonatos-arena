@@ -14,7 +14,7 @@ test("a arena controla quais menus aparecem no Portal do Atleta", () => {
   assert.match(schema, /athletePortalShowBooking\s+Boolean\s+@default\(true\)/);
   assert.match(schema, /athletePortalShowLessons\s+Boolean\s+@default\(true\)/);
   assert.match(action, /updateAthletePortalSettingsAction/);
-  assert.match(page, /Portal do Atleta/);
+  assert.match(page, /VX4/);
   assert.match(standings, /athletePortalShowBooking/);
 });
 

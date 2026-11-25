@@ -281,7 +281,7 @@ export async function createFinancialRecurrenceAction(formData: FormData) {
       const result = await issueRecurringOnlineChargeForEntry(auth.arenaId, firstEntryId);
       refreshFinanceRoutes();
       return result.created
-        ? { notice: "Recorrência criada e primeiro boleto emitido. A cobrança já está disponível no Portal do Atleta." }
+        ? { notice: "Recorrência criada e primeiro boleto emitido. A cobrança já está disponível no VX4." }
         : { notice: "Recorrência criada, mas o primeiro boleto ficou pendente de emissão. Verifique os dados do cliente." };
     }
     catch (error) {

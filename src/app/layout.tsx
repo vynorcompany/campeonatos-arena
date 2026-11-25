@@ -16,18 +16,19 @@ export const dynamic = "force-dynamic";
 
 const baseMetadata: Metadata = {
   metadataBase: env.appUrl ? new URL(env.appUrl) : undefined,
-  title: "Arena Padel Manager",
-  description: "Sistema online para gestão de campeonatos, duplas, grupos e jogos da arena.",
+  title: "VX4",
+  applicationName: "VX4",
+  description: "VX4 — gestão de arenas, reservas, eventos e acesso do atleta.",
   icons: {
-    icon: [{ url: "/favicon.ico?v=padel-man-volley-5", type: "image/x-icon", sizes: "16x16 32x32 48x48 64x64" }, { url: "/padel-volley-mark.png?v=padel-man-volley-5", type: "image/png", sizes: "512x512" }],
-    apple: "/apple-touch-icon.png?v=padel-man-volley-5"
+    icon: [{ url: "/favicon.ico?v=vx4-1", type: "image/x-icon", sizes: "16x16 32x32 48x48 64x64" }, { url: "/brand/vx4-app-512.png?v=vx4-1", type: "image/png", sizes: "512x512" }],
+    apple: "/apple-touch-icon.png?v=vx4-1"
   }
 };
 
 export async function generateMetadata(): Promise<Metadata> {
   const pathname = (await headers()).get("x-portal-pathname") ?? "";
   if (!portalPwaEnabled() || !isPortalPwaPath(pathname)) return baseMetadata;
-  return { ...baseMetadata, title: "Portal do Atleta", manifest: "/portal/manifest.webmanifest", appleWebApp: { capable: true, title: "Portal do Atleta", statusBarStyle: "default" }, applicationName: "Portal do Atleta" };
+  return { ...baseMetadata, title: "VX4", manifest: "/portal/manifest.webmanifest", appleWebApp: { capable: true, title: "VX4", statusBarStyle: "default" }, applicationName: "VX4" };
 }
 
 export async function generateViewport(): Promise<Viewport> {

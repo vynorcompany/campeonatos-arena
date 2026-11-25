@@ -27,7 +27,7 @@ export async function issueAgencyInvoice(subscriptionId: string, now = new Date(
       type: "EXPENSE",
       category: "Assinatura do sistema",
       description: `Assinatura da plataforma · ${fresh.plan.name} · ${period}`,
-      counterpartyName: "Arena Padel Manager",
+      counterpartyName: "VX4",
       amountCents,
       dueDate: fresh.nextDueAt,
       status: "PENDING",
@@ -64,7 +64,7 @@ export async function ensureAgencyCheckout(invoiceId: string) {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "X-Idempotency-Key": `agency-${invoice.id}` },
     body: JSON.stringify({
-      items: [{ id: invoice.id, title: `Assinatura Arena Padel Manager · ${invoice.period}`, quantity: 1, currency_id: "BRL", unit_price: invoice.amountCents / 100 }],
+      items: [{ id: invoice.id, title: `Assinatura VX4 · ${invoice.period}`, quantity: 1, currency_id: "BRL", unit_price: invoice.amountCents / 100 }],
       external_reference: invoice.id,
       payer: invoice.arena.email ? { email: invoice.arena.email } : undefined,
       back_urls: { success: backUrl, pending: backUrl, failure: backUrl },

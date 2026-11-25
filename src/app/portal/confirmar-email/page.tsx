@@ -3,7 +3,7 @@ import { AthletePortalLoginLayout } from "@/components/athlete-portal-login-layo
 import { AthleteEmailConfirmationForm } from "@/components/auth/athlete-email-access-forms";
 import { getPublicAthleteIdentity } from "@/lib/auth/player-session";
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Confirmar e-mail · Portal do Atleta", referrer: "no-referrer" as const };
+export const metadata = { title: "Confirmar e-mail · VX4", referrer: "no-referrer" as const };
 export default async function ConfirmAthleteEmailPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token = "" } = await searchParams;
   const actor = await getPublicAthleteIdentity();

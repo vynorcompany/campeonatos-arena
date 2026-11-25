@@ -16,9 +16,9 @@ test("PWA is off by default and portal route policy excludes management and APIs
 test("manifest uses the approved portal logo, a stable app identity and a neutral arena selector", () => {
   const manifest = athletePortalManifest();
   assert.equal(manifest.id, "/portal"); assert.equal(manifest.start_url, "/portal"); assert.equal(manifest.display, "standalone");
-  assert.equal(manifest.name, "Portal do Atleta");
-  assert.ok(manifest.icons.every(icon => icon.src.startsWith("/padel-volley-mark.png") && icon.purpose === "any"));
-  const icon = readFileSync("public/padel-volley-mark.png"); assert.equal(icon.readUInt32BE(16), 512); assert.equal(icon.readUInt32BE(20), 512);
+  assert.equal(manifest.name, "VX4");
+  assert.ok(manifest.icons.every(icon => icon.src.startsWith("/brand/vx4-app-") && ["any", "maskable"].includes(icon.purpose)));
+  const icon = readFileSync("public/brand/vx4-app-512.png"); assert.equal(icon.readUInt32BE(16), 512); assert.equal(icon.readUInt32BE(20), 512);
 });
 
 test("disabled routes hide installation metadata and serve only a worker rollback", async () => {
@@ -29,7 +29,7 @@ test("disabled routes hide installation metadata and serve only a worker rollbac
     assert.equal(worker.headers.get("Service-Worker-Allowed"), "/");
     process.env.PORTAL_PWA_ENABLED = "true";
     const manifest = manifestResponse(); assert.equal(manifest.status, 200); assert.match(manifest.headers.get("Content-Type")!, /application\/manifest\+json/);
-    assert.equal((await manifest.json()).name, "Portal do Atleta");
+    assert.equal((await manifest.json()).name, "VX4");
     assert.match(await workerResponse().text(), /addEventListener\("fetch"/);
   } finally { if (saved === undefined) delete process.env.PORTAL_PWA_ENABLED; else process.env.PORTAL_PWA_ENABLED = saved; }
 });

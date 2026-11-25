@@ -1,3 +1,4 @@
+import { AthletePortalWordmark } from "../athlete-portal-wordmark";
 import { FilterMemoryProvider } from "@/components/filters/filter-memory";
 import { viewStyles } from "./app-shell.utilities";
 import Image from "next/image";
@@ -64,7 +65,7 @@ export function AppShell({
               <div className={viewStyles.brand_logo_wrap}>
                 <Image
                   src={arenaLogoUrl || "/arena-profile.jpg"}
-                  alt="Logo da Arena Padel"
+                  alt={`Logo de ${arenaName}`}
                   width={48}
                   height={48}
                   className={viewStyles.brand_logo}
@@ -72,7 +73,7 @@ export function AppShell({
                 />
               </div>
               <div className={viewStyles.sidebar_brand_copy}>
-                <p className={viewStyles.eyebrow}>Arena Padel Manager</p>
+                <AthletePortalWordmark compact surface="dark" />
                 <strong>{arenaName}</strong>
               </div>
               <ArenaNotificationBell key={activeArenaId ?? ""} notifications={notifications} />

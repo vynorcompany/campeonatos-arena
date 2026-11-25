@@ -26,5 +26,7 @@ test("portal title is an accessible vector wordmark", () => {
 
   assert.match(portal, /<AthletePortalWordmark compact/);
   assert.match(portal, /<h1 className=/);
-  assert.match(mark, /<svg[^>]*role="img" aria-label="Portal do Atleta"/);
+  assert.match(mark, /alt="VX4"/);
+  assert.match(mark, /vx4-logo-light\.svg/);
+  assert.match(mark, /vx4-logo\.svg/);
 });

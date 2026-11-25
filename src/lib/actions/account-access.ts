@@ -44,7 +44,7 @@ export async function inviteArenaUserAction(_: AccountAccessState, formData: For
   revalidatePath("/usuarios");
   if (!accountEmailIsConfigured()) return manualInvite("Convite criado. Copie o link e compartilhe com o usuário para ele definir a própria senha. O link expira em 48 horas.");
   try {
-    await sendAccountEmail(email, `Convite para acessar ${arena.name}`, `Olá, ${parsed.data.name}. Você recebeu um convite para acessar ${arena.name} no Arena Padel Manager. Abra ${accountUrl("/convite", token)} em até 48 horas. Se não esperava este convite, ignore esta mensagem.`);
+    await sendAccountEmail(email, `Convite para acessar ${arena.name}`, `Olá, ${parsed.data.name}. Você recebeu um convite para acessar ${arena.name} no VX4. Abra ${accountUrl("/convite", token)} em até 48 horas. Se não esperava este convite, ignore esta mensagem.`);
   } catch {
     return manualInvite("O e-mail não pôde ser enviado, mas o convite foi criado. Copie o link e compartilhe com o usuário. O link expira em 48 horas.");
   }
@@ -82,7 +82,7 @@ export async function requestPasswordResetAction(_: AccountAccessState, formData
 async function deliverPasswordReset(email: string, userId: string) {
   const { token, record } = await createAccountToken({ kind: "RESET", email, userId, hoursValid: .5 });
   try {
-    await sendAccountEmail(email, "Recuperar senha · Arena Padel Manager", `Para criar uma nova senha, abra ${accountUrl("/redefinir-senha", token)} em até 30 minutos. Se você não solicitou a recuperação, ignore esta mensagem.`);
+    await sendAccountEmail(email, "Recuperar senha · VX4", `Para criar uma nova senha, abra ${accountUrl("/redefinir-senha", token)} em até 30 minutos. Se você não solicitou a recuperação, ignore esta mensagem.`);
   } catch (error) {
     await prisma.accountActionToken.delete({ where: { id: record.id } });
     throw error;

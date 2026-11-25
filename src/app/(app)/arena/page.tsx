@@ -68,7 +68,7 @@ export default async function ArenaPage(props: ArenaPageProps) {
             Dados da Arena
           </Link> : null}
           {canViewPortal ? <Link href="/arena?section=portal" aria-current={activeSection === "portal" ? "page" : undefined} className={cx(activeSection === "portal" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>
-            Portal do Atleta
+            VX4
           </Link> : null}
           {canViewSettings ? <Link href="/arena?section=courts" aria-current={activeSection === "courts" ? "page" : undefined} className={cx(activeSection === "courts" ? viewStyles.arena_settings_nav_link : viewStyles.arena_settings_nav_link_2)}>
             Quadras
@@ -110,7 +110,7 @@ export default async function ArenaPage(props: ArenaPageProps) {
 
           {activeSection === "portal" ? (
             <div className={viewStyles.stack_md}>
-              <section className={ui.panel} aria-label="Configurações do Portal do Atleta">
+              <section className={ui.panel} aria-label="Configurações do VX4">
                 <AthletePortalSettingsForm
                   settings={{
                     showLeagues: arena.athletePortalShowLeagues,

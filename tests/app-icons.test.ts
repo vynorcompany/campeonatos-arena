@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import sharp from "sharp";
 
 const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
@@ -29,4 +30,23 @@ test("ícones de navegador e iOS têm formatos e dimensões válidos", () => {
     sizes.add(width);
   }
   assert.ok(sizes.has(16) && sizes.has(32) && sizes.has(64));
+});
+
+test("VX4 exports are scalable vectors and transparent/opaque backgrounds stay intentional", async () => {
+  for (const name of ["vx4-logo.svg", "vx4-logo-light.svg", "vx4-logo-white.svg", "vx4-logo-black.svg"]) {
+    const svg = readFileSync(`public/brand/${name}`, "utf8");
+    assert.match(svg, /viewBox=/);
+    assert.doesNotMatch(svg, /<image\b|<script\b|https?:\/\/(?!www\.w3\.org)/);
+  }
+  for (const [name, alpha] of [["transparent", 0], ["white", 255], ["black", 255]] as const) {
+    const { data, info } = await sharp(`public/brand/vx4-logo-${name}.png`).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    assert.equal(info.width, 3600);
+    assert.equal(data[3], alpha);
+    if (name === "white") assert.deepEqual([...data.subarray(0, 3)], [255, 255, 255]);
+    if (name === "black") assert.deepEqual([...data.subarray(0, 3)], [0, 0, 0]);
+  }
+  for (const [name, size] of [["vx4-app-192", 192], ["vx4-app-512", 512], ["vx4-app", 1024], ["vx4-instagram", 1080]] as const) {
+    const metadata = await sharp(`public/brand/${name}.png`).metadata();
+    assert.equal(metadata.width, size); assert.equal(metadata.height, size);
+  }
 });

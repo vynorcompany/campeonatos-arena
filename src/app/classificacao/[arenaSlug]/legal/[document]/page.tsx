@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ document: string }> }) {
   const { document } = await params;
-  return { title: Object.hasOwn(legalDocumentTitles, document) ? `${legalDocumentTitles[document as LegalDocument]} · Portal do Atleta` : "Documento indisponível" };
+  return { title: Object.hasOwn(legalDocumentTitles, document) ? `${legalDocumentTitles[document as LegalDocument]} · VX4` : "Documento indisponível" };
 }
 
 export default async function ArenaLegalDocument({ params }: { params: Promise<{ arenaSlug: string; document: string }> }) {
