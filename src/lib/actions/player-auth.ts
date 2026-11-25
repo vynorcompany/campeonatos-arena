@@ -11,6 +11,7 @@ import { createPublicPlayerSession, destroyPublicPlayerSession } from "@/lib/aut
 import { prisma } from "@/lib/auth/database";
 import { resolvePublicClientPlayer } from "@/lib/services/public-client-registration";
 import { env } from "@/lib/env";
+import { sendCloudAuthenticationCode } from "@/lib/integrations/whatsapp-cloud/authentication";
 import { sendEvolutionTextMessage } from "@/lib/integrations/evolution/client";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 import { activeLoginLock, clearLoginFailures, recordFailedLogin } from "@/lib/auth/login-attempts";
@@ -38,7 +39,17 @@ async function sendVerificationCode(arenaId: string, phone: string, purpose: "RE
   await prisma.playerVerificationCode.updateMany({ where: { arenaId, phone, purpose, usedAt: null }, data: { usedAt: new Date() } });
   const verification = await prisma.playerVerificationCode.create({ data: { arenaId, phone, purpose, codeHash: hashCode(code), expiresAt: new Date(Date.now() + 10 * 60 * 1000) } });
   try {
-    await sendEvolutionTextMessage(phone, `Seu código de acesso da Arena é ${code}. Ele expira em 10 minutos.`, arenaId);
+    if (env.portalWhatsAppProvider === "cloud_api") {
+      await sendCloudAuthenticationCode(phone, code, {
+        accessToken: env.whatsappCloudAccessToken,
+        phoneNumberId: env.whatsappCloudPhoneNumberId,
+        templateName: env.whatsappCloudTemplateName,
+        language: env.whatsappCloudTemplateLanguage,
+        apiVersion: env.whatsappCloudApiVersion,
+      });
+    } else {
+      await sendEvolutionTextMessage(phone, `Seu código de acesso da Arena é ${code}. Ele expira em 10 minutos.`, arenaId);
+    }
   } catch (error) {
     await prisma.playerVerificationCode.delete({ where: { id: verification.id } });
     throw error;
@@ -46,15 +57,17 @@ async function sendVerificationCode(arenaId: string, phone: string, purpose: "RE
 }
 
 const resetRequestNotice = "Se existir uma conta para este telefone, enviaremos um código pelo WhatsApp.";
-const resetDeliveryError = "Não foi possível enviar o código agora. Verifique a conexão do WhatsApp da arena e tente novamente.";
+const resetDeliveryError = "Não foi possível enviar o código pelo WhatsApp agora. Tente novamente em instantes ou avise a recepção.";
 
 async function finishPasswordReset(account: { id: string; identityId: string | null }, passwordHash: string, codeId: string) {
   return prisma.$transaction(async (tx) => {
+    if (account.identityId) await tx.$queryRaw`SELECT id FROM "AthleteIdentity" WHERE id = ${account.identityId} FOR UPDATE`;
     const claimed = await tx.playerVerificationCode.updateMany({ where: { id: codeId, usedAt: null, expiresAt: { gt: new Date() }, attempts: { lt: 5 } }, data: { usedAt: new Date() } });
     if (!claimed.count) return false;
     if (account.identityId) {
       const linkedAccounts = await tx.playerAccount.findMany({ where: { identityId: account.identityId }, select: { id: true } });
       await tx.athleteIdentity.update({ where: { id: account.identityId }, data: { passwordHash } });
+      await tx.accountActionToken.updateMany({ where: { athleteIdentityId: account.identityId, kind: { in: ["ATHLETE_EMAIL_VERIFY", "ATHLETE_EMAIL_RESET"] }, usedAt: null }, data: { usedAt: new Date() } });
       await tx.playerAccount.updateMany({ where: { identityId: account.identityId }, data: { passwordHash } });
       await tx.playerSession.deleteMany({ where: { OR: [{ athleteIdentityId: account.identityId }, { playerAccountId: { in: linkedAccounts.map((linked) => linked.id) } }] } });
     } else {
@@ -222,7 +235,7 @@ export async function requestGlobalPublicPasswordResetAction(_: PublicClientAuth
   if (phone.length < 10) return { error: "Informe um telefone válido." };
   const accounts = await prisma.playerAccount.findMany({ where: { phone }, select: { arenaId: true }, orderBy: { createdAt: "asc" } });
   if (accounts.length) {
-    const connections = await Promise.all(accounts.map(account => withArenaTransaction(account.arenaId, tx => tx.whatsAppConnection.findFirst({ where: { arenaId: account.arenaId, status: "CONNECTED" }, select: { arenaId: true, updatedAt: true } }))));
+    const connections = env.portalWhatsAppProvider === "cloud_api" ? [] : await Promise.all(accounts.map(account => withArenaTransaction(account.arenaId, tx => tx.whatsAppConnection.findFirst({ where: { arenaId: account.arenaId, status: "CONNECTED" }, select: { arenaId: true, updatedAt: true } }))));
     const connection = connections.filter((entry): entry is NonNullable<typeof entry> => entry !== null).sort((a, b) => (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0))[0];
     try {
       await sendVerificationCode(connection?.arenaId ?? accounts[0].arenaId, phone, "RESET");

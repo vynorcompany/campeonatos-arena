@@ -49,6 +49,8 @@ model User {
 }
 
 model AccountActionToken {
+  athleteIdentityId String?
+  athleteIdentity AthleteIdentity? @relation(fields: [athleteIdentityId], references: [id], onDelete: Cascade)
   id            String    @id @default(cuid())
   tokenHash     String    @unique
   kind          String
@@ -63,6 +65,7 @@ model AccountActionToken {
   createdAt     DateTime  @default(now())
   user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([athleteIdentityId, kind, createdAt])
   @@index([email, kind, createdAt])
   @@index([arenaId, kind, usedAt])
   @@index([expiresAt])
@@ -468,6 +471,9 @@ model PlayerAccount {
 // vínculo privado de cada arena e preservam os dados financeiros e operacionais
 // daquele tenant.
 model AthleteIdentity {
+  recoveryEmail String? @unique
+  recoveryEmailVerifiedAt DateTime?
+  emailActionTokens AccountActionToken[]
   id           String          @id @default(cuid())
   phone        String          @unique
   passwordHash String

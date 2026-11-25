@@ -51,7 +51,7 @@ async function getSession() {
   }
   const identityId = session.athleteIdentityId ?? session.playerAccount.identityId;
   const [identity, accountRows] = await Promise.all([
-    identityId ? prisma.athleteIdentity.findUnique({ where: { id: identityId }, select: { id: true, phone: true } }) : Promise.resolve(null),
+    identityId ? prisma.athleteIdentity.findUnique({ where: { id: identityId }, select: { id: true, phone: true, recoveryEmail: true } }) : Promise.resolve(null),
     identityId
       ? prisma.playerAccount.findMany({ where: { identityId }, select: { id: true, arenaId: true, playerId: true, phone: true, identityId: true } })
       : Promise.resolve([session.playerAccount]),
@@ -84,7 +84,7 @@ function resolvePublicPlayerAuth(session: PublicPlayerSession, arenaSlug: string
     ?? (session.playerAccount.player.active && session.playerAccount.player.arena.slug === arenaSlug ? session.playerAccount : null);
   if (!account) return null;
   const player = account.player;
-  return { playerId: player.id, playerAccountId: account.id, athleteIdentityId: identity?.id ?? null, name: player.name, phone: player.phone, email: player.email, photoUrl: player.photoUrl, bio: player.bio, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", gender: player.gender, padelCategories: parsePadelCategories(player.padelCategories, player.class), padelSide: player.padelSide, tournamentAvailability: player.tournamentAvailability, isTeacher: Boolean(player.teacher?.active), arenaId: player.arenaId };
+  return { recoveryEmail: identity?.recoveryEmail ?? null, playerId: player.id, playerAccountId: account.id, athleteIdentityId: identity?.id ?? null, name: player.name, phone: player.phone, email: player.email, photoUrl: player.photoUrl, bio: player.bio, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", gender: player.gender, padelCategories: parsePadelCategories(player.padelCategories, player.class), padelSide: player.padelSide, tournamentAvailability: player.tournamentAvailability, isTeacher: Boolean(player.teacher?.active), arenaId: player.arenaId };
 }
 
 function resolvePublicAthleteIdentity(session: PublicPlayerSession) {

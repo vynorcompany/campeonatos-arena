@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { registrationArenaSlug } from "@/lib/portal/registration-arena";
 import { PublicClientAuthForm } from "@/components/public-client-auth-form";
 import { viewStyles } from "./global-athlete-auth-form.utilities";
@@ -63,6 +64,7 @@ export function GlobalAthleteAuthForm() {
     </form>}
     {currentState.error ? <p className={viewStyles.form_error} role="alert">{currentState.error}</p> : notice ? <p className="form-message form-message-success" role="status">{notice}</p> : null}
     {mode === "LOGIN" ? <button type="button" className={viewStyles.button_button_small} onClick={() => setMode("REGISTER")}>Criar conta</button> : null}
+    <Link href="/portal/recuperar-email" className={viewStyles.public_client_auth_forgot}>Recuperar senha por e-mail</Link>
     <div className="tw:mt-4 tw:border-t tw:border-[var(--line)] tw:pt-4"><ArenaLegalLinks/></div>
   </section>;
 }

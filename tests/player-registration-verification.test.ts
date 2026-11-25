@@ -10,12 +10,14 @@ import ts from "typescript";
 const require = createRequire(import.meta.url);
 const source = readFileSync(new URL("../src/lib/actions/player-auth.ts", import.meta.url), "utf8");
 
-function fixture(options: { existingAccount?: boolean; deliveryError?: string } = {}) {
+function fixture(options: { existingAccount?: boolean; deliveryError?: string; official?: boolean } = {}) {
   const codes: Array<{ id: string; arenaId: string; phone: string; purpose: string; codeHash: string; attempts: number; usedAt: Date | null; expiresAt: Date; createdAt: Date }> = [];
   const accounts: Array<{ id: string; arenaId: string; phone: string; playerId: string; identityId: string; passwordHash: string; termsVersion?: string; privacyNoticeVersion?: string; termsAcceptedAt?: Date }> = [];
   if (options.existingAccount) accounts.push({ id: "existing-account", arenaId: "arena-a", phone: "11999990000", playerId: "player-a", identityId: "identity-a", passwordHash: "old-hash" });
   const sent: string[] = [];
   const sessions: string[] = [];
+  let revokedEmailLinks = 0;
+  const deliveryCalls = { evolution: 0, official: 0 };
   const exports: Record<string, (...args: any[]) => Promise<any>> = {};
   const matches = (code: (typeof codes)[number], where: any) =>
     (!where.id || code.id === where.id) && (!where.arenaId || (typeof where.arenaId === "string" ? code.arenaId === where.arenaId : where.arenaId.in.includes(code.arenaId))) &&
@@ -34,6 +36,8 @@ function fixture(options: { existingAccount?: boolean; deliveryError?: string } 
     },
     athleteIdentity: { findUnique: async () => null, create: async () => ({ id: "identity-a" }), update: async () => ({ id: "identity-a" }) },
     player: { findMany: async () => [], create: async () => ({ id: "player-a" }) },
+    $queryRaw: async () => [],
+    accountActionToken: { updateMany: async ({ where }: any) => { assert.equal(where.athleteIdentityId, "identity-a"); assert.deepEqual(Array.from(where.kind.in), ["ATHLETE_EMAIL_VERIFY", "ATHLETE_EMAIL_RESET"]); revokedEmailLinks++; return { count: 1 }; } },
     playerSession: { deleteMany: async () => ({ count: 0 }) },
     playerVerificationCode: {
       findFirst: async ({ where }: any) => codes.filter((code) => matches(code, where)).at(-1) ?? null,
@@ -51,8 +55,9 @@ function fixture(options: { existingAccount?: boolean; deliveryError?: string } 
     "@/lib/prisma": { prisma },
     "@/lib/rls": { withArenaTransaction: async (_arenaId: string, callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma) },
     "@/lib/services/public-client-registration": { resolvePublicClientPlayer: () => null },
-    "@/lib/env": { env: { playerPhoneVerificationRequired: true } },
-    "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: async (_phone: string, message: string) => { if (options.deliveryError) throw new Error(options.deliveryError); sent.push(message); } },
+    "@/lib/env": { env: { playerPhoneVerificationRequired: true, portalWhatsAppProvider: options.official ? "cloud_api" : "evolution" } },
+    "@/lib/integrations/whatsapp-cloud/authentication": { sendCloudAuthenticationCode: async (_phone: string, code: string) => { deliveryCalls.official++; if (options.deliveryError) throw new Error(options.deliveryError); sent.push(code); } },
+    "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: async (_phone: string, message: string) => { deliveryCalls.evolution++; if (options.deliveryError) throw new Error(options.deliveryError); sent.push(message); } },
     "@/lib/phone": { normalizeBrazilianPhone: (value: string) => value.replace(/\D/g, "") },
     "@/lib/auth/login-attempts": { activeLoginLock: async () => null, recordFailedLogin: async () => null, clearLoginFailures: async () => {} },
   };
@@ -64,7 +69,7 @@ function fixture(options: { existingAccount?: boolean; deliveryError?: string } 
   const confirmReset = (code: string) => { const data = form(code); data.set("newPassword", "NovaSenhaSegura123!"); data.set("confirmPassword", "NovaSenhaSegura123!"); return exports.confirmPublicPasswordResetAction({ error: null }, data); };
   const requestCustom = (values: Record<string, string>) => { const data = form(); for (const [key, value] of Object.entries(values)) data.set(key, value); return exports.registerPublicClientAction({ error: null }, data); };
   const confirmCustom = (code: string, values: Record<string, string>) => { const data = form(code); for (const [key, value] of Object.entries(values)) data.set(key, value); return exports.confirmPublicClientRegistrationAction({ error: null }, data); };
-  return { requestCustom, confirmCustom, request, confirm, requestReset, confirmReset, sent, codes, accounts, sessions };
+  return { get revokedEmailLinks() { return revokedEmailLinks; }, deliveryCalls, requestGlobalReset: () => exports.requestGlobalPublicPasswordResetAction({ error: null }, form()), requestCustom, confirmCustom, request, confirm, requestReset, confirmReset, sent, codes, accounts, sessions };
 }
 
 test("cadastro verificado envia código, confirma uma vez e vincula a arena correta", async () => {
@@ -106,6 +111,7 @@ test("recuperação do atleta consome código uma vez e limita palpites incorret
   assert.equal((await app.confirmReset(code)).error, null);
   assert.ok(app.codes[0].usedAt);
   assert.notEqual(app.accounts[0].passwordHash, "old-hash");
+  assert.equal(app.revokedEmailLinks, 1);
   assert.match((await app.confirmReset(code)).error, /Código inválido/);
 });
 
@@ -132,4 +138,27 @@ test("WhatsApp desconectado não cria conta nem mantém código que não foi ent
   assert.equal(app.codes.length, 0);
   assert.equal(app.accounts.length, 0);
   assert.equal(app.sessions.length, 0);
+});
+
+
+test("official registration works without Evolution and keeps one-time verification", async () => {
+  const app = fixture({ official: true });
+  assert.equal((await app.request()).requested, true);
+  assert.deepEqual(app.deliveryCalls, { evolution: 0, official: 1 });
+  const code = app.sent[0];
+  assert.match(code, /^\d{6}$/);
+  await assert.rejects(app.confirm(code), /redirect:/);
+  assert.equal(app.accounts.length, 1);
+  assert.match((await app.confirm(code)).error ?? "", /código|conta/i);
+});
+
+test("official recovery skips disconnected arena connections and fails without fallback", async () => {
+  const app = fixture({ official: true, existingAccount: true });
+  assert.equal((await app.requestGlobalReset()).requested, true);
+  assert.deepEqual(app.deliveryCalls, { evolution: 0, official: 1 });
+  const failed = fixture({ official: true, deliveryError: "official unavailable" });
+  assert.ok((await failed.request()).error);
+  assert.deepEqual(failed.deliveryCalls, { evolution: 0, official: 1 });
+  assert.equal(failed.codes.length, 0);
+  assert.equal(failed.accounts.length, 0);
 });
