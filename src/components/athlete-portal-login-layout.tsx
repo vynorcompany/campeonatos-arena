@@ -3,9 +3,34 @@ import { portalPwaEnabled } from "@/lib/portal/pwa-policy";
 import { viewStyles } from "./athlete-portal-login-layout.utilities";
 import { AthletePortalWordmark } from "./athlete-portal-wordmark";
 import type { ReactNode } from "react";
+// Compact desktop geometry keeps controls legible without scaling text or changing mobile.
+const compactDesktop = [
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.athlete-login-shell]:max-w-[1152px]",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.athlete-login-shell]:grid-cols-[minmax(0,1fr)_336px]",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.athlete-login-shell]:gap-[4.8vw]",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.athlete-login-brand]:min-h-[432px]",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.athlete-login-brand]:py-4",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.athlete-login-brand>div:first-child]:w-[232px]",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.athlete-login-brand>div:first-child>div]:w-[133px]",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.athlete-login-brand_h1]:text-[43px]",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.athlete-login-form-panel]:min-h-[432px]",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.athlete-login-form-panel]:px-7!",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.athlete-login-form-panel]:py-5!",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.public-client-auth]:gap-3!",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.public-client-auth>header_h2]:text-2xl!",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.public-client-auth_form]:gap-3!",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.public-client-auth_input:not([type=checkbox]):not([type=radio]):not([type=hidden])]:min-h-10!",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.public-client-auth_button]:min-h-10!",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.public-client-auth_button.public-client-auth-forgot]:min-h-8!",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.public-client-auth>button.button]:min-h-9!",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.public-client-auth>div:last-child]:mt-2!",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.public-client-auth>div:last-child]:pt-2!",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.public-client-auth_nav]:gap-y-1!",
+  "tw:[@media(min-width:1100px)_and_(max-width:1440px)_and_(pointer:fine)]:[&_.public-client-auth_nav_a]:min-h-7!",
+].join(" ");
 type Props = { showInstallControl?: boolean; children: ReactNode; arena?: { name: string; logoUrl?: string | null } };
 export function AthletePortalLoginLayout({ children, arena, showInstallControl = false }: Props) {
-  return <main className={`${portalPwaEnabled() ? "tw:pl-[env(safe-area-inset-left)] tw:pr-[env(safe-area-inset-right)] tw:pt-[env(safe-area-inset-top)] tw:pb-[env(safe-area-inset-bottom)] " : ""}athlete-login-page tw:[--text:#202c3c] tw:[--muted:#606874] tw:[--panel:#fff] tw:[--line:#dce1e7] tw:dark:[--text:#e9edf3] tw:dark:[--muted:#aab4c2] tw:dark:[--panel:#101c2d] tw:dark:[--line:#293648] tw:grid tw:min-h-dvh tw:content-start tw:bg-[#f1f5fa] tw:text-[#202c3c] tw:dark:bg-[#091525] tw:dark:text-[#e9edf3] tw:[&_*]:box-border tw:min-[760px]:content-center tw:min-[760px]:place-items-center tw:min-[760px]:px-[6vw] tw:min-[760px]:py-8 tw:min-[760px]:bg-[linear-gradient(90deg,rgba(7,25,47,.72),rgba(7,25,47,.25)),url('/images/padel-night.webp')] tw:min-[760px]:bg-cover tw:min-[760px]:bg-center`}>
+  return <main className={`${compactDesktop} ${portalPwaEnabled() ? "tw:pl-[env(safe-area-inset-left)] tw:pr-[env(safe-area-inset-right)] tw:pt-[env(safe-area-inset-top)] tw:pb-[env(safe-area-inset-bottom)] " : ""}athlete-login-page tw:[--text:#202c3c] tw:[--muted:#606874] tw:[--panel:#fff] tw:[--line:#dce1e7] tw:dark:[--text:#e9edf3] tw:dark:[--muted:#aab4c2] tw:dark:[--panel:#101c2d] tw:dark:[--line:#293648] tw:grid tw:min-h-dvh tw:content-start tw:bg-[#f1f5fa] tw:text-[#202c3c] tw:dark:bg-[#091525] tw:dark:text-[#e9edf3] tw:[&_*]:box-border tw:min-[760px]:content-center tw:min-[760px]:place-items-center tw:min-[760px]:px-[6vw] tw:min-[760px]:py-8 tw:min-[760px]:bg-[linear-gradient(90deg,rgba(7,25,47,.72),rgba(7,25,47,.25)),url('/images/padel-night.webp')] tw:min-[760px]:bg-cover tw:min-[760px]:bg-center`}>
     <div className="athlete-login-shell tw:grid tw:min-h-dvh tw:grid-rows-[auto_1fr] tw:min-[760px]:min-h-0 tw:min-[760px]:grid-rows-1 tw:w-full tw:max-w-[1440px] tw:min-w-0 tw:bg-white tw:dark:bg-[#101c2d] tw:min-[760px]:grid-cols-[minmax(0,1fr)_minmax(340px,420px)] tw:min-[760px]:gap-[6vw] tw:min-[760px]:bg-transparent tw:min-[760px]:dark:bg-transparent">
       <aside className="athlete-login-brand tw:relative tw:isolate tw:flex tw:min-h-56 tw:min-w-0 tw:flex-col tw:justify-start tw:gap-6 tw:min-[760px]:gap-12 tw:min-[760px]:justify-between tw:bg-[#102d51] tw:bg-[linear-gradient(100deg,rgba(7,25,47,.92),rgba(7,25,47,.55)),url('/images/padel-night.webp')] tw:bg-cover tw:bg-center tw:p-6 tw:text-white tw:min-[760px]:min-h-[540px] tw:min-[760px]:bg-none tw:min-[760px]:bg-transparent tw:min-[760px]:px-0 tw:min-[760px]:py-5" aria-label="VX4">
         <div className="tw:w-44 tw:min-[760px]:flex tw:min-[760px]:w-[290px] tw:min-[760px]:max-w-full tw:min-[760px]:items-center tw:min-[760px]:gap-[22px]"><span aria-hidden="true" className="tw:hidden tw:h-px tw:flex-1 tw:bg-[#90abc7] tw:min-[760px]:block"/><div className="tw:min-[760px]:w-[166px] tw:min-[760px]:shrink-0"><AthletePortalWordmark/></div><span aria-hidden="true" className="tw:hidden tw:h-px tw:flex-1 tw:bg-[#90abc7] tw:min-[760px]:block"/></div>

@@ -124,7 +124,7 @@ export function PublicCourtBookingForm({ arenaSlug, datePicker, matchId, matchSu
     <section aria-label="Horários disponíveis" className="tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)] tw:gap-3">
       <h2 className="tw:m-0 tw:text-xl tw:font-medium">Escolha quando jogar</h2>{datePicker}
     </section>
-    <section aria-label="Duração da reserva" className="tw:sticky tw:top-2 tw:z-20 tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)] tw:gap-2">
+    <section aria-label="Duração da reserva" className="tw:grid tw:min-w-0 tw:grid-cols-[minmax(0,1fr)] tw:gap-2">
       <span className="tw:text-sm tw:font-medium">Duração</span>
       <div className={cx(surface,"tw:flex tw:flex-wrap tw:gap-2 tw:shadow-sm")}>{allowedDurations.map(minutes=><button type="button" key={minutes} data-duration-minutes={minutes} aria-pressed={durationMinutes===minutes} className={cx(slotButton,"tw:min-w-14 tw:shrink-0 tw:rounded-[5px]",durationMinutes===minutes ? "tw:border-[#174983] tw:bg-[#174983] tw:text-white" : "tw:border-[#cad8e7] tw:bg-white tw:text-black tw:dark:border-[#3b4e66] tw:dark:bg-[#101c2d] tw:dark:text-[#eff3f8]")} onClick={()=>setDurationMinutes(minutes)}>{duration(minutes)}</button>)}</div>
       {selectedServices.some(service=>service.rules.minimumMinutes) ? <p className="tw:m-0 tw:basis-full tw:text-xs tw:text-black tw:dark:text-[#9bc5ff]">Durações liberadas pelos serviços selecionados.</p> : null}
