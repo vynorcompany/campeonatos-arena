@@ -260,7 +260,7 @@ export function PublicStandings({
     super12Id?: string,
   ) => `/home?arena=${encodeURIComponent(arena.slug)}&${portalQuery(section, leagueTab, teacherId, leagueCategoryId, eventTab, super12Id).slice(1)}`;
   if (!currentClient)
-    return <AthletePortalLoginLayout arena={{ name: arena.name, logoUrl: arena.athletePortalLogoUrl || arena.logoUrl }}>{authForm}</AthletePortalLoginLayout>;
+    return <AthletePortalLoginLayout showInstallControl arena={{ name: arena.name, logoUrl: arena.athletePortalLogoUrl || arena.logoUrl }}>{authForm}</AthletePortalLoginLayout>;
 
   const portalVisibility = arena;
   const requestedSection: string =

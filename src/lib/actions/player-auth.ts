@@ -26,6 +26,11 @@ const registrationCodeSchema = z.string().trim().regex(/^\d{6}$/, "Informe o có
 const resetSchema = z.object({ arenaSlug: z.string().trim().min(1), phone: z.string().trim().min(8), code: z.string().trim().length(6), newPassword: z.string().min(8), confirmPassword: z.string().min(8) }).refine((data) => data.newPassword === data.confirmPassword, { path: ["confirmPassword"], message: "As senhas não coincidem." });
 
 function normalizePhone(phone: string) { return normalizeBrazilianPhone(phone); }
+function phoneLookupKeys(phone: string) {
+  const canonical = normalizePhone(phone);
+  const legacy = canonical.length === 11 && canonical[2] === "9" && /[6-9]/.test(canonical[3] ?? "") ? canonical.slice(0, 2) + canonical.slice(3) : canonical;
+  return Array.from(new Set([canonical, `55${canonical}`, legacy, `55${legacy}`]));
+}
 function destination(arenaSlug: string, returnTo: string) { return playerReturnPath(arenaSlug, returnTo); }
 function hashCode(code: string) { return crypto.createHash("sha256").update(code).digest("hex"); }
 function createCode() { return crypto.randomInt(100000, 1000000).toString(); }
@@ -106,7 +111,11 @@ async function findAccountByPhone(arenaId: string, phone: string) {
 }
 
 async function findGlobalIdentityByPhone(phone: string) {
-  return prisma.athleteIdentity.findUnique({ where: { phone: normalizePhone(phone) }, include: { accounts: { select: { id: true, passwordHash: true } } } });
+  for (const key of phoneLookupKeys(phone)) {
+    const identity = await prisma.athleteIdentity.findUnique({ where: { phone: key }, include: { accounts: { select: { id: true, passwordHash: true } } } });
+    if (identity) return identity;
+  }
+  return null;
 }
 
 async function matchesIdentityPassword(identity: { passwordHash: string; accounts: Array<{ passwordHash: string }> }, password: string) {
@@ -237,7 +246,7 @@ export async function requestGlobalPublicPasswordResetAction(_: PublicClientAuth
   if (String(formData.get("contactWebsite") ?? "").trim()) return { error: "Não foi possível validar o formulário. Recarregue a página e tente novamente." };
   const phone = normalizePhone(String(formData.get("phone") ?? ""));
   if (phone.length < 10) return { error: "Informe um telefone válido." };
-  const accounts = await prisma.playerAccount.findMany({ where: { phone }, select: { arenaId: true }, orderBy: { createdAt: "asc" } });
+  const accounts = await prisma.playerAccount.findMany({ where: { phone: { in: phoneLookupKeys(phone) } }, select: { arenaId: true }, orderBy: { createdAt: "asc" } });
   if (accounts.length) {
     const connections = env.portalWhatsAppProvider === "cloud_api" ? [] : await Promise.all(accounts.map(account => withArenaTransaction(account.arenaId, tx => tx.whatsAppConnection.findFirst({ where: { arenaId: account.arenaId, status: "CONNECTED" }, select: { arenaId: true, updatedAt: true } }))));
     const connection = connections.filter((entry): entry is NonNullable<typeof entry> => entry !== null).sort((a, b) => (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0))[0];
@@ -257,7 +266,7 @@ export async function confirmGlobalPublicPasswordResetAction(_: PublicClientAuth
   const newPassword = String(formData.get("newPassword") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
   if (phone.length < 10 || !/^\d{6}$/.test(code) || newPassword.length < 8 || newPassword !== confirmPassword) return { error: "Revise telefone, código e senha." };
-  const accounts = await prisma.playerAccount.findMany({ where: { phone }, select: { id: true, arenaId: true, identityId: true } });
+  const accounts = await prisma.playerAccount.findMany({ where: { phone: { in: phoneLookupKeys(phone) } }, select: { id: true, arenaId: true, identityId: true } });
   const resetCode = await latestResetCode(accounts.map((account) => account.arenaId), phone);
   const account = accounts.find((candidate) => candidate.arenaId === resetCode?.arenaId);
   if (!account || !resetCode || !await resetCodeMatches(resetCode, code)) return { error: "Código inválido ou expirado." };

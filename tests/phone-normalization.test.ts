@@ -13,3 +13,9 @@ test("reuses the existing athlete record when phone formatting differs", () => {
   const player = resolvePublicClientPlayer([{ id: "legacy", phone: "42 8808-5345" }], "5542988085345");
   assert.equal(player?.id, "legacy");
 });
+
+
+test("55 as DDD is preserved while 55 as country prefix is removed", () => {
+ assert.equal(normalizeBrazilianPhone("(55) 99999-0000"),"55999990000");
+ assert.equal(normalizeBrazilianPhone("+55 (55) 99999-0000"),"55999990000");
+});

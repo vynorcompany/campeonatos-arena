@@ -1,4 +1,5 @@
 import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
+import { normalizeBrazilianPhone } from "../src/lib/phone";
 import { legalVersion } from "../src/lib/legal/version";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -9,7 +10,7 @@ import ts from "typescript";
 
 const require = createRequire(import.meta.url);
 
-function fixture() {
+function fixture(storedPhone?: string) {
   const source = readFileSync(new URL("../src/lib/actions/player-auth.ts", import.meta.url), "utf8");
   const exports: Record<string, (...args: any[]) => Promise<any>> = {};
   const attempts = new Map<string, number>();
@@ -24,13 +25,13 @@ function fixture() {
       arena: { findUnique: async () => ({ id: "arena-goal" }) },
       playerAuthAttempt: { findUnique: async () => null, deleteMany: async () => ({ count: 0 }) },
       playerAccount: { findUnique: async () => ({ id: "account-goal", identityId: "identity-goal", passwordHash: "hash", player: { active: true } }) },
-      athleteIdentity: { findUnique: async () => { lookups += 1; return { id: "identity-goal", passwordHash: "hash", accounts: [{ id: "account-goal", passwordHash: "hash" }] }; } },
+      athleteIdentity: { findUnique: async ({ where }: any) => { lookups += 1; if (storedPhone && where.phone !== storedPhone) return null; return { id: "identity-goal", passwordHash: "hash", accounts: [{ id: "account-goal", passwordHash: "hash" }] }; } },
     } },
     "@/lib/rls": { withArenaTransaction: async (_arenaId: string, callback: (tx: any) => Promise<unknown>) => callback((mocks["@/lib/prisma"] as any).prisma) },
     "@/lib/services/public-client-registration": { resolvePublicClientPlayer: () => null },
     "@/lib/env": { env: {} },
     "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: async () => {} },
-    "@/lib/phone": { normalizeBrazilianPhone: (value: string) => value.replace(/\D/g, "") },
+    "@/lib/phone": { normalizeBrazilianPhone },
     "@/lib/auth/login-attempts": {
       activeLoginLock: async (key: string) => (attempts.get(key) ?? 0) >= 5 ? new Date(Date.now() + 60_000) : null,
       recordFailedLogin: async (key: string) => { attempts.set(key, (attempts.get(key) ?? 0) + 1); },
@@ -40,8 +41,8 @@ function fixture() {
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
     exports, require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)), FormData, Date, URL, Buffer, console,
   });
-  const login = (password: string) => {
-    const form = new FormData(); form.set("phone", "(11) 97777-0042"); form.set("password", password);
+  const login = (password: string, phone = "(11) 97777-0042") => {
+    const form = new FormData(); form.set("phone", phone); form.set("password", password);
     return exports.loginGlobalAthleteAction({ error: null }, form);
   };
   const loginArena = (password: string) => {
@@ -74,4 +75,18 @@ test("login da arena e login global compartilham o mesmo limite por telefone", a
   assert.equal(app.attempts.get("athlete:11977770042"), 5);
   assert.match((await app.login("SenhaCorreta123!")).error, /Muitas tentativas/);
   assert.deepEqual(app.sessions, []);
+});
+
+
+test("global login reuses legacy identity stored with 55 for either input format", async () => {
+ const app=fixture("5511977770042");
+ for (const phone of ["11977770042", "+55 (11) 97777-0042"]) await assert.rejects(app.login("SenhaCorreta123!",phone), /redirect:\/portal/);
+ assert.deepEqual(app.sessions,["account-goal","account-goal"]);
+});
+
+test("prefix aliases share the same brute-force lock", async () => {
+ const app=fixture();
+ for(let i=0;i<5;i++) await app.login("SenhaErrada123!",i%2 ? "+55 (11) 97777-0042" : "11977770042");
+ assert.equal(app.attempts.size,1);
+ assert.match((await app.login("SenhaCorreta123!","5511977770042")).error,/Muitas tentativas/);
 });

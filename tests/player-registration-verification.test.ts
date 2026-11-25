@@ -1,4 +1,5 @@
 import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
+import { normalizeBrazilianPhone } from "../src/lib/phone";
 import { legalVersion } from "../src/lib/legal/version";
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -58,7 +59,7 @@ function fixture(options: { existingAccount?: boolean; deliveryError?: string; o
     "@/lib/env": { env: { playerPhoneVerificationRequired: true, portalWhatsAppProvider: options.official ? "cloud_api" : "evolution" } },
     "@/lib/integrations/whatsapp-cloud/authentication": { sendCloudAuthenticationCode: async (_phone: string, code: string) => { deliveryCalls.official++; if (options.deliveryError) throw new Error(options.deliveryError); sent.push(code); } },
     "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: async (_phone: string, message: string) => { deliveryCalls.evolution++; if (options.deliveryError) throw new Error(options.deliveryError); sent.push(message); } },
-    "@/lib/phone": { normalizeBrazilianPhone: (value: string) => value.replace(/\D/g, "") },
+    "@/lib/phone": { normalizeBrazilianPhone },
     "@/lib/auth/login-attempts": { activeLoginLock: async () => null, recordFailedLogin: async () => null, clearLoginFailures: async () => {} },
   };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, { exports, require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)), FormData, Date, URL, Buffer, console, Error });
@@ -170,4 +171,14 @@ test("registration requires a valid email before issuing a code", async () => {
  assert.ok((await app.requestCustom({email:"not-an-email"})).error);
  assert.equal(app.codes.length,0);
  assert.equal(app.accounts.length,0);
+});
+
+
+test("registration aliases with and without 55 cannot create a second account", async () => {
+ const app = fixture({existingAccount:true});
+ for (const phone of ["11999990000", "+55 (11) 99999-0000", "5511999990000"]) {
+  assert.match((await app.requestCustom({phone})).error, /já possui uma conta/);
+ }
+ assert.equal(app.accounts.length,1);
+ assert.equal(app.codes.length,0);
 });
