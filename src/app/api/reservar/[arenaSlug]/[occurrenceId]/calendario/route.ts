@@ -30,7 +30,7 @@ export async function GET(
   if (!booking) return NextResponse.json({ error: "A reserva ainda não está confirmada ou não pertence a esta conta." }, { status: 404 });
   const courtName = booking.occurrenceCourts.map((item) => item.court.name).join(", ") || "Quadra";
   const content = [
-    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Arena Padel Manager//PT-BR", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//VX4//PT-BR", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "BEGIN:VEVENT",
     `UID:arena-booking-${booking.id}@arena-padel-manager`, `DTSTAMP:${icsDate(new Date())}`, `DTSTART:${icsDate(arenaWallClockToInstant(booking.startsAt))}`, `DTEND:${icsDate(arenaWallClockToInstant(booking.endsAt))}`,
     `SUMMARY:${escapeIcs(`Reserva · ${arena.name}`)}`, `LOCATION:${escapeIcs(courtName)}`, `DESCRIPTION:${escapeIcs(`Reserva confirmada em ${courtName}.`)}`, "END:VEVENT", "END:VCALENDAR", ""
   ].join("\r\n");

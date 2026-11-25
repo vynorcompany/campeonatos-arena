@@ -280,7 +280,7 @@ export function NavLinks({ canManageUsers, canManageFinancialSettings, canManage
       { href: "/configuracoes/dispositivos", label: "Dispositivos conectados" },
       ...(canManagePrinterSettings ? [{ href: "/configuracoes/impressora", label: "Impressora" }, { href: "/configuracoes/politicas", label: "Cancelamento e reembolso" }, { href: "/configuracoes/privacidade", label: "Solicitações de privacidade" }] : []),
       { href: "/arena", label: "Dados da Arena" },
-      { href: "/arena?section=portal", label: "Portal do Atleta" },
+      { href: "/arena?section=portal", label: "VX4" },
       ...(canManageCourtSettings ? [{ href: "/configuracoes/checkin", label: "Check-in e QR Code" }, { href: "/agenda/configuracao", label: "Quadras e horários" }] : []),
             {
               href: "/financeiro/configuracoes",

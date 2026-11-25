@@ -10,7 +10,7 @@ export default async function SettingsPage() {
   const items = [
     { href: "/configuracoes/dispositivos", label: "Dispositivos conectados", description: "Confira e encerre as sessões da sua conta." },
     ...(canManage("arena:settings") ? [{ href: "/configuracoes/impressora", label: "Impressora", description: "Configure papel e vias; teste a impressão pelo driver instalado." }, { href: "/configuracoes/politicas", label: "Cancelamento e reembolso", description: "Publique os prazos e condições específicos da sua arena." }, { href: "/configuracoes/privacidade", label: "Solicitações de privacidade", description: "Atenda pedidos de acesso, correção e exclusão de dados." }] : []),
-    ...(canView("arena") ? [{ href: "/arena", label: "Dados da Arena", description: "Identidade, contatos e dados da empresa." }, { href: "/arena?section=portal", label: "Portal do Atleta", description: "Áreas, identidade visual e conteúdo do Portal." }] : []),
+    ...(canView("arena") ? [{ href: "/arena", label: "Dados da Arena", description: "Identidade, contatos e dados da empresa." }, { href: "/arena?section=portal", label: "VX4", description: "Áreas, identidade visual e conteúdo do Portal." }] : []),
     ...(canView("finance") && canManage("finance:settings:manage") ? [{ href: "/financeiro/configuracoes", label: "Configurações Financeiras", description: "Regras de comandas, pagamentos, categorias e emissão fiscal." }] : []),
     ...(canView("calendar") && canManage("calendar:settings:manage") ? [{ href: "/configuracoes/checkin", label: "Check-in e QR Code", description: "Ative, baixe ou renove o QR de reservas e aulas." }, { href: "/agenda/configuracao", label: "Quadras e horários", description: "Faixas, valores, quadras e disponibilidade online." }] : []),
   ];

@@ -15,15 +15,19 @@ export function isPortalPwaPath(pathname: string) {
 export function athletePortalManifest() {
   return {
     id: "/portal",
-    name: "Portal do Atleta",
-    short_name: "Portal do Atleta",
+    name: "VX4",
+    short_name: "VX4",
     lang: "pt-BR",
     start_url: "/portal",
     scope: "/",
     display: "standalone",
     background_color: "#102d51",
     theme_color: "#174983",
-    icons: [{ src: "/padel-volley-mark.png?v=padel-man-volley-5", sizes: "512x512", type: "image/png", purpose: "any" }],
+    icons: [
+      { src: "/brand/vx4-app-192.png?v=vx4-1", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/brand/vx4-app-512.png?v=vx4-1", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/brand/vx4-app-512.png?v=vx4-1", sizes: "512x512", type: "image/png", purpose: "maskable" },
+    ],
     shortcuts: [{ name: "Minhas arenas", url: "/portal" }],
   };
 }

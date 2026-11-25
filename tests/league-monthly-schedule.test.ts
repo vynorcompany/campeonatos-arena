@@ -109,7 +109,7 @@ test("manual closing accepts the oldest open League cycle from a past month", ()
 test("athlete portal exposes the main modules and League submenus", () => {
   const view = readPortalSources();
   const leaguePortal = readFileSync(resolve(process.cwd(), "src/components/tournaments/public-league-portal.tsx"), "utf8");
-  assert.match(view, /Portal do Atleta/);
+  assert.match(view, /AthletePortalWordmark/);
   assert.match(view, /PublicBookingContent/);
   assert.match(view, /Minhas reservas/);
   assert.match(view, /Premiação/);

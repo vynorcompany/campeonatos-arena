@@ -24,7 +24,7 @@ async function deliverIdentityEmail(identityId: string, email: string, kind: typ
   const url = new URL(verify ? "/portal/confirmar-email" : "/portal/redefinir-senha", env.appUrl!);
   url.searchParams.set("token", issued.token);
   try {
-    await sendAccountEmail(email, verify ? "Confirme seu e-mail · Portal do Atleta" : "Recuperar senha · Portal do Atleta", `${verify ? "Para confirmar este e-mail como endereço de recuperação da sua conta, entre no Portal e abra" : "Para criar uma nova senha, abra"} ${url.toString()} em até 30 minutos. Este link é de uso único. Se você não solicitou, ignore esta mensagem.`);
+    await sendAccountEmail(email, verify ? "Confirme seu e-mail · VX4" : "Recuperar senha · VX4", `${verify ? "Para confirmar este e-mail como endereço de recuperação da sua conta, entre no Portal e abra" : "Para criar uma nova senha, abra"} ${url.toString()} em até 30 minutos. Este link é de uso único. Se você não solicitou, ignore esta mensagem.`);
     return true;
   } catch {
     await prisma.accountActionToken.updateMany({ where: { id: issued.id, usedAt: null }, data: { usedAt: new Date() } });

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1067" viewBox="80 20 900 400" role="img" aria-labelledby="title desc"><rect x="80" y="20" width="900" height="400" fill="#000000"/>
+  <title id="title">VX4</title>
+  <desc id="desc">Marca VX4 com fita branca e azul e numeral quatro verde elevado. Fundo transparente. Desenho integralmente vetorial.</desc>
+  <defs>
+    <linearGradient id="blue" x1="0" y1="1" x2="0.65" y2="0">
+      <stop stop-color="#00d5f5"/>
+      <stop offset=".38" stop-color="#009aff"/>
+      <stop offset=".72" stop-color="#0759ef"/>
+      <stop offset="1" stop-color="#03268c"/>
+    </linearGradient>
+    <linearGradient id="back" x1=".1" y1="1" x2=".8" y2="0">
+      <stop stop-color="#aab4c5"/>
+      <stop offset=".4" stop-color="#e8edf4"/>
+      <stop offset=".77" stop-color="#fff"/>
+      <stop offset="1" stop-color="#eef2f7"/>
+    </linearGradient>
+    <linearGradient id="front" x1="0" y1="0" x2=".25" y2="1">
+      <stop stop-color="#fff"/>
+      <stop offset=".3" stop-color="#fafbfe"/>
+      <stop offset=".61" stop-color="#e2e6ee"/>
+      <stop offset=".85" stop-color="#f9fbff"/>
+      <stop offset="1" stop-color="#c8cfdb"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="0" y1="0" x2="1" y2=".55">
+      <stop stop-color="#a5adbc"/>
+      <stop offset=".42" stop-color="#d1d7e2"/>
+      <stop offset="1" stop-color="#fff"/>
+    </linearGradient>
+    <linearGradient id="lime" x1="0" y1="0" x2=".6" y2="1">
+      <stop stop-color="#d5ff31"/>
+      <stop offset=".48" stop-color="#b9f900"/>
+      <stop offset="1" stop-color="#8ee000"/>
+    </linearGradient>
+  </defs>
+  <!-- Cada superfície é um caminho editável; não há imagem incorporada. -->
+  <g stroke-linejoin="round">
+    <path fill="url(#back)" stroke="#d8dfe9" stroke-width="1" d="M378 359 C454 319 536 214 624 137 C647 117 668 110 697 110 L824 110 C787 126 754 154 724 183 L558 344 C531 370 501 384 467 384 L338 384 C351 380 366 370 378 359Z"/>
+    <path fill="url(#blue)" stroke="#009bec" stroke-width="1" d="M335 380 C384 352 437 295 481 255 C510 229 529 222 554 229 C581 237 603 263 628 288 C602 291 577 303 554 324 L511 364 C494 380 480 385 451 385 L334 385 C330 385 331 383 335 380Z"/>
+    <path fill="url(#front)" stroke="#d7dde7" stroke-width="1.2" d="M102 122 C121 112 164 111 187 120 C198 124 203 134 209 146 L282 287 C287 297 294 302 302 302 C314 302 322 290 330 276 L398 160 C421 119 450 108 484 110 C519 112 545 135 571 160 L716 303 C743 330 774 353 812 361 C793 377 774 385 750 385 C715 385 686 369 662 346 L500 189 C489 178 479 171 468 172 C455 173 446 183 438 197 L361 327 C340 364 319 385 290 385 C256 385 232 365 214 332 L101 139 C96 130 96 126 102 122Z"/>
+    <path fill="url(#fold)" d="M398 160 C421 119 450 108 484 110 C510 112 531 125 550 141 C527 133 506 136 489 149 C478 157 470 166 463 173 C453 176 445 185 438 197 L391 276 C397 247 411 218 428 190 C439 173 454 160 469 157 C444 141 422 143 398 160Z" opacity=".68"/>
+    <!-- O 4 elevado acompanha a inclinação da fita. -->
+    <path fill="url(#lime)" stroke="#b5ef10" stroke-width=".7" fill-rule="evenodd" d="M916 38 L948 38 L918 151 L951 151 L945 174 L912 174 L900 219 L874 219 L886 174 L796 174 L802 150 Z M906 76 L831 151 L892 151 Z"/>
+  </g>
+</svg>

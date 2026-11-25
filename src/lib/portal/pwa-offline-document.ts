@@ -6,8 +6,8 @@ export const PORTAL_PWA_OFFLINE_DOCUMENT = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'">
-<title>Sem conexão · Portal do Atleta</title>
+<title>Sem conexão · VX4</title>
 
 </head>
-<body><main><h1>Sem conexão</h1><p>Conecte-se à internet para acessar o Portal do Atleta.</p><a href="/portal">Tentar novamente</a></main></body>
+<body><main><h1>Sem conexão</h1><p>Conecte-se à internet para acessar o VX4.</p><a href="/portal">Tentar novamente</a></main></body>
 </html>`;

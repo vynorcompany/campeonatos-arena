@@ -1,3 +1,4 @@
+import { AthletePortalWordmark } from "../athlete-portal-wordmark";
 import { viewStyles } from "./agency-shell.utilities";
 import { SidebarUserMenu } from "./sidebar-user-menu";
 import { AgencyNavLinks } from "@/components/layout/agency-nav-links";
@@ -20,9 +21,8 @@ export function AgencyShell({ userName, userRole, activeArenaId, memberships, ch
         <div className={viewStyles.sidebar_inner}>
           <div className={viewStyles.sidebar_top}>
             <div className={viewStyles.agency_brand}>
-              <span>APM</span>
               <div>
-                <p className={viewStyles.eyebrow}>Arena Padel Manager</p>
+                <AthletePortalWordmark compact surface="dark" />
                 <strong>Agência</strong>
               </div>
             </div>

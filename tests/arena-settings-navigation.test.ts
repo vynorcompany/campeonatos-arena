@@ -9,7 +9,7 @@ test("arena settings separates arena data, athlete portal and user management in
 
   assert.match(page, /searchParams/);
   assert.match(page, /Dados da Arena/);
-  assert.match(page, /Portal do Atleta/);
+  assert.match(page, /VX4/);
   assert.match(page, /Usuários/);
   assert.match(page, /ArenaUsersManagement/);
 });
