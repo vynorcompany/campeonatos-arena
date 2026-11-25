@@ -62,7 +62,7 @@ function fixture(options: { existingAccount?: boolean; deliveryError?: string; o
     "@/lib/auth/login-attempts": { activeLoginLock: async () => null, recordFailedLogin: async () => null, clearLoginFailures: async () => {} },
   };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, { exports, require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)), FormData, Date, URL, Buffer, console, Error });
-  const form = (code?: string) => { const data = new FormData(); data.set("termsAccepted", "on"); data.set("legalVersion", legalVersion); data.set("arenaSlug", "arena-teste"); data.set("returnTo", ""); data.set("name", "Atleta de Teste"); data.set("phone", "11999990000"); data.set("password", "SenhaSegura123!"); data.set("confirmPassword", "SenhaSegura123!"); if (code) data.set("code", code); return data; };
+  const form = (code?: string) => { const data = new FormData(); data.set("termsAccepted", "on"); data.set("legalVersion", legalVersion); data.set("arenaSlug", "arena-teste"); data.set("returnTo", ""); data.set("email", "Atleta@Example.test"); data.set("name", "Atleta de Teste"); data.set("phone", "11999990000"); data.set("password", "SenhaSegura123!"); data.set("confirmPassword", "SenhaSegura123!"); if (code) data.set("code", code); return data; };
   const request = () => exports.registerPublicClientAction({ error: null }, form());
   const confirm = (code: string) => exports.confirmPublicClientRegistrationAction({ error: null }, form(code));
   const requestReset = () => exports.requestPublicPasswordResetAction({ error: null }, form());
@@ -161,4 +161,13 @@ test("official recovery skips disconnected arena connections and fails without f
   assert.deepEqual(failed.deliveryCalls, { evolution: 0, official: 1 });
   assert.equal(failed.codes.length, 0);
   assert.equal(failed.accounts.length, 0);
+});
+
+
+test("registration requires a valid email before issuing a code", async () => {
+ const app = fixture();
+ assert.ok((await app.requestCustom({email:""})).error);
+ assert.ok((await app.requestCustom({email:"not-an-email"})).error);
+ assert.equal(app.codes.length,0);
+ assert.equal(app.accounts.length,0);
 });

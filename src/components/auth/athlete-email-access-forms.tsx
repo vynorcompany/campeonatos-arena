@@ -12,13 +12,13 @@ const label = "tw:grid tw:min-w-0 tw:gap-1.5 tw:text-xs tw:font-normal";
 const button = "tw:inline-flex tw:min-h-9 tw:w-fit tw:cursor-pointer tw:items-center tw:justify-center tw:rounded-[5px] tw:border-0 tw:bg-[#087443] tw:px-4 tw:py-2 tw:text-sm tw:font-normal tw:text-white tw:hover:bg-[#065b34] tw:focus-visible:outline-2 tw:focus-visible:outline-offset-2 tw:focus-visible:outline-[#174983] tw:disabled:opacity-60";
 function Feedback({ state }: { state: AthleteEmailAccessState }) { return <>{state.error ? <p role="alert" className="tw:m-0 tw:text-sm tw:text-[#a02119] tw:dark:text-[#ffb9ab]">{state.error}</p> : null}{state.success ? <p role="status" className="tw:m-0 tw:text-sm tw:text-[#087443] tw:dark:text-[#79d7a8]">{state.success}</p> : null}</>; }
 
-export function AthleteRecoveryEmailSettings({ recoveryEmail }: { recoveryEmail?: string | null }) {
+export function AthleteRecoveryEmailSettings({ recoveryEmail, contactEmail }: { recoveryEmail?: string | null; contactEmail?: string }) {
   const [state, action] = useFormState(requestAthleteEmailVerificationAction, initial);
   return <section aria-label="Recuperação de acesso" className="tw:mt-6 tw:grid tw:min-w-0 tw:gap-3 tw:border-t tw:border-[var(--portal-line,#cbd4df)] tw:pt-5">
     <h2 className="tw:m-0 tw:text-sm tw:font-medium">Recuperação de acesso</h2>
     <p className="tw:m-0 tw:text-xs">{recoveryEmail ? `E-mail confirmado: ${recoveryEmail}` : "Nenhum e-mail de recuperação confirmado."}</p>
     <form action={action} className="tw:grid tw:min-w-0 tw:gap-3 tw:sm:grid-cols-2"><BotTrap/>
-      <label className={label}>E-mail de recuperação<EmailInput className={field} name="email" defaultValue={recoveryEmail ?? ""} required/></label>
+      <label className={label}>E-mail de recuperação<EmailInput className={field} name="email" defaultValue={recoveryEmail ?? contactEmail ?? ""} required/></label>
       <label className={label}>Senha atual<input className={field} name="currentPassword" type="password" autoComplete="current-password" required minLength={8} maxLength={128}/></label>
       <div className="tw:col-span-full"><SubmitButton label="Enviar confirmação por e-mail" pendingLabel="Enviando..." className={button}/></div>
       <div className="tw:col-span-full"><Feedback state={state}/></div>
