@@ -9,6 +9,8 @@
     "test": "node --import tsx --test",
     "dev": "next dev",
     "build": "prisma generate && next build && node scripts/prepare-standalone.mjs",
+    "build:backend": "node scripts/build-backend.mjs",
+    "start:backend": "node scripts/runtime-backend.mjs",
     "start": "node scripts/start-server.mjs",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
