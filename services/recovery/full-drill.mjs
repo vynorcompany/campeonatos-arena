@@ -21,6 +21,12 @@ function extract(archive, destination) {
   // Python's data filter rejects absolute/traversing paths, devices and links outside the target.
   execFileSync('python3', ['-c', "import sys,tarfile,pathlib; safe=lambda member,path: None if 'node_modules' in pathlib.PurePosixPath(member.name).parts and '.bin' in pathlib.PurePosixPath(member.name).parts else tarfile.data_filter(member,path); tarfile.open(sys.argv[1]).extractall(sys.argv[2],filter=safe)", archive, destination], { timeout: 240_000, stdio: 'pipe' });
 }
+export function recoveryProbeQuery(name, phone, arenaId) {
+  if (!/^Recovery drill [a-f0-9-]{36}$/.test(name) || !/^55119[0-9]{8}$/.test(phone) || !/^[A-Za-z0-9_-]{1,128}$/.test(arenaId)) throw new Error('Invalid isolated registration probe.');
+  // Client names are title-cased by the application. Verify the stable phone identity
+  // and arena as well as the name, without requiring its input capitalization.
+  return `SELECT count(*) FROM "Player" WHERE lower(name)=lower('${name}') AND phone='${phone.slice(2)}' AND "arenaId"='${arenaId}'`;
+}
 export async function runFullDrill(config) {
   process.umask(0o077);
   const started = Date.now(), timings = {}, key = await readFile(config.keyFile);
@@ -113,9 +119,10 @@ export async function runFullDrill(config) {
     if (!actionId) throw new Error('Restored registration action unavailable.');
     const form = new FormData();
     const syntheticName = 'Recovery drill ' + randomUUID();
-    form.set('name', syntheticName); form.set('phone', '119' + String(Math.floor(Math.random() * 100000000)).padStart(8, '0'));
+    const syntheticPhone = '55119' + String(Math.floor(Math.random() * 100000000)).padStart(8, '0');
+    form.set('name', syntheticName); form.set('phone', syntheticPhone);
     const actionResponse = request('/agenda', { headers: { ...headers, Origin: origin, 'Next-Action': actionId }, form: [...form.entries()] });
-    const created = Number(sql('arena_full_drill', `SELECT count(*) FROM "Player" WHERE name='${syntheticName}' AND "arenaId"='${arenaId}'`));
+    const created = Number(sql('arena_full_drill', recoveryProbeQuery(syntheticName, syntheticPhone, arenaId)));
     if (!actionResponse.ok || created !== 1) throw new Error('Restored application write/transaction validation failed: HTTP ' + actionResponse.status + ', inserted=' + created + ', response=' + String(actionResponse.body).slice(0,2000));
     mark('applicationValidated');
     const result = { ok: true, checkedAt: new Date().toISOString(), sourceCompletedAt: manifest.completedAt, revision: manifest.application.revision, buildId: manifest.application.buildId, elapsedSeconds: Math.round((Date.now() - started) / 1000), timings, counts, postgresSnapshots: databases.length, syntheticActionValidated: true, redisKeys, configurationSnapshots: configurations.length, filesSnapshotsVerified: decoded.filter(item => item.kind === 'files').length, pages, isolation: 'internal Docker network; container-loopback HTTP; fresh database credentials; external workers disabled', excluded: ['External provider delivery and settlement', 'Offline recovery-key custody', 'Provisioning a replacement host'] };
