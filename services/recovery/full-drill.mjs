@@ -25,7 +25,7 @@ export function recoveryProbeQuery(name, phone, arenaId) {
   if (!/^Recovery drill [a-f0-9-]{36}$/.test(name) || !/^55119[0-9]{8}$/.test(phone) || !/^[A-Za-z0-9_-]{1,128}$/.test(arenaId)) throw new Error('Invalid isolated registration probe.');
   // Client names are title-cased by the application. Verify the stable phone identity
   // and arena as well as the name, without requiring its input capitalization.
-  return `SELECT count(*) FROM "Player" WHERE lower(name)=lower('${name}') AND phone='${phone}' AND "arenaId"='${arenaId}'`;
+  return `SELECT count(*) FROM "Player" WHERE lower(name)=lower('${name}') AND phone='${phone.slice(2)}' AND "arenaId"='${arenaId}'`;
 }
 export async function runFullDrill(config) {
   process.umask(0o077);

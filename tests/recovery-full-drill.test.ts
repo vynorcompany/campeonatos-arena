@@ -28,7 +28,7 @@ test('restored registration accepts name capitalization while binding phone and 
   const name = 'Recovery drill 12345678-1234-1234-abcd-123456789abc';
   const query = recoveryProbeQuery(name, '5511991234567', 'arena_a');
   assert.match(query, /lower\(name\)=lower\('Recovery drill/);
-  assert.match(query, /phone='5511991234567'/);
+  assert.match(query, /phone='11991234567'/);
   assert.match(query, /"arenaId"='arena_a'/);
   for (const args of [ [name, '11991234567', 'arena_a'], [name, "5511991234567' OR true", 'arena_a'], [name, '5511991234567', "arena_a' OR true"], ['Real Client', '5511991234567', 'arena_a'] ]) {
     assert.throws(() => recoveryProbeQuery(...args));
