@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-expect-error operator deployment module
-import { objectPath, isolatedEnvironment } from '../services/recovery/full-drill.mjs';
+import { objectPath, isolatedEnvironment, recoveryProbeQuery } from '../services/recovery/full-drill.mjs';
 // @ts-expect-error operator deployment module
 import { snapshotCommand } from '../services/recovery/snapshot-command.mjs';
 
@@ -21,4 +21,16 @@ test('application snapshots fail closed and separate uploads from the deployed a
   assert.match(command, /--exclude='public\/uploads'/);
   assert.match(command, /--exclude='\.next\/standalone\/public\/uploads'/);
   assert.match(command, /package-lock.json/);
+});
+
+
+test('restored registration accepts name capitalization while binding phone and tenant identity', () => {
+  const name = 'Recovery drill 12345678-1234-1234-abcd-123456789abc';
+  const query = recoveryProbeQuery(name, '5511991234567', 'arena_a');
+  assert.match(query, /lower\(name\)=lower\('Recovery drill/);
+  assert.match(query, /phone='5511991234567'/);
+  assert.match(query, /"arenaId"='arena_a'/);
+  for (const args of [ [name, '11991234567', 'arena_a'], [name, "5511991234567' OR true", 'arena_a'], [name, '5511991234567', "arena_a' OR true"], ['Real Client', '5511991234567', 'arena_a'] ]) {
+    assert.throws(() => recoveryProbeQuery(...args));
+  }
 });
