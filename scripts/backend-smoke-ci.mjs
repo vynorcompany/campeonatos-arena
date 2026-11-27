@@ -50,7 +50,7 @@ try {
     assert.equal(response.status, 404, path);
     assert.deepEqual(await response.json(), { error: 'Not found' });
   }
-  for (const path of ['/api/manual-upcoming-matches', '/api/whatsapp/pulse', '/api/agenda/availability?courtId=synthetic-court&date=2026-10-17']) {
+  for (const path of ['/api/manual-upcoming-matches', '/api/management/dashboard', '/api/whatsapp/pulse', '/api/agenda/availability?courtId=synthetic-court&date=2026-10-17']) {
     const response = await fetch(origin + path, { redirect: 'manual' });
     assert.ok([302, 303, 307, 308, 401].includes(response.status), `Anonymous API accepted ${path}`);
   }
@@ -81,6 +81,16 @@ try {
   assert.notEqual(staffContext.auth.arenaId, otherArenaId);
   assert.equal(JSON.stringify(staffContext).includes('passwordHash'), false);
   assert.equal(staffContext.auth.editPermissions.includes('support'), true);
+  const dashboard = await fetch(origin + '/api/management/dashboard?dataInicial=2026-01-01&dataFinal=2026-01-31', { headers: { cookie: staffCookie } });
+  assert.equal(dashboard.status, 200);
+  assert.equal(dashboard.headers.get('cache-control'), 'private, no-store');
+  const dashboardData = await dashboard.json();
+  assert.ok(dashboardData.analytics.cards.length > 10);
+  assert.equal(typeof dashboardData.fixedCostCents, 'number');
+  assert.equal(Object.hasOwn(dashboardData, 'entries'), false);
+  assert.equal(JSON.stringify(dashboardData).includes('Atleta Exclusivo Outra Arena GOAL'), false);
+  const dashboardForgedArena = await fetch(origin + '/api/management/dashboard?arenaId=' + otherArenaId, { headers: { cookie: staffCookie } });
+  assert.equal(dashboardForgedArena.status, 400);
   const deniedModule = await fetch(origin + '/api/manual-upcoming-matches', { headers: { cookie: staffCookie }, redirect: 'manual' });
   assert.equal(deniedModule.status, 404, 'Read-only context must not grant an unassigned module');
   for (const requestOrigin of [undefined, 'https://untrusted.invalid']) {

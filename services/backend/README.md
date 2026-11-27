@@ -117,3 +117,13 @@ a 1 KiB, para não inserir o segredo em URLs de API. Retorna apenas validade e, 
 convite válido, e-mail convidado, nome da arena e existência de conta. Não fornece
 IDs, hashes nem tokens de sessão. As páginas de convite/redefinição usam esse
 contrato; tokens expirados ou usados não exibem o formulário.
+
+## Dashboard gerencial
+
+`GET /api/management/dashboard` calcula os indicadores no backend e devolve apenas
+cartões, detalhes e séries usados na apresentação. A arena vem da sessão e a
+operação exige visualização de dashboard; não existe parâmetro para selecionar
+outro banco/arena. Períodos, comparação e visão de caixa/competência são validados
+no backend, com as mesmas regras de datas e projeção. A leitura não materializa
+cobranças. O frontend mantém filtros e disposição visual e valida o DTO recebido.
+O prazo desse contrato contempla a espera e a transação existentes do relatório.

@@ -9,10 +9,9 @@ import { DashboardFreeLayout } from "@/components/dashboard-free-layout";
 import { DashboardBarPanel } from "@/components/dashboard-bar-panel";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { canViewModule, firstVisibleModuleHref } from "@/lib/permissions";
-import { loadDashboardData } from "@/lib/reports/dashboard-data";
-import { buildDashboardAnalytics } from "@/lib/reports/dashboard-analytics";
+import { getDashboardOverview } from "@/lib/reports/dashboard-overview";
 import { dashboardPeriod, shiftDashboardPeriod } from "@/lib/reports/dashboard-period";
-import { dashboardDateKey, dashboardProjectedCost } from "@/lib/reports/dashboard-projections";
+import { dashboardDateKey } from "@/lib/reports/dashboard-projections";
 import { DashboardFlowPanel } from "./dashboard-flow-panel";
 
 type DashboardQuery = { dataInicial?: string; dataFinal?: string; visao?: string; comparar?: string; compararDataInicial?: string; compararDataFinal?: string };
@@ -29,10 +28,9 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const custom = query.comparar === "custom" ? dashboardPeriod(query.compararDataInicial, query.compararDataFinal) : null;
   const previous = custom && !custom.error ? { from: custom.from, to: custom.to } : shifted;
   if (custom?.error) return <section className="tw:grid tw:gap-3 tw:p-4"><p role="alert">Período de comparação inválido. {custom.error}</p><Link href="/painel">Voltar ao Dashboard</Link></section>;
-  const data = await loadDashboardData(auth.arenaId, from, to, horizonEnd, comparing ? previous.from : undefined, comparing ? previous.to : undefined);
-  const analytics = buildDashboardAnalytics(data, from, to, horizonEnd, view, comparing ? previous : undefined);
-  const fixedCostCents = dashboardProjectedCost(data.entries, data.recurrences, from, to);
-  const forecastCostCents = dashboardProjectedCost(data.entries, data.recurrences, from, horizonEnd);
+  const overview = await getDashboardOverview(auth.arenaId, { dataInicial: dashboardDateKey(from), dataFinal: dashboardDateKey(to), visao: view, comparar: comparing ? query.comparar : undefined, compararDataInicial: custom ? dashboardDateKey(previous.from) : undefined, compararDataFinal: custom ? dashboardDateKey(previous.to) : undefined });
+  if ('error' in overview) return <section className="tw:grid tw:gap-3 tw:p-4"><p role="alert">{overview.error}</p><Link href="/painel">Voltar ao Dashboard</Link></section>;
+  const { analytics, fixedCostCents, forecastCostCents } = overview;
   const presetHref = (start: Date, end: Date) => {
     const params = new URLSearchParams({ dataInicial: dashboardDateKey(start), dataFinal: dashboardDateKey(end), visao: view });
     if (comparing) { params.set("comparar", query.comparar!); if (query.comparar === "custom") { params.set("compararDataInicial", query.compararDataInicial || ""); params.set("compararDataFinal", query.compararDataFinal || ""); } }

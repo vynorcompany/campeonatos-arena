@@ -37,7 +37,7 @@ test("dashboard renders a daily cash-flow chart and the requested operational ch
 });
 
 test("dashboard only reads prior-period totals when comparison is enabled", () => {
-  const dashboard = readFileSync(resolve(process.cwd(), "src/app/(app)/painel/page.tsx"), "utf8");
+  const dashboard = readFileSync(resolve(process.cwd(), "src/lib/backend/services/dashboard.ts"), "utf8");
   const loader = readFileSync(resolve(process.cwd(), "src/lib/reports/dashboard-data.ts"), "utf8");
   assert.match(dashboard, /comparing \? previous.from : undefined/);
   assert.match(loader, /previousFrom && previousTo \? tx\.financialEntry\.findMany/);

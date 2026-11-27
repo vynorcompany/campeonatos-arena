@@ -130,7 +130,7 @@ export async function completePasswordResetAction(_: AccountAccessState, formDat
 }
 
 export async function acceptArenaInviteAction(_: AccountAccessState, formData: FormData): Promise<AccountAccessState> {
-  const parsed = z.object({ token: tokenSchema, password: z.string().optional().default(""), confirmPassword: z.string().optional().default("") }).safeParse({ token: formData.get("token"), password: formData.get("password"), confirmPassword: formData.get("confirmPassword") });
+  const parsed = z.object({ token: tokenSchema, password: z.string().optional().default(""), confirmPassword: z.string().optional().default("") }).safeParse({ token: formData.get("token"), password: formData.get("password") ?? undefined, confirmPassword: formData.get("confirmPassword") ?? undefined });
   if (!parsed.success) return { error: "Convite inválido.", success: null };
   const tokenHash = hashAccountToken(parsed.data.token);
   const record = await prisma.accountActionToken.findUnique({ where: { tokenHash } });
