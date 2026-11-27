@@ -58,6 +58,31 @@ try {
     const response = await fetch(origin + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     assert.equal(response.status, 401, path);
   }
+  const anonymousManagement = await fetch(origin + '/api/management/context');
+  assert.equal(anonymousManagement.status, 200);
+  assert.deepEqual(await anonymousManagement.json(), { auth: null, redirectTo: null });
+  const anonymousArenaAccess = await fetch(origin + '/api/management/context?access=arena');
+  assert.deepEqual(await anonymousArenaAccess.json(), { auth: null, redirectTo: '/login' });
+  const ownerContextResponse = await fetch(origin + '/api/management/context', { headers: { cookie: `padel_session=${token}` } });
+  const ownerContext = await ownerContextResponse.json();
+  assert.equal(ownerContext.auth.userId, 'goal-test');
+  assert.equal(ownerContext.auth.systemRole, 'SUPER_ADMIN');
+  const otherArenaId = ownerContext.auth.memberships.find(entry => entry.arenaName === 'Arena Beta GOAL')?.arenaId;
+  assert.ok(otherArenaId);
+  const staffToken = createHash('sha256').update(`goal-staff:${token}`).digest('hex');
+  const staffCookie = `padel_session=${staffToken}; padel_arena=${otherArenaId}`;
+  const staffContextResponse = await fetch(origin + '/api/management/context?access=arena', { headers: { cookie: staffCookie } });
+  assert.equal(staffContextResponse.headers.get('cache-control'), 'private, no-store');
+  const staffContext = await staffContextResponse.json();
+  assert.equal(staffContext.redirectTo, null);
+  assert.equal(staffContext.auth.systemRole, 'VIEWER');
+  assert.equal(staffContext.auth.arenaName, 'Arena Teste GOAL');
+  assert.equal(staffContext.auth.memberships.length, 1);
+  assert.notEqual(staffContext.auth.arenaId, otherArenaId);
+  assert.equal(JSON.stringify(staffContext).includes('passwordHash'), false);
+  assert.equal(staffContext.auth.editPermissions.includes('support'), true);
+  const deniedModule = await fetch(origin + '/api/manual-upcoming-matches', { headers: { cookie: staffCookie }, redirect: 'manual' });
+  assert.equal(deniedModule.status, 404, 'Read-only context must not grant an unassigned module');
   const anonymousSession = await fetch(origin + '/api/portal/session?arena=goal-arena-a');
   assert.equal(anonymousSession.status, 200);
   assert.deepEqual(await anonymousSession.json(), { currentClient: null, athleteIdentity: null });
@@ -145,6 +170,8 @@ try {
   assert.ok(athleteHtml.includes('Atleta GOAL A'));
   assert.ok(athleteHtml.includes('Arena Teste GOAL'));
   assert.equal(athleteHtml.includes('Arena Beta GOAL'), false);
+  const managementPage = await fetch('http://127.0.0.1:3014/painel', { headers: { cookie: staffCookie }, redirect: 'manual' });
+  assert.equal(managementPage.status, 200, 'Management SSR did not preserve restricted staff context');
   console.log('Independent backend and SSR frontend: authentication, session contracts, arena isolation, restricted credentials and API-only boundary passed.');
 } catch (error) { console.error(output); throw error; }
 finally {

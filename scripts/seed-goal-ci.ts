@@ -41,6 +41,8 @@ async function main() {
       passwordHash: await bcrypt.hash("SenhaDescartavelGOAL123!", 10),
       systemRole: "VIEWER"
     } });
+    const staffToken = createHash("sha256").update(`goal-staff:${testSessionToken}`).digest("hex");
+    await db.session.create({ data: { userId: staff.id, token: createHash("sha256").update(staffToken).digest("hex"), expiresAt: new Date(Date.now() + 60 * 60_000) } });
     const staffProfile = await db.permissionProfile.create({ data: {
       arenaId: arenaA.id,
       name: "Administrador de teste",

@@ -75,3 +75,23 @@ operações de login. A confirmação resolve a identidade pela sessão; o pedid
 recuperação não revela a existência da conta. O backend guarda os hashes dos links,
 valida uso único e revoga sessões ao trocar a senha. A revalidação da interface
 após confirmar o e-mail permanece na ação web.
+
+## Contexto gerencial
+
+`GET /api/management/context` devolve somente o contexto da sessão gerencial:
+usuário, papéis, permissões e vínculos de arena. Com `?access=arena`, o backend
+também aplica o bloqueio por status da arena, assinatura/período de teste e regras
+de inadimplência existentes. A resposta informa um destino interno permitido
+quando o acesso está bloqueado, sem redirecionamento HTTP que possa esconder uma
+falha de transporte.
+
+O frontend encaminha apenas os cookies gerencial e de arena configurados. IDs de
+arena não pertencentes aos vínculos não mudam o contexto de colaboradores. As
+regras da agência permanecem específicas ao papel existente. Os dados da sessão
+não ficam em cache HTTP; a deduplicação de leitura ocorre somente na requisição
+SSR. As guardas de módulos continuam sendo aplicadas no backend às operações de
+negócio, independentemente da apresentação de menus pelo frontend.
+
+As mutações da sessão gerencial ainda seguem a implementação local temporária;
+serão migradas junto às ações de autenticação e troca de arena. Não retirar as
+credenciais do frontend antes de concluir também os demais contratos.

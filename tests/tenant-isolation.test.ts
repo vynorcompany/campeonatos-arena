@@ -11,7 +11,7 @@ import ts from "typescript";
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
 test("tenant context can only select an arena the user belongs to", () => {
-  const session = read("src/lib/auth/session.ts");
+  const session = read("src/lib/backend/services/management-session.ts");
   const schema = read("prisma/schema.prisma");
 
   assert.match(session, /memberships\.find\(\(membership\) => membership\.arenaId === selectedArenaId\)/);
@@ -48,7 +48,7 @@ test("troca de arena rejeita IDs alheios antes de gravar o cookie", async () => 
 });
 
 test("cookie de arena inválido não altera o contexto para outra subconta", async () => {
-  const source = read("src/lib/auth/session.ts");
+  const source = read("src/lib/backend/services/management-session.ts");
   let selectedArenaId = "arena-b";
   const exports: Record<string, () => Promise<{ arenaId: string; arenaName: string }>> = {};
   const membership = (arenaId: string, name: string) => ({
@@ -78,7 +78,7 @@ test("cookie de arena inválido não altera o contexto para outra subconta", asy
 });
 
 test("requisições simultâneas descartam sessão expirada sem erro concorrente", async () => {
-  const source = read("src/lib/auth/session.ts");
+  const source = read("src/lib/backend/services/management-session.ts");
   const session = { id: "expired-session", expiresAt: new Date(Date.now() - 60_000), user: { memberships: [] } };
   let cleanups = 0;
   const exports: Record<string, () => Promise<unknown>> = {};

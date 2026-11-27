@@ -1,264 +1,50 @@
 import { cache } from "react";
-import { cookies, headers } from "next/headers";
-import { deviceLabel } from "@/lib/auth/device-label";
 import { redirect } from "next/navigation";
-import crypto from "node:crypto";
-import { env } from "@/lib/env";
-import { prisma } from "@/lib/auth/database";
-import { allPermissionModules } from "@/lib/permissions";
-import type { ArenaMembership, ArenaRole, SystemRole } from "@/types/auth";
+import { readManagementContext } from "@/lib/backend/management-context-client";
+import type { ManagementAuthContext } from "@/lib/backend/contracts/management-context";
+export type AuthContext = ManagementAuthContext;
 
-// React provides a request-local cache in Server Components; route handlers use the uncached fallback.
 const cachePerRequest: typeof cache = typeof cache === "function" ? cache : (callback => callback);
 
-const SESSION_TTL_DAYS = env.sessionTtlDays;
-const sessionCookieName = env.sessionCookieName;
-const arenaCookieName = env.arenaCookieName;
-
-export type AuthContext = {
-  userId: string;
-  userName: string;
-  userEmail: string;
-  systemRole: SystemRole;
-  arenaRole: ArenaRole | null;
-  arenaId: string | null;
-  arenaName: string | null;
-  viewPermissions: string[];
-  editPermissions: string[];
-  memberships: ArenaMembership[];
-};
-
-function hashSessionToken(token: string) {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
-
-async function getSessionWithUser(token: string) {
-  return prisma.session.findUnique({
-    where: { token },
-    select: {
-      id: true, expiresAt: true, lastSeenAt: true,
-      user: { select: {
-        id: true, name: true, email: true, systemRole: true,
-        memberships: { select: {
-          role: true, viewPermissions: true, editPermissions: true,
-          arena: { select: { id: true, name: true, logoUrl: true } },
-          arenaId: true,
-          permissionProfile: { select: { viewPermissions: true, editPermissions: true } },
-        }, orderBy: { createdAt: "asc" } },
-      } },
-    }
-  });
-}
-
-async function getSelectedArenaId() {
-  return (await cookies()).get(arenaCookieName)?.value ?? null;
-}
-
-function getActiveMembership(memberships: ArenaMembership[], selectedArenaId: string | null) {
-  if (selectedArenaId) {
-    const selectedMembership = memberships.find((membership) => membership.arenaId === selectedArenaId);
-
-    if (selectedMembership) {
-      return selectedMembership;
-    }
-  }
-
-  return memberships[0] ?? null;
-}
-
-function isAgencyRole(systemRole: SystemRole) {
-  return systemRole === "SUPER_ADMIN" || systemRole === "ADMIN" || systemRole === "MANAGER";
-}
-
-export async function setArenaContextCookie(arenaId: string) {
-  (await cookies()).set(arenaCookieName, arenaId, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/"
-  });
-}
-
-export async function clearArenaContextCookie() {
-  (await cookies()).delete(arenaCookieName);
-}
-
-export async function createSession(userId: string) {
-  const token = crypto.randomBytes(32).toString("hex");
-  const hashedToken = hashSessionToken(token);
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + SESSION_TTL_DAYS);
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      memberships: {
-        include: {
-          arena: { select: { id: true } }
-        },
-        orderBy: {
-          createdAt: "asc"
-        }
-      }
-    }
-  });
-
-  await prisma.session.create({
-    data: {
-      token: hashedToken,
-      deviceLabel: deviceLabel((await headers()).get("user-agent") ?? ""),
-      userId,
-      expiresAt
-    }
-  });
-
-  (await cookies()).set(sessionCookieName, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    expires: expiresAt,
-    path: "/"
-  });
-
-  const firstMembership = user?.memberships[0];
-
-  if (firstMembership) {
-    await setArenaContextCookie(firstMembership.arenaId);
-  }
-}
-
-export async function destroySession() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(sessionCookieName)?.value;
-
-  if (token) {
-    await prisma.session.deleteMany({
-      where: {
-        token: {
-          in: [token, hashSessionToken(token)]
-        }
-      }
-    });
-  }
-
-  cookieStore.delete(sessionCookieName);
-  cookieStore.delete(arenaCookieName);
-}
+const remoteArenaContext = cachePerRequest((origin: string) => readManagementContext(origin, true));
 
 export const getAuthContext = cachePerRequest(async (): Promise<AuthContext | null> => {
-  const token = (await cookies()).get(sessionCookieName)?.value;
-
-  if (!token) {
-    return null;
-  }
-
-  const hashedToken = hashSessionToken(token);
-  let session = await getSessionWithUser(hashedToken);
-
-  if (!session) {
-    session = await getSessionWithUser(token);
-
-    if (session) {
-      await prisma.session.update({
-        where: { id: session.id },
-        data: {
-          token: hashedToken
-        }
-      });
-    }
-  }
-
-  if (!session || session.expiresAt < new Date()) {
-    if (session) {
-      await prisma.session.deleteMany({
-        where: { id: session.id }
-      });
-    }
-
-    return null;
-  }
-
-  const activityThreshold = new Date(Date.now() - 5 * 60_000);
-  if (session.lastSeenAt < activityThreshold) await prisma.session.updateMany({ where: { id: session.id, userId: session.user.id, lastSeenAt: { lt: activityThreshold } }, data: { lastSeenAt: new Date() } });
-
-  const memberships: ArenaMembership[] = session.user.memberships.map((membership) => ({
-    arenaId: membership.arenaId,
-    arenaName: membership.arena.name,
-    arenaLogoUrl: membership.arena.logoUrl || "/arena-profile.jpg",
-    arenaRole: membership.role as ArenaRole,
-    viewPermissions: membership.permissionProfile?.viewPermissions ?? membership.viewPermissions,
-    editPermissions: membership.permissionProfile?.editPermissions ?? membership.editPermissions
-  }));
-  const systemRole = session.user.systemRole as SystemRole;
-  const membershipArenaIds = new Set(memberships.map((membership) => membership.arenaId));
-
-  if (isAgencyRole(systemRole)) {
-    const agencyArenas = await prisma.arena.findMany({
-      select: { id: true, name: true, logoUrl: true },
-      where: {
-        id: {
-          notIn: [...membershipArenaIds]
-        }
-      },
-      orderBy: {
-        name: "asc"
-      }
-    });
-
-    memberships.push(
-      ...agencyArenas.map((arena) => ({
-        arenaId: arena.id,
-        arenaName: arena.name,
-        arenaLogoUrl: arena.logoUrl || "/arena-profile.jpg",
-        arenaRole: "OWNER" as ArenaRole,
-        viewPermissions: allPermissionModules,
-        editPermissions: allPermissionModules
-      }))
-    );
-  }
-
-  const activeMembership = getActiveMembership(memberships, await getSelectedArenaId());
-
-  return {
-    userId: session.user.id,
-    userName: session.user.name,
-    userEmail: session.user.email,
-    systemRole,
-    arenaRole: activeMembership?.arenaRole ?? null,
-    arenaId: activeMembership?.arenaId ?? null,
-    arenaName: activeMembership?.arenaName ?? null,
-    viewPermissions: activeMembership?.viewPermissions ?? [],
-    editPermissions: activeMembership?.editPermissions ?? [],
-    memberships
-  };
+  if (process.env.VX4_BACKEND_ORIGIN) return (await readManagementContext(process.env.VX4_BACKEND_ORIGIN)).auth;
+  const local = await import("@/lib/backend/services/management-session");
+  return local.getAuthContext();
 });
 
 export async function requireAuth() {
   const auth = await getAuthContext();
-
-  if (!auth) {
-    redirect("/login");
-  }
-
+  if (!auth) redirect("/login");
   return auth;
 }
 
 export async function requireArenaAccess() {
-  const auth = await requireAuth();
-
-  if (!auth.arenaId) {
-    redirect("/login");
+  if (process.env.VX4_BACKEND_ORIGIN) {
+    const result = await remoteArenaContext(process.env.VX4_BACKEND_ORIGIN);
+    if (result.redirectTo) redirect(result.redirectTo);
+    if (!result.auth?.arenaId) redirect("/login");
+    return result.auth as AuthContext & { arenaId: string; arenaName: string | null };
   }
+  const local = await import("@/lib/backend/services/management-session");
+  return local.requireArenaAccess();
+}
 
-  if (auth.systemRole !== "SUPER_ADMIN" && auth.systemRole !== "ADMIN" && auth.systemRole !== "MANAGER") {
-    const arena = await prisma.arena.findUnique({ where: { id: auth.arenaId }, select: { accountStatus: true, agencySubscription: { select: { status: true, trialEndsAt: true, plan: { select: { isTrial: true } } } } } });
-    const subscription = arena?.agencySubscription;
-    if (arena?.accountStatus !== "ACTIVE" || (subscription && (subscription.status !== "ACTIVE" || (subscription.plan.isTrial && subscription.trialEndsAt && subscription.trialEndsAt <= new Date())))) redirect("/acesso-indisponivel");
-    if (subscription && !subscription.plan.isTrial) {
-      const { getAgencyDelinquency } = await import("@/lib/finance/agency-delinquency");
-      if ((await getAgencyDelinquency(auth.arenaId))?.blocked) redirect("/acesso-indisponivel");
-    }
-  }
-
-  return auth as AuthContext & { arenaId: string; arenaName: string | null };
+// Session mutations move with the management authentication actions.
+export async function createSession(userId: string) {
+  const local = await import("@/lib/backend/services/management-session");
+  return local.createSession(userId);
+}
+export async function destroySession() {
+  const local = await import("@/lib/backend/services/management-session");
+  return local.destroySession();
+}
+export async function setArenaContextCookie(arenaId: string) {
+  const local = await import("@/lib/backend/services/management-session");
+  return local.setArenaContextCookie(arenaId);
+}
+export async function clearArenaContextCookie() {
+  const local = await import("@/lib/backend/services/management-session");
+  return local.clearArenaContextCookie();
 }
