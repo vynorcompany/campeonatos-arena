@@ -9,30 +9,16 @@ import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { requireModuleView } from "@/lib/auth/guards";
-import { arenaDatabase } from "@/lib/arena-database";
+import { getTournamentGeneralRegistrations } from "@/lib/tournaments/registration-queries";
 import {
   generateCategoryBracketAction,
   updateCategoryBracketMatchScheduleAction,
   updateTournamentCategoryFormatAction,
 } from "@/lib/actions/tournament";
 import { RegistrationEditForm, RegistrationPaymentFields } from "@/components/tournaments/registration-edit-form";
-import { getTournamentScheduleConflicts } from "@/lib/services/tournament";
 import { ReviewedCheckoutRelease } from "@/components/finance/reviewed-checkout-release";
 import { canPerformPermission } from "@/lib/permissions";
 import { redirect } from "next/navigation";
-import { canEditManualTournamentRegistration } from "@/lib/tournaments/registration-deletion";
-
-type BracketItem = {
-  categoryId: string;
-  matches: Array<{
-    id: string;
-    label: string;
-    homeRegistration: { leadName: string; partnerName: string } | null;
-    awayRegistration: { leadName: string; partnerName: string } | null;
-    scheduledTime: string;
-    courtName: string;
-  }>;
-};
 
 const formatRegistrationMoney = (cents: number) => new Intl.NumberFormat("pt-BR", {style:"currency",currency:"BRL"}).format(cents/100);
 const registrationCanceled = (registration: any) => registration.paymentStatus === "REFUNDED" || registration.status === "CANCELED";
@@ -44,89 +30,13 @@ export default async function TournamentRegistrationsPage({searchParams}:{search
   const query=(filters.q??"").trim().toLocaleLowerCase("pt-BR");
   const auth = await requireModuleView("tournaments");
   if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) redirect("/jogos");
-  const tenantDb = arenaDatabase(auth.arenaId);
   const canResolveReview = canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
-  const events=await tenantDb.tournament.findMany({where:{arenaId:auth.arenaId,status:{not:"FINISHED"}},orderBy:{createdAt:"desc"},select:{id:true,name:true}});
-  const selectedId=events.find(e=>e.id===filters.tournamentId)?.id??events[0]?.id;
-  let tournament: any = null;
-  let categoryBrackets: BracketItem[] = [];
-
-  try {
-    tournament = await tenantDb.tournament.findFirst({
-      where: {
-        arenaId: auth.arenaId,
-        id: selectedId,
-        status: {
-          not: "FINISHED"
-        }
-      },
-      include: {
-        categories: {
-          where: { active: true },
-          orderBy: { level: "asc" },
-          include: {
-            competition: {
-              include: { pairs: {
-                where: { active: true }, orderBy: { drawOrder: "asc" },
-                include: { players: { orderBy: { slot: "asc" }, include: { player: { select: { id: true, name: true } } } } }
-              } }
-            },
-            registrations: {
-              orderBy: { createdAt: "asc" }
-            }
-          }
-        },
-        categoryBrackets: {
-          include: {
-            category: true,
-            matches: {
-              include: {
-                homeRegistration: true,
-                awayRegistration: true
-              },
-              orderBy: { roundOrder: "asc" }
-            }
-          }
-        }
-      }
-    });
-    categoryBrackets = tournament?.categoryBrackets ?? [];
-  } catch {
-    tournament = await tenantDb.tournament.findFirst({
-      where: {
-        arenaId: auth.arenaId,
-        id: selectedId,
-        status: {
-          not: "FINISHED"
-        }
-      },
-      include: {
-        categories: {
-          where: { active: true },
-          orderBy: { level: "asc" },
-          include: {
-            competition: {
-              include: { pairs: {
-                where: { active: true }, orderBy: { drawOrder: "asc" },
-                include: { players: { orderBy: { slot: "asc" }, include: { player: { select: { id: true, name: true } } } } }
-              } }
-            },
-            registrations: {
-              orderBy: { createdAt: "asc" }
-            }
-          }
-        }
-      }
-    });
-  }
+  const { events, tournament, categoryBrackets, bankAccounts, conflicts } = await getTournamentGeneralRegistrations(filters.tournamentId);
 
   if (!tournament) {
     return <SectionCard title="Inscrições" hideHeading><p className={viewStyles.muted}>Nenhum torneio ativo.</p></SectionCard>;
   }
 
-  const bankAccounts = await tenantDb.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
-
-  const conflicts = await getTournamentScheduleConflicts(tournament.id, auth.arenaId);
   const matchesQuery=(names:string)=>!query||names.toLocaleLowerCase("pt-BR").includes(query);
   const categories=tournament.categories.filter((category:any)=>!query||category.registrations.some((reg:any)=>matchesQuery(`${reg.leadName} ${reg.partnerName} ${reg.thirdName ?? ""}`))||category.competition?.pairs.some((pair:any)=>matchesQuery(pair.players.map((p:any)=>p.player.name).join(" ")+" "+pair.name)));
 
@@ -137,7 +47,7 @@ export default async function TournamentRegistrationsPage({searchParams}:{search
 
       {tournament.registrationPhase === "REGISTRATIONS" && tournament.categories.some((category:any)=>!category.competition && category.registrationType !== "INDIVIDUAL") ? <p className="tw:m-0 tw:rounded tw:bg-[#174983] tw:text-white tw:px-3 tw:py-2 tw:text-xs">Encerre as inscrições para montar o chaveamento.</p>:null}
 
-      {conflicts.length ? <details className={ui.panel}><summary className="tw:cursor-pointer tw:text-xs tw:font-medium tw:text-red-700">{conflicts.length} conflitos de agenda</summary><ul className={viewStyles.simple_list}>{conflicts.map(conflict=><li key={`${conflict.playerId}-${conflict.scheduledTime}`} className={viewStyles.simple_item}><strong>{conflict.scheduledTime}</strong><span>{conflict.labels.join(" | ")}</span></li>)}</ul></details>:null}
+      {conflicts.length ? <details className={ui.panel}><summary className="tw:cursor-pointer tw:text-xs tw:font-medium tw:text-red-700">{conflicts.length} conflitos de agenda</summary><ul className={viewStyles.simple_list}>{conflicts.map(conflict=><li key={conflict.key} className={viewStyles.simple_item}><strong>{conflict.scheduledTime}</strong><span>{conflict.labels.join(" | ")}</span></li>)}</ul></details>:null}
 
       {categories.map((category: any) => {
         const bracket = categoryBrackets.find((item) => item.categoryId === category.id);
@@ -190,7 +100,7 @@ export default async function TournamentRegistrationsPage({searchParams}:{search
               })}
               {category.registrations.filter((reg:any)=>!represented(reg)&&matchesQuery(`${reg.leadName} ${reg.partnerName} ${reg.thirdName ?? ""}`)).map((registration: any) => (
                 <TournamentRegistrationRow showCategory={false} key={registration.id} name={[registration.leadName,registration.partnerName,registration.thirdName].filter(Boolean).join(" / ")} category={category.name} amount={formatRegistrationMoney(registration.amountCents)} situation={registrationSituation(registration)} payment={registrationPayment(registration)} canceled={registrationCanceled(registration)} pending={registration.paymentStatus === "PENDING" || registration.paymentStatus === "REVIEW"} actions={registration.paymentProvider === "PAY_ON_SITE" && registration.status === "CONFIRMED" && registration.paymentStatus === "PENDING" && canPerformPermission("finance:receivable:settle",auth.arenaRole,auth.systemRole,auth.editPermissions) ? <ReceiveOnsiteRegistrationButton registrationId={registration.id} accounts={bankAccounts}/> : null}>
-                    {registration.paymentStatus === "REVIEW" ? <ReviewedCheckoutRelease kind="registration" recordId={registration.id} paymentId={registration.mercadoPagoPaymentId} clientName={`${registration.leadName} / ${registration.partnerName}`} canResolve={canResolveReview} /> : registration.paymentStatus === "REFUNDED" || registration.status === "CANCELED" ? <p className={viewStyles.muted}>Pagamento estornado ou inscrição cancelada. É possível fazer uma nova inscrição.</p> : !canEditManualTournamentRegistration(registration) ? <p className={viewStyles.muted}>{registration.status === "CONFIRMED" ? "Inscrição confirmada: correções devem preservar seus vínculos com o evento." : "Inscrição com cobrança online: confira o pagamento antes de alterar os dados."}</p> : <details>
+                    {registration.paymentStatus === "REVIEW" ? <ReviewedCheckoutRelease kind="registration" recordId={registration.id} paymentId={registration.mercadoPagoPaymentId} clientName={`${registration.leadName} / ${registration.partnerName}`} canResolve={canResolveReview} /> : registration.paymentStatus === "REFUNDED" || registration.status === "CANCELED" ? <p className={viewStyles.muted}>Pagamento estornado ou inscrição cancelada. É possível fazer uma nova inscrição.</p> : !registration.canEdit ? <p className={viewStyles.muted}>{registration.status === "CONFIRMED" ? "Inscrição confirmada: correções devem preservar seus vínculos com o evento." : "Inscrição com cobrança online: confira o pagamento antes de alterar os dados."}</p> : <details>
                       <summary className="tw:[cursor:pointer] tw:[color:var(--brand)] tw:font-medium">Editar inscrição</summary>
                       <RegistrationEditForm className={viewStyles.grid_form}>
                         <input type="hidden" name="registrationId" value={registration.id} /><input type="hidden" name="registrationType" value={category.registrationType ?? "PAIR"}/>

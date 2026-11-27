@@ -298,7 +298,9 @@ test("tournament header links to the arena public standings page", async () => {
     "utf8",
   );
 
-  assert.match(source, /arena:\s*\{\s*select:\s*\{\s*slug:\s*true/);
+  const overviewService = await readFile(path.join(workspaceRoot, "src/lib/backend/services/tournament-workspaces.ts"), "utf8");
+  assert.match(overviewService, /arena:\s*\{\s*select:\s*\{\s*slug:\s*true/);
+  assert.match(source, /getTournamentOverview/);
   assert.match(
     source,
     /href=\{`\/classificacao\/\$\{tournament\.arena\.slug\}`\}/,
