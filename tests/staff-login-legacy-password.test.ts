@@ -15,11 +15,11 @@ function loginFixture(passwordHash: string) {
   let sessionsCreated = 0;
   let failures = 0;
   const exports: Record<string, (state: { error: string | null }, form: FormData) => Promise<{ error: string | null }>> = {};
-  const source = readFileSync(new URL("../src/lib/auth/actions.ts", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../src/lib/backend/services/management-auth.ts", import.meta.url), "utf8");
   const mocks: Record<string, unknown> = {
     "next/navigation": { redirect: () => { throw redirectSignal; } },
     "@/lib/prisma": { prisma: { user: { findUnique: async () => ({ id: "legacy-user", passwordHash, systemRole: "VIEWER" }) } } },
-    "@/lib/auth/session": { createSession: async () => { sessionsCreated += 1; } },
+    "@/lib/backend/services/management-session": { createSession: async () => { sessionsCreated += 1; } },
     "@/lib/validators/auth": { loginSchema },
     "@/lib/permissions": {},
     "@/lib/finance/agency-billing-dates": {},
@@ -42,7 +42,7 @@ test("login confere pelo hash uma senha legada curta sem criar falha", async () 
   const form = new FormData();
   form.set("email", " pessoa@arena.test ");
   form.set("password", legacyPassword);
-  await assert.rejects(fixture.action({ error: null }, form), (error: unknown) => error === fixture.redirectSignal);
+  assert.equal((await fixture.action({ error: null }, form) as any).redirectTo, "/painel");
   assert.deepEqual(fixture.state(), { sessionsCreated: 1, failures: 0 });
 });
 

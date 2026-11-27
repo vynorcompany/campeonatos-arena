@@ -19,7 +19,7 @@ test("tenant context can only select an arena the user belongs to", () => {
 });
 
 test("troca de arena rejeita IDs alheios antes de gravar o cookie", async () => {
-  const source = read("src/lib/auth/actions.ts");
+  const source = read("src/lib/backend/services/management-auth.ts");
   const selected: string[] = [];
   const exports: Record<string, (form: FormData) => Promise<void>> = {};
   const redirect = (path: string): never => { throw new Error(`redirect:${path}`); };
@@ -28,7 +28,7 @@ test("troca de arena rejeita IDs alheios antes de gravar o cookie", async () => 
     FormData,
     require: withDatabaseModuleMocks((name: string) => {
       if (name === "next/navigation") return { redirect };
-      if (name === "@/lib/auth/session") return {
+      if (name === "@/lib/backend/services/management-session") return {
         getAuthContext: async () => ({ memberships: [{ arenaId: "arena-a" }] }),
         setArenaContextCookie: async (arenaId: string) => { selected.push(arenaId); },
       };
@@ -43,7 +43,7 @@ test("troca de arena rejeita IDs alheios antes de gravar o cookie", async () => 
   assert.deepEqual(selected, []);
 
   form.set("arenaId", "arena-a");
-  await assert.rejects(exports.setActiveArenaAction(form), /redirect:\/painel/);
+  assert.equal((await exports.setActiveArenaAction(form) as any).redirectTo, "/painel");
   assert.deepEqual(selected, ["arena-a"]);
 });
 

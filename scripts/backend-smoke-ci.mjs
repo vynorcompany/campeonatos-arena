@@ -83,6 +83,42 @@ try {
   assert.equal(staffContext.auth.editPermissions.includes('support'), true);
   const deniedModule = await fetch(origin + '/api/manual-upcoming-matches', { headers: { cookie: staffCookie }, redirect: 'manual' });
   assert.equal(deniedModule.status, 404, 'Read-only context must not grant an unassigned module');
+  for (const requestOrigin of [undefined, 'https://untrusted.invalid']) {
+    const deniedManagement = await fetch(origin + '/api/management/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...(requestOrigin ? { origin: requestOrigin } : {}) }, body: '{}',
+    });
+    assert.equal(deniedManagement.status, 403);
+    assert.equal(deniedManagement.headers.getSetCookie().length, 0);
+  }
+  const forgedManagement = await fetch(origin + '/api/management/auth/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014' }, body: JSON.stringify({ email: 'goal-staff@example.test', password: 'SenhaDescartavelGOAL123!', systemRole: 'SUPER_ADMIN' }),
+  });
+  assert.equal(forgedManagement.status, 400);
+  const managementLogin = await fetch(origin + '/api/management/auth/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014', 'user-agent': 'Mozilla/5.0 Synthetic Browser' },
+    body: JSON.stringify({ email: 'goal-staff@example.test', password: 'SenhaDescartavelGOAL123!' }),
+  });
+  assert.equal(managementLogin.status, 200);
+  assert.deepEqual(await managementLogin.json(), { error: null, redirectTo: '/painel' });
+  const managementCookies = managementLogin.headers.getSetCookie();
+  assert.equal(managementCookies.filter(value => /^(padel_session|padel_arena)=/.test(value)).length, 2);
+  assert.ok(managementCookies.every(value => value.includes('HttpOnly')));
+  const loggedStaffCookie = managementCookies.map(value => value.split(';', 1)[0]).join('; ');
+  const forbiddenSwitch = await fetch(origin + '/api/management/auth/select-arena', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014', cookie: loggedStaffCookie }, body: JSON.stringify({ arenaId: otherArenaId }),
+  });
+  assert.match((await forbiddenSwitch.json()).error, /Arena inválida/);
+  assert.equal(forbiddenSwitch.headers.getSetCookie().length, 0);
+  const allowedSwitch = await fetch(origin + '/api/management/auth/select-arena', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014', cookie: loggedStaffCookie }, body: JSON.stringify({ arenaId: staffContext.auth.arenaId }),
+  });
+  assert.deepEqual(await allowedSwitch.json(), { error: null, redirectTo: '/painel' });
+  const managementLogout = await fetch(origin + '/api/management/auth/logout', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014', cookie: loggedStaffCookie }, body: '{}',
+  });
+  assert.deepEqual(await managementLogout.json(), { error: null, redirectTo: '/login' });
+  const revokedStaff = await fetch(origin + '/api/management/context', { headers: { cookie: loggedStaffCookie } });
+  assert.equal((await revokedStaff.json()).auth, null);
   const anonymousSession = await fetch(origin + '/api/portal/session?arena=goal-arena-a');
   assert.equal(anonymousSession.status, 200);
   assert.deepEqual(await anonymousSession.json(), { currentClient: null, athleteIdentity: null });

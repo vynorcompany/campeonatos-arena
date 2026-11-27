@@ -92,6 +92,12 @@ não ficam em cache HTTP; a deduplicação de leitura ocorre somente na requisi�
 SSR. As guardas de módulos continuam sendo aplicadas no backend às operações de
 negócio, independentemente da apresentação de menus pelo frontend.
 
-As mutações da sessão gerencial ainda seguem a implementação local temporária;
-serão migradas junto às ações de autenticação e troca de arena. Não retirar as
-credenciais do frontend antes de concluir também os demais contratos.
+`POST /api/management/auth/{operation}` executa login, cadastro da arena,
+saída e seleção de arena/workspace. O backend valida senha, tentativas e vínculos;
+o frontend aplica somente os cookies gerencial/de arena configurados, preserva o
+User-Agent para identificação do dispositivo e mantém os redirecionamentos internos.
+São exigidos a origem configurada e o limite de 16 KiB, como nos contratos do Portal.
+Cookies são validados integralmente antes de modificar a sessão do navegador.
+
+A recuperação gerencial por e-mail e os demais domínios ainda precisam migrar.
+Não retirar as credenciais do frontend antes de concluir também esses contratos.

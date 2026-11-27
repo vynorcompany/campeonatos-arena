@@ -30,21 +30,3 @@ export async function requireArenaAccess() {
   const local = await import("@/lib/backend/services/management-session");
   return local.requireArenaAccess();
 }
-
-// Session mutations move with the management authentication actions.
-export async function createSession(userId: string) {
-  const local = await import("@/lib/backend/services/management-session");
-  return local.createSession(userId);
-}
-export async function destroySession() {
-  const local = await import("@/lib/backend/services/management-session");
-  return local.destroySession();
-}
-export async function setArenaContextCookie(arenaId: string) {
-  const local = await import("@/lib/backend/services/management-session");
-  return local.setArenaContextCookie(arenaId);
-}
-export async function clearArenaContextCookie() {
-  const local = await import("@/lib/backend/services/management-session");
-  return local.clearArenaContextCookie();
-}

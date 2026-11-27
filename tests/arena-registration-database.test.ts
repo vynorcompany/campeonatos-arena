@@ -28,21 +28,21 @@ test("cadastro cria trial, perfis e owner na arena correta sem persistir dados d
         bcryptjs: { hash: async () => "hash-descartavel" },
         "next/navigation": { redirect: (path: string) => { throw new Error(`redirect:${path}`); } },
         "@/lib/prisma": { prisma: { user: tx.user, arena: tx.arena, $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) } },
-        "@/lib/auth/session": { createSession: async (id: string) => { sessions.push(id); } },
+        "@/lib/backend/services/management-session": { createSession: async (id: string) => { sessions.push(id); } },
         "@/lib/env": { env: {} },
         "@/lib/auth/login-attempts": { activeLoginLock: async () => null, recordFailedLogin: async () => null, clearLoginFailures: async () => {} },
         "@/lib/validators/auth": { registerArenaSchema },
         "@/lib/permissions": { defaultArenaPermissionProfiles, defaultPermissionsForRole },
         "@/lib/finance/agency-billing-dates": { agencyBillingDay },
       };
-      const source = readFileSync(new URL("../src/lib/auth/actions.ts", import.meta.url), "utf8");
+      const source = readFileSync(new URL("../src/lib/backend/services/management-auth.ts", import.meta.url), "utf8");
       vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, {
         exports, require: withDatabaseModuleMocks((name: string) => { if (!(name in mocks)) throw new Error(`Unexpected import: ${name}`); return mocks[name]; }), FormData, Date, URL, console,
       });
       const form = new FormData();
       form.set("arenaName", "Arena Cadastro GOAL"); form.set("ownerName", "Responsável GOAL"); form.set("email", email);
       form.set("password", "SenhaDescartavel123!"); form.set("confirmPassword", "SenhaDescartavel123!");
-      await assert.rejects(exports.registerArenaAction({ error: null }, form), /redirect:\/painel/);
+      assert.equal((await exports.registerArenaAction({ error: null }, form)).redirectTo, "/painel");
       assert.equal(sessions.length, 1);
       const owner = await tx.user.findUniqueOrThrow({ where: { email }, select: { id: true } });
       assert.equal(sessions[0], owner.id);
