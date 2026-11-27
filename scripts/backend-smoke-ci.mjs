@@ -410,7 +410,7 @@ try {
   await assertFinanceSSR('http://127.0.0.1:3014', financeFixture.cookie);
   await assertFinancialSettingsSSR('http://127.0.0.1:3014', financeFixture.cookie);
   await assertFinanceWorkspacesSSR('http://127.0.0.1:3014', financeFixture.cookie);
-  for (const path of ['/professores', '/aulas/alunos', '/aulas/registrar', '/aulas', '/pdv/servicos', '/pdv/estoque', '/pdv/vendas', '/pdv/caixa', '/financeiro/fila-de-boletos', '/financeiro/fila-de-boletos?status=issued', '/financeiro/fila-de-boletos?status=canceled', '/configuracoes/impressora', '/configuracoes/politicas', '/configuracoes/privacidade', '/configuracoes/dispositivos', '/financeiro/pdv-estoque', '/arena/regulamento']) { const response = await fetch('http://127.0.0.1:3014' + path, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200, path); assert.equal((await response.text()).includes('passwordHash'), false); }
+  for (const path of ['/professores', '/aulas/alunos', '/aulas/registrar', '/aulas', '/pdv/servicos', '/pdv/estoque', '/pdv/vendas', '/pdv/caixa', '/financeiro/fila-de-boletos', '/financeiro/fila-de-boletos?status=issued', '/financeiro/fila-de-boletos?status=canceled', '/configuracoes/impressora', '/configuracoes/politicas', '/configuracoes/privacidade', '/configuracoes/dispositivos', '/financeiro/pdv-estoque', '/arena/regulamento', '/suporte']) { const response = await fetch('http://127.0.0.1:3014' + path, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200, path); assert.equal((await response.text()).includes('passwordHash'), false); }
   for (const suffix of ['', '?documentId=' + financeFixture.fiscalDocumentId, '?documentId=not-this-arena']) {
     const response = await fetch('http://127.0.0.1:3014/financeiro/notas-fiscais' + suffix, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200, 'Fiscal listing SSR');
     const html = await response.text(); assert.equal(html.includes('SYNTHETIC-MISMATCH'), false); assert.equal(html.includes('private-fiscal-'), false);
@@ -432,6 +432,12 @@ try {
     const response = await fetch(`http://127.0.0.1:3014/professores/${financeFixture.teacherId}?tab=${tab}&inicio=2026-11-01&fim=2026-11-30`, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' });
     assert.equal(response.status, 200, `Teacher profile SSR failed: ${tab}`); const html = await response.text(); assert.ok(html.includes('Professor Academia Contrato')); assert.equal(html.includes('passwordHash'), false); if (tab === 'report') assert.match(html, /name="fim"[^>]*value="2026-11-30"/);
   }
+  const supportSSR = await fetch('http://127.0.0.1:3014/suporte', {headers:{cookie:financeFixture.cookie},redirect:'manual'});
+  assert.equal(supportSSR.status,200); const supportHTML = await supportSSR.text(); assert.ok(supportHTML.includes('Resposta pública sintética')); assert.equal(supportHTML.includes('NOTA_INTERNA_PRIVADA_'),false);
+  const supportUser = await fixtureDb.user.findUniqueOrThrow({where:{id:staffFixtureId},select:{systemRole:true}});
+  await fixtureDb.user.update({where:{id:staffFixtureId},data:{systemRole:'MANAGER'}});
+  try { const response = await fetch('http://127.0.0.1:3014/agencia/suporte',{headers:{cookie:financeFixture.cookie},redirect:'manual'}); assert.equal(response.status,200); const html = await response.text(); assert.ok(html.includes('NOTA_INTERNA_PRIVADA_')); assert.equal(html.includes('passwordHash'),false); }
+  finally { await fixtureDb.user.update({where:{id:staffFixtureId},data:{systemRole:supportUser.systemRole}}); }
   const auditMember = await fixtureDb.arenaMember.findFirstOrThrow({ where: { arenaId: financeFixture.arenaId, userId: staffFixtureId } });
   await fixtureDb.arenaMember.update({ where: { id: auditMember.id }, data: { role: 'ADMIN' } });
   try { const response = await fetch('http://127.0.0.1:3014/auditoria?q=' + financeFixture.auditTag, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200); const html = await response.text(); assert.ok(html.includes('Lançamento quitado')); assert.equal(html.includes('private-audit-'), false); } finally { await fixtureDb.arenaMember.update({ where: { id: auditMember.id }, data: { role: auditMember.role } }); }
