@@ -11,7 +11,7 @@ import { PublicRegistrationLinkActions } from "@/components/tournaments/public-r
 import { deleteTournamentAction, updateTournamentRegistrationPhaseAction } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
-import { arenaDatabase } from "@/lib/arena-database";
+import { getTournamentOverview } from "@/lib/tournaments/workspaces";
 
 type TournamentDetailPageProps = {
   params: Promise<{ tournamentId: string }>;
@@ -22,50 +22,7 @@ export default async function TournamentDetailPage(props: TournamentDetailPagePr
   const params = await props.params;
   const auth = await requireModuleView("tournaments");
   if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) redirect(`/jogos?tournamentId=${encodeURIComponent(params.tournamentId)}`);
-  const [tournament] = await Promise.all([
-    arenaDatabase(auth.arenaId).tournament.findFirst({
-      where: {
-        id: params.tournamentId,
-        arenaId: auth.arenaId,
-      },
-      include: {
-        arena: {
-          select: { slug: true },
-        },
-        categories: {
-          where: { archivedAt: null },
-          orderBy: { level: "asc" },
-          include: {
-            _count: { select: { registrations: true } },
-            competition: {
-              select: {
-                format: true,
-                status: true,
-                _count: {
-                  select: { pairs: { where: { active: true } } },
-                },
-              },
-            },
-          },
-        },
-        publicRegistrations: {
-          where: { status: "CONFIRMED", paymentStatus: "PAID" },
-          orderBy: { createdAt: "asc" },
-          select: { id: true, leadName: true, partnerName: true, createdAt: true },
-        },
-      },
-    }),
-    arenaDatabase(auth.arenaId).rankingProfile.findMany({
-      where: {
-        arenaId: auth.arenaId,
-        active: true,
-        type: "INDIVIDUAL",
-        model: "KNOCKOUT",
-      },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
-  ]);
+  const { tournament } = await getTournamentOverview(params.tournamentId);
 
   if (!tournament) {
     notFound();
@@ -153,7 +110,7 @@ export default async function TournamentDetailPage(props: TournamentDetailPagePr
         </div>
         <aside className={viewStyles.event_side_column}>
           <EventQuickActions
-            tournament={tournament}
+            tournament={{ id: tournament.id, name: tournament.name, description: tournament.description, rules: tournament.rules, onlinePaymentEnabled: tournament.onlinePaymentEnabled }}
             publicPageUrl={`/inscricao/${tournament.publicSlug}`}
             categories={tournament.categories.map((category) => ({ id: category.id, name: category.name, registrationType: category.registrationType, pairCount: category.competition?._count.pairs ?? 0 }))}
           />

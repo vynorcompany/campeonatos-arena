@@ -2,7 +2,7 @@ import "server-only";
 import { requireModuleView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
 import { arenaDatabase } from "@/lib/arena-database";
-import { tournamentCategoriesSchema, tournamentGamesSchema } from "../contracts/tournament-workspaces";
+import { tournamentCategoriesSchema, tournamentGamesSchema, tournamentOverviewSchema } from "../contracts/tournament-workspaces";
 async function context() {
  const auth = await requireModuleView("tournaments");
  if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) throw Error("Sem permissão para gerenciar eventos.");
@@ -27,4 +27,22 @@ export async function resolveTournamentGames(tournamentId: string) {
   prisma.categoryMatch.findMany({ where: { competition: { category: { tournamentId, tournament: { arenaId: auth.arenaId } } } }, select: { id: true, label: true, scheduledDate: true, scheduledTime: true, courtName: true, competition: { select: { category: { select: { name: true } } } }, homePair: { select: { name: true } }, awayPair: { select: { name: true } } }, orderBy: { roundOrder: "asc" } }),
  ]);
  return tournamentGamesSchema.parse({ view: "games", tournament, courts: tournament ? courts : [], matches: tournament ? matches : [] });
+}
+
+export async function resolveTournamentOverview(tournamentId: string) {
+ const auth = await context();
+ const db = arenaDatabase(auth.arenaId);
+ const tournament = await db.tournament.findFirst({
+  where: { id: tournamentId, arenaId: auth.arenaId },
+  select: { id: true, name: true, description: true, rules: true, onlinePaymentEnabled: true, publicSlug: true, registrationPhase: true, creationMode: true,
+   createdAt: true, updatedAt: true, firstBonusLimit: true, firstBonusUntil: true, arena: { select: { slug: true } },
+   categories: { where: { archivedAt: null }, orderBy: { level: "asc" }, select: { id: true, name: true, registrationType: true, _count: { select: { registrations: true } }, competition: { select: { format: true, status: true, _count: { select: { pairs: { where: { active: true } } } } } } } },
+  },
+ });
+ if (!tournament) return tournamentOverviewSchema.parse({ view: "overview", tournament: null });
+ const publicRegistrations = tournament.firstBonusLimit > 0 ? await db.publicTournamentRegistration.findMany({
+  where: { tournamentId: tournament.id, tournament: { arenaId: auth.arenaId }, status: "CONFIRMED", paymentStatus: "PAID", ...(tournament.firstBonusUntil ? { createdAt: { lte: tournament.firstBonusUntil } } : {}) },
+  orderBy: { createdAt: "asc" }, take: tournament.firstBonusLimit, select: { id: true, leadName: true, partnerName: true, createdAt: true },
+ }) : [];
+ return tournamentOverviewSchema.parse({ view: "overview", tournament: { ...tournament, createdAt: tournament.createdAt.toISOString(), updatedAt: tournament.updatedAt.toISOString(), firstBonusUntil: tournament.firstBonusUntil?.toISOString() ?? null, publicRegistrations: publicRegistrations.map(registration => ({ ...registration, createdAt: registration.createdAt.toISOString() })) } });
 }
