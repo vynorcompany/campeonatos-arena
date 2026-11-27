@@ -178,3 +178,13 @@ test("audit diagnostics classify failures without driver messages, SQL or creden
   assert.deepEqual(unknown, { stage: 'COMPLETION', name: 'Error' });
   assert.equal(JSON.stringify(auditFailure(error, 'REQUESTED')).includes('private'), false);
 });
+
+
+test("public registration audit does not adopt an unrelated management session", async () => {
+  const state = fixture();
+  await server(createAuditedHandler((_req: any, res: any) => { noteAuditArena("arena-event"); res.end("ok"); }, { db: state.db }), async url => {
+    assert.equal((await fetch(`${url}/api/public/registrations`, {method:"POST",headers:{cookie:`padel_session=${token}; padel_arena=arena-a`}})).status,200);
+    await settled(state.records);
+  });
+  const [record]=[...state.records.values()];assert.equal(record.actorId,"ANONYMOUS");assert.equal(record.arenaId,"arena-event");assert.equal(record.details.affectedArenaCount,1);
+});
