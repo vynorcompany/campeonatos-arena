@@ -35,6 +35,16 @@ export async function assertCalendarManagementSmoke(db,origin,staffId,sessionCoo
   const race=await Promise.all([post('client-create',client),post('client-create',{...client,phone:'5541990001234'})]);const outcomes=await Promise.all(race.map(async response=>{assert.equal(response.status,200,await response.clone().text());return response.json();}));
   assert.equal(outcomes.filter(value=>value.id).length,1);assert.equal(outcomes.filter(value=>value.error).length,1);const created=outcomes.find(value=>value.id);assert.deepEqual(Object.keys(created).sort(),['error','id','name']);assert.equal(created.name,'Paulo Marcelo Teste');assert.equal(await db.player.count({where:{arenaId:arena.id}}),1);
   const storedPlayer=await db.player.findUniqueOrThrow({where:{id:created.id}});assert.equal(storedPlayer.arenaId,arena.id);assert.equal(storedPlayer.phone,'41990001234');
-  console.log('Calendar management HTTP: permission and Origin isolation, event/lesson conversions, scoped edits/removals, literal notes and concurrent normalized-phone deduplication passed.');
+  const teacher=await db.teacher.create({data:{arenaId:arena.id,name:'Visible teacher',phone:'PRIVATE_TEACHER_PHONE',email:'private-teacher@example.test'}});
+  const remaining=await db.lesson.findFirstOrThrow({where:{arenaId:arena.id,title:'Created lesson'}});await db.lesson.update({where:{id:remaining.id},data:{teacherId:teacher.id}});
+  for(const name of ['PRIVATE_STUDENT_ONE','PRIVATE_STUDENT_TWO']){const student=await db.student.create({data:{arenaId:arena.id,name,email:'private-student@example.test'}});await db.lessonAttendance.create({data:{lessonId:remaining.id,studentId:student.id}});}
+  await db.calendarEvent.create({data:{arenaId:arena.id,title:'Visible read event',eventType:'EVENTO',scheduledAt:new Date('2026-12-07T15:00:00Z')}});
+  const read=(query='start=2026-12-07&end=2026-12-08')=>fetch(`${origin}/api/management/calendar?${query}`,{headers:{cookie},redirect:'manual'});
+  for(const query of ['start=2026-02-29&end=2026-03-01','start=2026-12-07&end=2026-12-08&start=2026-12-09',`start=2026-12-07&end=2026-12-08&arenaId=${foreign.id}`])assert.equal((await read(query)).status,400);
+  const response=await read();assert.equal(response.status,200,await response.clone().text());assert.equal(response.headers.get('cache-control'),'private, no-store');const raw=await response.text();const payload=JSON.parse(raw);assert.equal(payload.events.length,2);assert.equal(payload.events.find(event=>event.id===remaining.id).meta,'Visible teacher · 2 aluno(s)');assert.equal(payload.events.find(event=>event.id===remaining.id).minute,600);
+  for(const secret of ['PRIVATE_','private-teacher@example.test','private-student@example.test',foreignEvent.id,'attendances','teacherId','arenaId'])assert.equal(raw.includes(secret),false,secret);
+  assert.deepEqual((await(await read('start=2026-12-08&end=2026-12-09')).json()).events,[]);
+  await db.arenaMember.update({where:{id:member.id},data:{viewPermissions:[]}});assert.equal((await read()).status,403);
+  console.log('Calendar management HTTP: minimal scoped reads and attendance counts, permissions, Origin, event/lesson conversions, literal notes and concurrent normalized-phone deduplication passed.');
  }finally{const ids=arenas.map(row=>row.id);await db.lesson.deleteMany({where:{arenaId:{in:ids}}});await db.calendarEvent.deleteMany({where:{arenaId:{in:ids}}});await db.auditEvent.deleteMany({where:{arenaId:{in:ids}}});await db.arena.deleteMany({where:{id:{in:ids},slug:{startsWith:'calendar-management-'}}});}
 }

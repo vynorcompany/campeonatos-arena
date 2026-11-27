@@ -1,4 +1,5 @@
-import { arenaDatabase } from "@/lib/arena-database";
+import { getCalendarEvents } from "@/lib/calendar/events-data";
+import { calendarEventsInputSchema } from "@/lib/backend/contracts/calendar-events";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
@@ -7,7 +8,6 @@ import { CalendarQuickCreate } from "@/components/calendar-quick-create";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
 
 type CalendarPageProps = {
   searchParams?: Promise<{
@@ -170,7 +170,6 @@ function getEventLayout(dayEvents: CalendarEvent[]) {
 export default async function CalendarPage(props: CalendarPageProps) {
   const searchParams = await props.searchParams;
   const auth = await requireModuleView("calendar");
-  const prisma = arenaDatabase(auth.arenaId);
   const canManageEvents = canPerformPermission("calendar:event:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const allowedPeriods = new Set(Object.keys(periodLabels));
   const period = allowedPeriods.has(searchParams?.periodo ?? "") ? searchParams?.periodo ?? "week" : "week";
@@ -180,50 +179,8 @@ export default async function CalendarPage(props: CalendarPageProps) {
   const customEnd = parseDateParam(searchParams?.fim);
   const { label, start, end, gridStart, gridEnd } = getRange(period, anchor, customStart, customEnd);
 
-  const [lessons, calendarEvents] = await Promise.all([
-    prisma.lesson.findMany({
-      where: { arenaId: auth.arenaId, scheduledAt: { gte: start, lt: end } },
-      include: { teacher: true, attendances: { include: { student: true } } },
-      orderBy: { scheduledAt: "asc" }
-    }),
-    prisma.calendarEvent.findMany({
-      where: { arenaId: auth.arenaId, scheduledAt: { gte: start, lt: end } },
-      orderBy: { scheduledAt: "asc" }
-    })
-  ]);
-
-  const events: CalendarEvent[] = [
-    ...lessons
-      .filter((lesson) => lesson.scheduledAt)
-      .map((lesson) => ({
-        id: lesson.id,
-        sourceType: "lesson" as const,
-        lessonId: lesson.id,
-        calendarEventId: "",
-        eventType: "AULA",
-        type: "lessons",
-        date: lesson.scheduledAt as Date,
-        title: lesson.title,
-        meta: `${lesson.teacher?.name ?? "Sem professor"} · ${lesson.attendances.length} aluno(s)`,
-        notes: lesson.notes ?? "",
-        durationMinutes: lesson.durationMinutes
-      })),
-    ...calendarEvents
-      .filter((event) => event.scheduledAt)
-      .map((event) => ({
-        id: event.id,
-        sourceType: "calendar" as const,
-        lessonId: "",
-        calendarEventId: event.id,
-        eventType: event.eventType,
-        type: "lessons",
-        date: event.scheduledAt,
-        title: event.title,
-        meta: event.eventType === "EVENTO" ? "Evento da agenda" : event.eventType,
-        notes: event.notes ?? "",
-        durationMinutes: event.durationMinutes
-      }))
-  ];
+  const interval = calendarEventsInputSchema.safeParse({ start: getDateInputValue(start), end: getDateInputValue(end) });
+  const events: CalendarEvent[] = interval.success ? await getCalendarEvents(auth.arenaId, interval.data) : [];
 
   const filteredEvents = events
     .filter((event) => type === "all" || event.type === type)
