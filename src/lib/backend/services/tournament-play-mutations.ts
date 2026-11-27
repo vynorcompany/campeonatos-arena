@@ -1,0 +1,18 @@
+import "server-only";
+import * as draw from "./tournament-draw-actions";
+import * as matches from "./tournament-matches-actions";
+import {tournamentPlayInputSchema,tournamentPlayOutcomeSchema,type TournamentPlayOperation} from "../contracts/tournament-play";
+const safeMessages=new Set(["As duplas devem pertencer a este torneio.","A definiÃ§Ã£o manual de confronto sÃ³ vale para o mata-mata.", "Crie os grupos antes de gerar os jogos.", "Defina as duas duplas antes de salvar o resultado.", "Dupla invalida.", "Dupla nÃ£o encontrada.", "Dupla não encontrada.", "Entrada do campeonato não encontrada.", "Grupo de destino invalido.", "Grupo de destino nÃ£o encontrado.", "Horário inválido.", "Inscreva ao menos dois atletas antes de gerar as duplas.", "Jogo nÃ£o encontrado.", "Jogo não encontrado.", "Monte as duplas antes de organizar os grupos.", "O jogo precisa ter um vencedor.", "Os dois jogadores precisam estar na lista deste torneio.", "Placar inválido.", "Pontuacao invalida.", "Selecione dois jogadores diferentes para montar a dupla.", "Selecione duplas diferentes para o confronto.", "Selecione o primeiro jogador.", "Selecione o segundo jogador.", "Selecione um status valido.", "Selecione uma quadra válida.", "Seu banco ainda não recebeu a atualização de exibição na TV dos jogos.", "Torneio invalido.", "Torneio inválido.", "Torneio nÃ£o encontrado.", "Torneio não encontrado.", "Um dos jogadores selecionados jÃ¡ faz parte de outra dupla.", "Um ou mais jogadores selecionados nÃ£o estÃ£o disponÃ­veis para este torneio."]);
+const uncertain="Não foi possível confirmar a alteração. Confira o evento antes de tentar novamente.";
+export function tournamentPlayError(error:unknown){return error instanceof Error&&safeMessages.has(error.message)?error.message:uncertain;}
+export async function executeTournamentPlayMutation(operation:TournamentPlayOperation,input:unknown){
+ const fields=tournamentPlayInputSchema(operation).parse(input),form=new FormData();for(const [key,values] of Object.entries(fields))for(const value of values)form.append(key,value);
+ const outcome:{state:{error:string|null;success:string|null}|null;refresh:boolean;paths:Array<"/proximos-jogos/tv">}={state:null,refresh:false,paths:[]};
+ const effects={refreshTournamentRoutes:()=>{outcome.refresh=true;},revalidatePath:(path:string):undefined=>{if(path!=="/proximos-jogos/tv")throw Error("Unexpected cache path");outcome.paths.push(path);return undefined;},errorMessage:tournamentPlayError};
+ try{
+  if(operation==="entries")outcome.state=await draw.syncEntriesStateAction({error:null,success:null},form,effects);
+  else if(operation==="pair-create")outcome.state=await draw.createTournamentPairAction({error:null,success:null},form,effects);
+  else await ({"entry-points":draw.updateTournamentEntryPointsAction,"pairs-generate":draw.generatePairsAction,"pair-update":draw.updateTournamentPairAction,"pair-delete":draw.deleteTournamentPairAction,"pair-points":draw.updateTournamentPairPointsAction,"pair-group":draw.moveTournamentPairGroupAction,"groups-generate":draw.generateGroupsAction,"matches-generate":draw.generateMatchesAction,"match-court":matches.updateMatchCourtAction,"match-schedule":matches.updateMatchScheduleAction,"match-result":matches.updateMatchResultAction,"match-participants":matches.updateMatchParticipantsAction,"match-status":matches.updateMatchManualStatusAction,"match-tv":matches.updateMatchTvVisibilityAction})[operation](form,effects);
+ }catch(error){if(error instanceof Error&&safeMessages.has(error.message))outcome.state={error:tournamentPlayError(error),success:null};else throw error;}
+ return tournamentPlayOutcomeSchema.parse(outcome);
+}

@@ -1,3 +1,4 @@
+import { assertTournamentPlaySmoke } from "./lib/backend-tournament-play-smoke.mjs";
 import { assertReportWorkspaceSmoke } from "./lib/backend-report-workspace-smoke.mjs";
 import { assertCategoryWorkspaceSmoke } from "./lib/backend-category-workspace-smoke.mjs";
 import { assertRankingWorkspaceSmoke } from "./lib/backend-ranking-workspace-smoke.mjs";
@@ -457,6 +458,7 @@ try {
   await assertRankingWorkspaceSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
   await assertCategoryWorkspaceSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
   await assertReportWorkspaceSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
+  await assertTournamentPlaySmoke(fixtureDb, origin);
   await assertWhatsAppActionsSmoke(fixtureDb, origin, "http://127.0.0.1:3014", providerFixture);
   await assertWhatsAppWorkspaceSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
   await assertManagementUtilitiesSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
