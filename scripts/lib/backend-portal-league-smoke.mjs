@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import {createPortalCompetitionFixture,cleanupPortalCompetitionFixture} from './backend-portal-competition-smoke.mjs';
+export async function assertPortalLeagueSmoke(db,origin,frontendOrigin){
+ const f=await createPortalCompetitionFixture(db);
+ try{
+  const {arena,players}=f;await db.arena.update({where:{id:arena.id},data:{checkinEnabled:true}});
+  const court=await db.court.create({data:{arenaId:arena.id,name:'Quadra aulas API',weeklyRules:{create:Array.from({length:7},(_,weekday)=>({weekday,available:true,startsAtMinute:420,endsAtMinute:1380}))}}});
+  const teacher=await db.teacher.create({data:{arenaId:arena.id,playerId:players[1].id,name:'Professor API',notes:'private-teacher-note',email:'private-teacher@example.test'}});
+  const student=await db.student.create({data:{arenaId:arena.id,playerId:players[0].id,name:'Aluno API',attendedClasses:3,missedClasses:1,notes:'private-student-note',phone:'private-student-phone'}});
+  const foreignTeacher=await db.teacher.create({data:{arenaId:f.foreign.id,playerId:f.foreignPlayer.id,name:'private-foreign-teacher'}});
+  await db.student.create({data:{arenaId:f.foreign.id,name:'private-foreign-student'}});
+  const unassigned=await db.student.create({data:{arenaId:arena.id,name:'private-unassigned-student'}});
+  await db.teacherStudent.create({data:{arenaId:arena.id,teacherId:teacher.id,studentId:student.id}});
+  const plan=await db.plan.create({data:{arenaId:arena.id,name:'Plano aulas API',classesPerMonth:8,monthlyPriceCents:16000}});
+  await db.teacherPlan.create({data:{arenaId:arena.id,teacherId:teacher.id,planId:plan.id}});
+  const group=await db.classGroup.create({data:{arenaId:arena.id,teacherId:teacher.id,name:'Turma API',notes:'private-group-note',schedules:{create:{arenaId:arena.id,weekday:1,startTime:'10:00',capacity:4}},enrollments:{create:{arenaId:arena.id,studentId:student.id}}}});
+  const when=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));when.setDate(when.getDate()+2);when.setHours(10,0,0,0);
+  const lesson=await db.lesson.create({data:{arenaId:arena.id,teacherId:teacher.id,title:'Aula API',scheduledAt:when,notes:'private-lesson-note',attendances:{create:{studentId:student.id,checkedInAt:new Date()}}}});
+  const occurrence=await db.scheduleOccurrence.create({data:{arenaId:arena.id,sourceType:'BOOKING',title:'Reserva pessoal API',responsiblePlayerId:players[0].id,startsAt:when,endsAt:new Date(when.getTime()+3600000),notes:'private-booking-note',occurrenceCourts:{create:{courtId:court.id}},participants:{create:{playerId:players[0].id,amountCents:1000}}}});
+  await db.scheduleOccurrence.create({data:{arenaId:arena.id,sourceType:'LESSON',title:'Turma agenda API',teacherId:teacher.id,startsAt:new Date(when.getTime()+3600000),endsAt:new Date(when.getTime()+7200000)}});
+  const view=(cookie=f.cookie,extra='',slug=arena.slug)=>fetch(`${origin}/api/portal/league?arenaSlug=${slug}${extra}`,{headers:cookie?{cookie}:{},redirect:'manual'});
+  assert.equal((await view('')).status,401);assert.equal((await view(f.cookie,'',f.foreign.slug)).status,401);
+  for(const field of ['playerId','arenaId','teacherId','studentId','accountId'])assert.equal((await view(f.cookie,'&'+field+'=foreign')).status,400);
+  assert.equal((await view(f.cookie,'&arenaSlug='+arena.slug)).status,400);
+  const response=await view();assert.equal(response.status,200,await response.clone().text());assert.equal(response.headers.get('cache-control'),'private, no-store');const own=await response.json();
+  assert.equal(own.playerId,players[0].id);assert.equal(own.pairs[0].players.some(p=>p.id===players[0].id),true);assert.equal(own.leagueResults[0].homeScore,6);assert.deepEqual(own.leagueResults[0].setScores,[[6,4]]);assert.ok(Number.isFinite(Date.parse(own.leagueResults[0].updatedAt)));assert.equal(own.reservations[0].id,occurrence.id);assert.equal(own.reservations[0].canShareGame,true);assert.equal(own.lessons[0].id,lesson.id);assert.equal(own.lessons[0].checkedIn,true);assert.equal(own.student.attendedClasses,3);assert.equal(own.teacherManagement,null);assert.equal(own.classGroups[0].enrolled,true);assert.ok(own.slots.length>0);
+  const reservedPrefix=`${court.id}|${when.toISOString()}|`;assert.equal(own.slots.some(s=>s.value.startsWith(reservedPrefix)),false);
+  const peerResponse=await view(f.participantCookie);assert.equal(peerResponse.status,200,await peerResponse.clone().text());const peer=await peerResponse.json();assert.equal(peer.playerId,players[1].id);assert.equal(peer.reservations.length,0);assert.equal(peer.student,null);assert.equal(peer.lessons.length,0);assert.equal(peer.teacherManagement.plans[0].id,plan.id);assert.equal(peer.teacherManagement.students.length,1);assert.equal(peer.teacherManagement.students[0].id,student.id);assert.equal(peer.teacherManagement.classGroups[0].id,group.id);assert.equal(peer.teacherManagement.agenda[0].title,'Turma agenda API');assert.ok(peer.teacherManagement.makeupSlots.length>0);
+  for(const data of [own,peer])for(const hidden of ['private-',foreignTeacher.id,unassigned.id,'passwordHash','responsiblePlayerId','arenaId'])assert.equal(JSON.stringify(data).includes(hidden),false,hidden);
+  const foreignCategory=await db.tournamentCategory.findFirstOrThrow({where:{tournament:{arenaId:f.foreign.id}}});const selected=await(await view(f.cookie,'&categoryId='+foreignCategory.id)).json();assert.notEqual(selected.selectedLeagueCategoryId,foreignCategory.id);
+  for(const [section,cookie,expected]of [['reservations',f.cookie,'Reserva pessoal API'],['lessons',f.cookie,'Aula API'],['teacher',f.participantCookie,'Plano aulas API'],['leagues',f.cookie,'Dupla vencedora API']]){const page=await fetch(`${frontendOrigin}/home?arena=${arena.slug}&section=${section}`,{headers:{cookie},redirect:'follow'});assert.equal(page.status,200);const html=await page.text();assert.ok(html.includes(expected),section);for(const hidden of ['private-foreign-','private-unassigned-student','private-teacher-note','private-student-note','private-group-note','private-lesson-note','private-booking-note','passwordHash'])assert.equal(html.includes(hidden),false,section+': '+hidden);assert.equal(html.includes('private-other-notification'),section==='teacher');}
+  assert.equal((await db.categoryMatch.findUniqueOrThrow({where:{id:f.match.id}})).homeScore,6);
+  console.log('Portal league HTTP: own session and tenant isolation, preserved league scores and dates, personal reservations/lessons, teacher-only assigned students/plans, class groups, occupied slots and private-field exclusion passed.');
+ }finally{const ids=[f.arena.id,f.foreign.id];const arenas=await db.arena.findMany({where:{id:{in:ids}},select:{slug:true,createdById:true}});assert.equal(arenas.length,2);assert.ok(arenas.every(a=>a.slug.startsWith('portal-competition-api-')&&a.createdById==='goal-test'));await db.scheduleOccurrence.deleteMany({where:{arenaId:{in:ids}}});await db.classGroup.deleteMany({where:{arenaId:{in:ids}}});await db.lesson.deleteMany({where:{arenaId:{in:ids}}});await cleanupPortalCompetitionFixture(db,f);}
+}
