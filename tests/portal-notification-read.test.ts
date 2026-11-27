@@ -22,7 +22,7 @@ test("ler notificações financeiras persiste a leitura sem eliminar a pendênci
     playerPortalNotificationRead:{findMany:async()=>read?[{notificationKey:"finance-debt"},{notificationKey:"arena-notice"},{notificationKey:"booking-delinquency"}]:[]},
     categoryMatch:{findMany:async()=>[]},
   };
-  const service=moduleAt("src/lib/services/public-player-notifications.ts",{
+  const service=moduleAt("src/lib/backend/services/portal-notifications.ts",{
     "@/lib/portal/financial-status": {getPortalDueUrgency},
     "@/lib/academy/lesson-credit-portal": {playerLessonCredits:async()=>null}, "server-only":{},"@/lib/prisma":{prisma:{arena:{findUnique:async()=>({id:"arena-a",onlineBookingOverdueBlockDays:1})}}},
     "@/lib/payments/portal-checkout-policy":{portalCheckoutPolicy},"@/lib/rls":{withArenaTransaction:async(_id:string,fn:(tx:unknown)=>unknown)=>fn(tx)},
@@ -61,14 +61,14 @@ test("ler notificações financeiras persiste a leitura sem eliminar a pendênci
 });
 
 test("leitura em lote usa a arena e o atleta autenticados e informa falhas", async()=>{
-  const {z}=await import("zod");let fail=false;const writes:any[]=[];const paths:string[]=[];
+  const {z}=await import("zod");let fail=false;const writes:any[]=[];
   const tx={playerNotification:{updateMany:async(q:unknown)=>{writes.push(q);if(fail)throw Error("db");}},playerPortalNotificationRead:{createMany:async(q:unknown)=>writes.push(q)}};
-  const actions=moduleAt("src/lib/actions/public-player-notifications.ts",{
-    zod:{z},"next/cache":{revalidatePath:(path:string)=>paths.push(path)},
-    "@/lib/auth/player-session":{requirePublicPlayerAuth:async()=>({arenaId:"arena-a",playerId:"player-a"})},
+  const actions=moduleAt("src/lib/backend/services/public-player-notification-read.ts",{
+    "server-only":{}, zod:{z},
+    "@/lib/backend/services/player-session":{requirePublicPlayerAuth:async()=>({arenaId:"arena-a",playerId:"player-a"})},
     "@/lib/payments/portal-checkout-policy":{portalCheckoutPolicy},"@/lib/rls":{withArenaTransaction:async(id:string,fn:(tx:unknown)=>unknown)=>{assert.equal(id,"arena-a");return fn(tx);}},
   });
   const result=await actions.markAllPublicPlayerNotificationsReadAction("arena-a",[{id:"note",source:"PLAYER"},{id:"finance-debt",source:"FINANCE"},{id:"finance-debt",source:"FINANCE"}]);
-  assert.equal(result.error,null);assert.equal(writes[0].where.playerId,"player-a");assert.equal(writes[0].where.player.arenaId,"arena-a");assert.equal(writes[1].data.length,1);assert.equal(writes[1].data[0].playerId,"player-a");assert.ok(paths.includes("/home"));
+  assert.equal(result.error,null);assert.equal(writes[0].where.playerId,"player-a");assert.equal(writes[0].where.player.arenaId,"arena-a");assert.equal(writes[1].data.length,1);assert.equal(writes[1].data[0].playerId,"player-a");
   fail=true;assert.match((await actions.markAllPublicPlayerNotificationsReadAction("arena-a",[{id:"note",source:"PLAYER"}])).error,/Não foi possível salvar/);
 });

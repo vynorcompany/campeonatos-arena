@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { readFileSync } from 'node:fs';
@@ -20,6 +20,11 @@ for (const port of [3012, 3014]) {
   await new Promise((resolve, reject) => { probe.once('error', reject); probe.listen(port, '127.0.0.1', resolve); });
   await new Promise((resolve, reject) => probe.close(error => error ? reject(error) : resolve()));
 }
+const { PrismaClient } = await import('@prisma/client');
+const fixtureDb = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });
+const notificationFixturePrefix = 'backend-notification-' + randomUUID();
+const staffFixtureEmail = notificationFixturePrefix + '@example.test';
+let staffFixtureId;
 const target = readBackendBuild(resolve('.'));
 const paths = JSON.parse(readFileSync(join(target, '.next/server/app-paths-manifest.json'), 'utf8'));
 assert.ok(Object.keys(paths).length > 20);
@@ -69,7 +74,16 @@ try {
   assert.equal(ownerContext.auth.systemRole, 'SUPER_ADMIN');
   const otherArenaId = ownerContext.auth.memberships.find(entry => entry.arenaName === 'Arena Beta GOAL')?.arenaId;
   assert.ok(otherArenaId);
-  const staffToken = createHash('sha256').update(`goal-staff:${token}`).digest('hex');
+  // Visual recovery deliberately revokes the seeded staff sessions and changes
+  // that user's password. Give this integration its own disposable identity.
+  const originalStaff = await fixtureDb.user.findUniqueOrThrow({ where: { email: 'goal-staff@example.test' }, include: { memberships: true } });
+  const originalMembership = originalStaff.memberships[0];
+  const bcrypt = await import('bcryptjs');
+  const staffFixture = await fixtureDb.user.create({ data: { email: staffFixtureEmail, name: 'Backend contract staff fixture', passwordHash: await bcrypt.default.hash('SenhaDescartavelGOAL123!', 10), systemRole: 'VIEWER' } });
+  staffFixtureId = staffFixture.id;
+  await fixtureDb.arenaMember.create({ data: { userId: staffFixtureId, arenaId: originalMembership.arenaId, role: originalMembership.role, permissionProfileId: originalMembership.permissionProfileId, viewPermissions: originalMembership.viewPermissions, editPermissions: originalMembership.editPermissions } });
+  const staffToken = createHash('sha256').update(notificationFixturePrefix).digest('hex');
+  await fixtureDb.session.create({ data: { userId: staffFixtureId, token: createHash('sha256').update(staffToken).digest('hex'), expiresAt: new Date(Date.now() + 60 * 60_000) } });
   const staffCookie = `padel_session=${staffToken}; padel_arena=${otherArenaId}`;
   const staffContextResponse = await fetch(origin + '/api/management/context?access=arena', { headers: { cookie: staffCookie } });
   assert.equal(staffContextResponse.headers.get('cache-control'), 'private, no-store');
@@ -112,7 +126,7 @@ try {
     assert.equal(deniedManagement.headers.getSetCookie().length, 0);
   }
   const forgedManagement = await fetch(origin + '/api/management/auth/login', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014' }, body: JSON.stringify({ email: 'goal-staff@example.test', password: 'SenhaDescartavelGOAL123!', systemRole: 'SUPER_ADMIN' }),
+    method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014' }, body: JSON.stringify({ email: staffFixtureEmail, password: 'SenhaDescartavelGOAL123!', systemRole: 'SUPER_ADMIN' }),
   });
   assert.equal(forgedManagement.status, 400);
   const anonymousInvite = await fetch(origin + '/api/management/auth/invite', {
@@ -127,7 +141,7 @@ try {
   assert.equal(invalidTokenInfo.headers.get('cache-control'), 'private, no-store');
   const managementLogin = await fetch(origin + '/api/management/auth/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014', 'user-agent': 'Mozilla/5.0 Synthetic Browser' },
-    body: JSON.stringify({ email: 'goal-staff@example.test', password: 'SenhaDescartavelGOAL123!' }),
+    body: JSON.stringify({ email: staffFixtureEmail, password: 'SenhaDescartavelGOAL123!' }),
   });
   assert.equal(managementLogin.status, 200);
   assert.deepEqual(await managementLogin.json(), { error: null, redirectTo: '/painel' });
@@ -167,6 +181,39 @@ try {
   assert.equal(JSON.stringify(own).includes('passwordHash'), false);
   const otherContext = await fetch(origin + '/api/portal/session?arena=arena-beta-goal', { headers: { cookie: `arena_player_session=${athleteToken}` } });
   assert.equal((await otherContext.json()).currentClient, null);
+  const ownNoticeId = notificationFixturePrefix + '-own';
+  const foreignNoticeId = notificationFixturePrefix + '-foreign';
+  const foreignPlayer = await fixtureDb.player.findFirstOrThrow({ where: { arenaId: otherArenaId }, select: { id: true } });
+  await fixtureDb.playerNotification.createMany({ data: [
+    { id: ownNoticeId, playerId: 'goal-athlete-a', title: 'Synthetic own notification', message: 'Own notice' },
+    { id: foreignNoticeId, playerId: foreignPlayer.id, title: 'Synthetic foreign notification', message: 'Foreign notice' },
+  ] });
+  const notificationReadHeaders = { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014', cookie: `arena_player_session=${athleteToken}` };
+  const notificationList = await fetch(origin + '/api/portal/notifications?arena=' + encodeURIComponent(arenaSlug), { headers: { cookie: `arena_player_session=${athleteToken}` } });
+  assert.equal(notificationList.status, 200);
+  assert.equal(notificationList.headers.get('cache-control'), 'private, no-store');
+  const ownNotifications = await notificationList.json();
+  assert.ok(ownNotifications.some(item => item.id === ownNoticeId));
+  assert.equal(ownNotifications.some(item => item.id === foreignNoticeId), false);
+  assert.equal((await fetch(origin + '/api/portal/notifications?arena=' + arenaSlug)).status, 401);
+  assert.equal((await fetch(origin + '/api/portal/notifications?arena=arena-beta-goal', { headers: { cookie: `arena_player_session=${athleteToken}` } })).status, 401);
+  assert.equal((await fetch(origin + '/api/portal/notifications?arena=' + arenaSlug + '&playerId=other', { headers: { cookie: `arena_player_session=${athleteToken}` } })).status, 400);
+  const notificationWrite = await fetch(origin + '/api/portal/notifications/read', { method: 'POST', headers: notificationReadHeaders, body: JSON.stringify({ arenaSlug, entries: [{ id: ownNoticeId, source: 'PLAYER' }, { id: foreignNoticeId, source: 'PLAYER' }] }) });
+  assert.equal(notificationWrite.status, 200);
+  assert.deepEqual(await notificationWrite.json(), { error: null });
+  assert.ok((await fixtureDb.playerNotification.findUniqueOrThrow({ where: { id: ownNoticeId } })).readAt);
+  assert.equal((await fixtureDb.playerNotification.findUniqueOrThrow({ where: { id: foreignNoticeId } })).readAt, null);
+  for (const payload of [{ arenaSlug, entries: [], playerId: 'other' }, { arenaSlug, entries: [{ id: 'note', source: 'PLAYER', arenaId: 'other' }] }]) {
+    assert.equal((await fetch(origin + '/api/portal/notifications/read', { method: 'POST', headers: notificationReadHeaders, body: JSON.stringify(payload) })).status, 400);
+  }
+  assert.equal((await fetch(origin + '/api/portal/notifications/read', { method: 'POST', headers: { ...notificationReadHeaders, origin: 'https://untrusted.invalid' }, body: JSON.stringify({ arenaSlug, entries: [] }) })).status, 403);
+  assert.equal((await fetch(origin + '/api/portal/notifications/read', { method: 'POST', headers: notificationReadHeaders, body: JSON.stringify({ arenaSlug: 'arena-beta-goal', entries: [] }) })).status, 401);
+  const managementReadHeaders = { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014', cookie: staffCookie };
+  const notificationDismiss = await fetch(origin + '/api/management/notifications/read', { method: 'POST', headers: managementReadHeaders, body: JSON.stringify({ operation: 'one', id: 'nonexistent-synthetic-notification' }) });
+  assert.equal(notificationDismiss.status, 200);
+  assert.deepEqual(await notificationDismiss.json(), { error: null });
+  assert.equal((await fetch(origin + '/api/management/notifications/read', { method: 'POST', headers: managementReadHeaders, body: JSON.stringify({ operation: 'all', arenaId: otherArenaId }) })).status, 400);
+  assert.equal((await fetch(origin + '/api/management/notifications/read', { method: 'POST', headers: { ...managementReadHeaders, origin: 'https://untrusted.invalid' }, body: JSON.stringify({ operation: 'all' }) })).status, 403);
   const invalidSession = await fetch(origin + '/api/portal/session', { headers: { cookie: 'arena_player_session=invalid' } });
   assert.deepEqual(await invalidSession.json(), { currentClient: null, athleteIdentity: null });
   const branding = await fetch(origin + '/api/portal/login-branding?host=unknown.invalid');
@@ -257,4 +304,11 @@ finally {
   const timeout = setTimeout(() => child.kill('SIGKILL'), 5000);
   await exited;
   clearTimeout(timeout);
+  await fixtureDb.playerNotification.deleteMany({ where: { id: { startsWith: notificationFixturePrefix } } });
+  if (staffFixtureId) {
+    await fixtureDb.session.deleteMany({ where: { userId: staffFixtureId } });
+    await fixtureDb.arenaMember.deleteMany({ where: { userId: staffFixtureId } });
+    await fixtureDb.user.deleteMany({ where: { id: staffFixtureId } });
+  }
+  await fixtureDb.$disconnect();
 }

@@ -154,7 +154,7 @@ test("category competition serializable operations set tenant context before acc
 });
 
 test("athlete portal notification queries enforce the player's arena", () => {
-  const notifications = read("src/lib/services/public-player-notifications.ts");
+  const notifications = read("src/lib/backend/services/portal-notifications.ts");
   const radar = read("src/lib/services/public-doubles-radar.ts");
   const league = read("src/lib/services/public-league-portal.ts");
   const linkedPlayers = read("src/lib/services/public-player-link.ts");
