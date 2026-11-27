@@ -57,7 +57,7 @@ test("legacy public reservation route delegates to booking content with availabl
   const content = readFileSync(contentPath, "utf8");
   assert.match(page, /PublicBookingContent/);
   assert.match(content, /onlineBookingLayout/);
-  assert.match(content, /onlineBookingShowReserved/);
+  assert.match(readFileSync(resolve(process.cwd(), "src/lib/backend/services/public-booking-view.ts"), "utf8"), /onlineBookingShowReserved/);
   assert.match(content, /PublicCourtBookingForm/);
   assert.match(form, /public-booking-slot-blocks/);
   assert.doesNotMatch(form, /Horários reservados/);
