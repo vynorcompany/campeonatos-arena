@@ -2000,7 +2000,12 @@ async function main() {
     const restrictedUser = await db.user.create({ data: { name: "Operador restrito GOAL", email: "goal-restricted@example.test", passwordHash: "test-only", systemRole: "VIEWER" } });
     await db.arenaMember.create({ data: { arenaId: arenaA.id, userId: restrictedUser.id, role: "STAFF", viewPermissions: ["calendar", "finance:receivable:view", "matches", "stock"], editPermissions: ["calendar:booking:create"] } });
     await db.session.create({ data: { userId: restrictedUser.id, token: createHash("sha256").update(restrictedToken).digest("hex"), expiresAt: new Date(Date.now() + 60 * 60_000) } });
-    const restrictedCourt = await db.court.findFirstOrThrow({ where: { arenaId: arenaA.id, name: "Quadra GOAL Agenda" }, select: { id: true } });
+    // This permission case owns its court: the portal seed reserves the shared
+    // court at Date.now()+3 days and can overlap this fixed-time booking.
+    const restrictedCourt = await db.court.create({ data: {
+      arenaId: arenaA.id, name: `Quadra permissão GOAL ${randomUUID()}`,
+      weeklyRules: { create: Array.from({ length: 7 }, (_, weekday) => ({ weekday, startsAtMinute: 360, endsAtMinute: 1380, priceCents: 10000, available: true })) },
+    }, select: { id: true } });
     const restrictedStart = new Date(`${futureAgendaDate}T10:00:00.000Z`);
     const restrictedBooking = await db.scheduleOccurrence.create({ data: {
       arenaId: arenaA.id, sourceType: "BOOKING", status: "SCHEDULED", title: "Reserva restrita GOAL",
@@ -2247,6 +2252,7 @@ async function main() {
       await db.calendarEvent.delete({ where: { id: restrictedCalendarEvent.id } });
       await db.scheduleOccurrenceCourt.deleteMany({ where: { occurrenceId: restrictedBooking.id } });
       await db.scheduleOccurrence.delete({ where: { id: restrictedBooking.id } });
+      await db.court.delete({ where: { id: restrictedCourt.id } });
       await db.session.deleteMany({ where: { userId: restrictedUser.id } });
       await db.arenaMember.deleteMany({ where: { userId: restrictedUser.id } });
       await db.user.delete({ where: { id: restrictedUser.id } });
