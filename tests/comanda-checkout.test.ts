@@ -83,7 +83,8 @@ test("zero-value commands request explicit confirmation and schedule charges use
   assert.match(commandActions, /Confirme o encerramento da comanda zerada/);
   assert.match(calendarActions, /type: "REVENUE"/);
   assert.match(calendarActions, /counterpartyName: player\.name/);
-  assert.match(calendarActions, /refreshCalendarRoutes\(\)/);
+  const settingsFacade = readFileSync(resolve(process.cwd(), "src/lib/court-settings/mutation.ts"), "utf8");
+  assert.match(settingsFacade, /refreshCalendarRoutes\(\)/);
   assert.match(calendarRevalidation, /revalidatePath\("\/comandas"\)/);
   const debtFilter = readFileSync(resolve(process.cwd(), "src/lib/finance/comanda-debts.ts"), "utf8");
   assert.match(page, /listedComandaDebtWhere/);

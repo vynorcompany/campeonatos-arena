@@ -1,3 +1,4 @@
+import { agendaCourtsWhere } from "@/lib/calendar/agenda-courts";
 import { isReservationChargePaid } from "@/lib/finance/reservation-payment";
 import { reservationCreditBalances } from "@/lib/plans/reservation-credits";
 import { OpenAgendaDateSlot } from "@/components/open-agenda-date-slot";
@@ -73,7 +74,7 @@ export default async function AgendaPage(props: AgendaPageProps) {
   const nextDay = addDays(selectedDate, 1);
   const [arena, storedCourts, scheduleOccurrences, storedPlayers, teachers, storedBookingTypes, servicePrices, customServices, bankAccounts] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
     tx.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { slug: true, scheduleStartMinute: true, scheduleEndMinute: true, scheduleSlotMinutes: true, onlineBookingLayout: true, onlineBookingRequiresConfirmation: true, onlineBookingShowReserved: true, onlineBookingPaymentEnabled: true, onlineBookingEnabled: true, onlineBookingLeadTimeMinutes: true, onlineBookingOverdueBlockDays: true, onlineBookingWhatsappMessage: true, onlineBookingWhatsappConfirmationEnabled: true } }),
-    tx.court.findMany({ where: { arenaId: auth.arenaId, active: true, weeklyRules: { some: {} } }, include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] }),
+    tx.court.findMany({ where: agendaCourtsWhere(auth.arenaId, selectedDate, nextDay), include: { weeklyRules: true }, orderBy: [{ displayOrder: "asc" }, { name: "asc" }] }),
     tx.scheduleOccurrence.findMany({ where: { arenaId: auth.arenaId, ...activeCourtOccurrenceWhere(), startsAt: { lt: nextDay }, endsAt: { gt: selectedDate } }, include: { occurrenceCourts: true, participants: { orderBy: { id: "asc" }, include: { financialEntry: { select: { bankAccountId: true, status: true, paymentMethod: true, reservationSplitParts: { select: { status: true } } } } } }, serviceReservations: { orderBy: { id: "asc" } } }, orderBy: [{ startsAt: "asc" }, { id: "asc" }] }),
     tx.player.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true, photoUrl: true }, orderBy: { name: "asc" } }),
     tx.teacher.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),

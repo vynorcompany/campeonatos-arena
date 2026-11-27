@@ -2204,9 +2204,19 @@ async function main() {
           throw new Error(`${calendarLabel}: calendário de leitura permitiu editar ou ficou cortado: ${JSON.stringify(calendarControls.result.value)}`);
         }
         const label = `${viewport.name}-agenda-permissao-criar`;
-        const body = await visit(`/agenda?data=${futureAgendaDate}`, viewport, arenaA.id, label, restrictedToken);
-        const bookingVisible = await send("Runtime.evaluate", {expression: `Boolean(document.querySelector('button[data-occurrence-id="${restrictedBooking.id}"]'))`,returnByValue:true});
-        if (!bookingVisible.result.value || (viewport.name === "desktop" && !body.includes("Operador restrito GOAL"))) throw new Error(`${label}: sessão limitada ou reserva fictícia não apareceu.`);
+        await visit(`/agenda?data=${futureAgendaDate}`, viewport, arenaA.id, label, restrictedToken);
+        // A document can finish loading while a streamed client boundary is
+        // still mounting. Keep the same identity/record assertions, but wait
+        // for this specific booking rather than unrelated page text.
+        let bookingVisible;
+        for (let attempt = 0; attempt < 30; attempt += 1) {
+          bookingVisible = await send("Runtime.evaluate", {expression: `(() => { const trigger=document.querySelector('button[data-occurrence-id="${restrictedBooking.id}"]'); return {present:Boolean(trigger),visible:Boolean(trigger?.getClientRects().length),identity:document.body.innerText.includes('Operador restrito GOAL'),cell:Boolean(document.getElementById('reserva-${restrictedBooking.id}')),bookings:document.querySelectorAll('button[data-occurrence-id]').length,path:location.pathname}; })()`,returnByValue:true});
+          const state = bookingVisible.result.value;
+          if (state?.present && state.visible && (viewport.name !== "desktop" || state.identity)) break;
+          await pause(200);
+        }
+        const bookingState = bookingVisible?.result.value;
+        if (!bookingState?.present || !bookingState.visible || (viewport.name === "desktop" && !bookingState.identity)) throw new Error(`${label}: sessão limitada ou reserva fictícia não apareceu: ${JSON.stringify(bookingState)}`);
         const actions = await send("Runtime.evaluate", {
           expression: `(() => { const trigger = document.querySelector('button[data-occurrence-id="${restrictedBooking.id}"]'); const cell = trigger?.closest('td'); if (!cell) return null; cell.scrollIntoView({ block: 'center', inline: 'center' }); const cancel = cell.querySelector('button[aria-label=\"Ações da reserva\"]'); const settings = document.querySelector('button[aria-label=\"Configurações do agendamento online\"]'); trigger?.click(); return { cancelVisible: Boolean(cancel), settingsVisible: Boolean(settings), opened: Boolean(trigger) }; })()`,
           returnByValue: true,
