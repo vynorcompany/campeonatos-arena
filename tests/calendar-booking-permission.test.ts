@@ -105,5 +105,5 @@ test("converter evento em aula não cria registro se o evento não pertence à a
   for (const [key, value] of Object.entries({ sourceType: "lesson", lessonId: "own-lesson", calendarEventId: "", title: "Aula atualizada", scheduledAt: "2026-10-20T11:00", durationMinutes: "60", notes: "" })) lessonForm.set(key, value);
   await exports.updateCalendarEventAction(lessonForm);
   assert.equal(updatedLessons, 1);
-  assert.equal(refreshes, 1);
+  assert.equal(refreshes, 0); // Cache invalidation now belongs to the frontend facade.
 });
