@@ -15,7 +15,6 @@ import { CategoryRegistrationPanel } from "@/components/tournaments/category-reg
 import { CategoryResultsPanel } from "@/components/tournaments/category-results-panel";
 import { LeagueMedicalRequestsPanel } from "@/components/tournaments/league-medical-requests-panel";
 import { LeagueHistoryPanel } from "@/components/tournaments/league-history-panel";
-import { historicalMatchSummary, historicalPairs, historicalStandings } from "@/lib/league/history";
 import { LeagueCategorySettingsDialog } from "@/components/tournaments/league-category-settings-dialog";
 import { TournamentCategorySettingsForm } from "@/components/tournaments/tournament-category-settings-form";
 import { LeagueIcon } from "@/components/tournaments/league-icon";
@@ -25,12 +24,11 @@ import { type TournamentTabKey } from "@/components/tournaments/tournament-tabs"
 import { requireModuleView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
 import { runLeagueLifecycleAction, updateLeaguePrizeAction } from "@/lib/actions/category-competition";
-import { arenaDatabase } from "@/lib/arena-database";
+import { getTournamentCategoryWorkspace } from "@/lib/tournaments/category-workspace";
 import { canGenerateCategoryDraw } from "@/lib/tournament-category/draw";
 import { buildPlacementStages } from "@/lib/tournament-category/ranking";
 import { rankStandings } from "@/lib/tournament-category/standings";
 import { resolveLeagueTier } from "@/lib/league/tier";
-import { leagueReferenceMonth } from "@/lib/league/reference-month";
 
 type CategoryPageProps = {
   params: Promise<{
@@ -51,14 +49,6 @@ const validTabs: TournamentTabKey[] = [
   "history",
 ];
 
-function snapshotChampionName(snapshot: unknown, championPairId: string | null) {
-  if (!championPairId || !snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return null;
-  const pairs = (snapshot as { pairs?: unknown }).pairs;
-  if (!Array.isArray(pairs)) return null;
-  const champion = pairs.find((pair) => pair && typeof pair === "object" && "id" in pair && pair.id === championPairId);
-  return champion && typeof champion.name === "string" ? champion.name : null;
-}
-
 const formatLabels = {
   LEAGUE: "Liga",
   THREE_GROUPS: "3 grupos",
@@ -70,122 +60,12 @@ const formatLabels = {
 export default async function CategoryPage(props: CategoryPageProps) {
   const searchParams = await props.searchParams;
   const params = await props.params;
-  const currentReferenceMonth = leagueReferenceMonth(new Date());
   const auth = await requireModuleView("tournaments");
   const canManage = canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const canRecordResults = canPerformPermission("tournaments:results", auth.arenaRole, auth.systemRole, auth.editPermissions);
   if (!canManage && !canRecordResults) redirect(`/jogos?tournamentId=${encodeURIComponent(params.tournamentId)}`);
-  const [category, athletes, pairRankings, medicalRequests] = await Promise.all([
-    arenaDatabase(auth.arenaId).tournamentCategory.findFirst({
-      where: {
-        id: params.categoryId,
-        tournamentId: params.tournamentId,
-        tournament: { arenaId: auth.arenaId },
-      },
-      include: {
-        _count: { select: { registrations: true } },
-        tournament: {
-          select: {
-            id: true,
-            name: true,
-            creationMode: true,
-            categories: {
-              where: { archivedAt: null },
-              select: { id: true, name: true, standardKey: true },
-            },
-          },
-        },
-        registrations: {
-          where: { status: { not: "CANCELED" } },
-          orderBy: { createdAt: "desc" },
-          select: {
-            id: true,
-            leadName: true,
-            partnerName: true,
-            status: true,
-            paymentStatus: true,
-          },
-        },
-        competition: {
-          include: {
-            ranking: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            leagueCycles: { orderBy: { referenceMonth: "desc" }, select: { id: true, referenceMonth: true, status: true, prizeDescription: true, snapshot: true, championPairId: true, promotedPairId: true, relegatedPairId: true, matches: { select: { homePairId: true, awayPairId: true, winnerPairId: true, homeScore: true, awayScore: true, manualStatus: true, woReason: true } } } },
-            pairs: {
-              where: { active: true },
-              orderBy: { drawOrder: "asc" },
-              include: {
-                players: {
-                  orderBy: { slot: "asc" },
-                  include: {
-                    player: {
-                      select: {
-                        id: true,
-                        name: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            groups: {
-              orderBy: { drawOrder: "asc" },
-              include: {
-                pairs: {
-                  orderBy: { drawOrder: "asc" },
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            },
-            matches: {
-              orderBy: { roundOrder: "asc" },
-              include: {
-                homePair: { select: { id: true, name: true, players: { select: { player: { select: { id: true, name: true } } } } } },
-                awayPair: { select: { id: true, name: true, players: { select: { player: { select: { id: true, name: true } } } } } },
-                winnerPair: { select: { id: true, name: true } },
-                trioGames: { orderBy: { gameNumber: "asc" } },
-              },
-            },
-          },
-        },
-      },
-    }),
-    arenaDatabase(auth.arenaId).player.findMany({
-      where: {
-        arenaId: auth.arenaId,
-        active: true,
-      },
-      orderBy: { name: "asc" },
-      select: {
-        id: true,
-        name: true,
-        active: true,
-        class: true,
-        gender: true,
-        leagueAthleteTiers: { where: { active: true, modality: "PADEL" }, orderBy: { changedAt: "desc" }, take: 1, select: { tier: true } },
-      },
-    }),
-    arenaDatabase(auth.arenaId).rankingProfile.findMany({
-      where: {
-        arenaId: auth.arenaId,
-        active: true,
-        type: "PAIR",
-      },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
-    arenaDatabase(auth.arenaId).leagueMedicalSubstitutionRequest.findMany({
-      where: { status: "PENDING", pair: { competition: { categoryId: params.categoryId, category: { tournamentId: params.tournamentId, tournament: { arenaId: auth.arenaId } } } } },
-      include: { pair: { include: { players: { include: { player: { select: { id: true, name: true } } } } } } },
-    }),
-  ]);
+  const { category, athletes, pairRankings, medicalRequests, individualAccounts, currentReferenceMonth, redirectToGames } = await getTournamentCategoryWorkspace(params.tournamentId, params.categoryId);
+  if (redirectToGames) redirect(`/jogos?tournamentId=${encodeURIComponent(params.tournamentId)}`);
 
   if (!category) {
     notFound();
@@ -201,7 +81,6 @@ export default async function CategoryPage(props: CategoryPageProps) {
   </main>;
   const individual = category.registrationType === "INDIVIDUAL";
   if (individual && !canManage) redirect(`/jogos?tournamentId=${params.tournamentId}`);
-  const individualAccounts = individual ? await arenaDatabase(auth.arenaId).bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true } }) : [];
   const requestedTab = searchParams?.tab as TournamentTabKey | undefined;
   const availableTabs: TournamentTabKey[] = individual ? ["overview", "registrations"] : canManage ? validTabs : competition?.format === "LEAGUE" ? ["games", "results", "history"] : ["games", "results"];
   const tab = requestedTab && availableTabs.includes(requestedTab)
@@ -487,14 +366,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
             </div>
 
             </details>
-            {medicalRequests.length > 0 ? <LeagueMedicalRequestsPanel requests={medicalRequests.map((request) => ({
-              id: request.id,
-              reason: request.reason,
-              requestedAt: request.requestedAt,
-              pairName: request.pair.name,
-              previousPlayerName: athletes.find((athlete) => athlete.id === request.previousPlayerId)?.name ?? "Atleta anterior",
-              replacementPlayerName: athletes.find((athlete) => athlete.id === request.replacementPlayerId)?.name ?? "Novo atleta",
-            }))} /> : null}
+            {medicalRequests.length > 0 ? <LeagueMedicalRequestsPanel requests={medicalRequests} /> : null}
           </div>
           ) : (
           <div className="tw:grid tw:min-w-0 tw:gap-4">
@@ -602,37 +474,7 @@ export default async function CategoryPage(props: CategoryPageProps) {
         {tab === "history" && competition?.format === "LEAGUE" ? (
           <LeagueHistoryPanel
             successHref={`/torneios/${params.tournamentId}/categorias/${params.categoryId}?tab=overview&reopened=1`}
-            cycles={competition.leagueCycles.map((cycle, index) => {
-              const summary = historicalMatchSummary(cycle.snapshot, cycle.matches);
-              const archivedPairs = historicalPairs(cycle.snapshot);
-              const archivedName = (pairId: string | null) => archivedPairs.find((pair) => pair.id === pairId)?.name ?? null;
-              const sections = cycle.snapshot && typeof cycle.snapshot === "object" && !Array.isArray(cycle.snapshot)
-                ? cycle.snapshot as Record<string, unknown> : null;
-              const successor = competition.leagueCycles[0];
-              const emptySnapshot = Boolean(sections) && ["pairs", "groups", "matches", "registrations"].every(
-                (key) => Array.isArray(sections?.[key]) && (sections?.[key] as unknown[]).length === 0,
-              );
-              const canReopen = index === 1 && cycle.status === "CLOSED"
-                && cycle.referenceMonth === currentReferenceMonth
-                && successor?.status === "OPEN"
-                && successor.matches.length === 0 && emptySnapshot && !cycle.championPairId
-                && !cycle.promotedPairId && !cycle.relegatedPairId;
-              return {
-                id: cycle.id,
-                referenceMonth: cycle.referenceMonth,
-                status: cycle.status,
-                completedMatches: summary.completedMatches,
-                matchCount: summary.matchCount,
-                championPairId: cycle.championPairId,
-                championName: snapshotChampionName(cycle.snapshot, cycle.championPairId),
-                promotedName: archivedName(cycle.promotedPairId),
-                relegatedName: archivedName(cycle.relegatedPairId),
-                promotedPairId: cycle.promotedPairId,
-                relegatedPairId: cycle.relegatedPairId,
-                standings: historicalStandings(cycle.snapshot, cycle.matches),
-                canReopen: canManage && canReopen,
-              };
-            })}
+            cycles={competition.leagueCycles.map(cycle => ({ id: cycle.id, referenceMonth: cycle.referenceMonth, status: cycle.status, ...cycle.history }))}
           />
         ) : null}
       </TournamentDetailLayout>

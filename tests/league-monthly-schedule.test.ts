@@ -224,7 +224,9 @@ test("Liga workspace exposes category editing and a monthly history tab", () => 
   assert.match(tabs, /Histórico/);
   assert.match(page, /LeagueCategorySettingsDialog/);
   assert.match(page, /LeagueHistoryPanel/);
-  assert.match(page, /snapshotChampionName\(cycle\.snapshot, cycle\.championPairId\)/);
+  const workspace = readFileSync(resolve(process.cwd(), "src/lib/backend/services/tournament-category-workspace.ts"), "utf8");
+  assert.match(workspace, /snapshotChampionName\(cycle\.snapshot, cycle\.championPairId\)/);
+  assert.match(page, /cycle\.history/);
   assert.match(page, /Ciclo da Liga processado com sucesso/);
   assert.match(page, /successHref=\{`\/torneios\/\$\{params\.tournamentId\}\/categorias\/\$\{params\.categoryId\}\?tab=overview&reopened=1`\}/);
   assert.match(history, /Campeã: \{cycle\.championName/);

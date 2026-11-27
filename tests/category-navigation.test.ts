@@ -156,13 +156,17 @@ test("dedicated category route scopes category, athletes, and rankings to the ar
   );
 
   assert.match(source, /requireModuleView\("tournaments"\)/);
-  assert.match(source, /arenaDatabase\(auth\.arenaId\)\.tournamentCategory\.findFirst/);
-  assert.match(source, /id:\s*params\.categoryId/);
-  assert.match(source, /tournamentId:\s*params\.tournamentId/);
-  assert.match(source, /tournament:\s*\{\s*arenaId:\s*auth\.arenaId/);
-  assert.match(source, /arenaDatabase\(auth\.arenaId\)\.player\.findMany\(\{\s*where:\s*\{\s*arenaId:\s*auth\.arenaId/);
-  assert.match(source, /arenaDatabase\(auth\.arenaId\)\.rankingProfile\.findMany\(\{\s*where:\s*\{\s*arenaId:\s*auth\.arenaId/);
-  assert.match(source, /arenaDatabase\(auth\.arenaId\)\.leagueMedicalSubstitutionRequest\.findMany/);
+  assert.match(source, /getTournamentCategoryWorkspace\(params\.tournamentId, params\.categoryId\)/);
+  assert.doesNotMatch(source, /arenaDatabase|@\/lib\/prisma/);
+  const backend = await readSource("src", "lib", "backend", "services", "tournament-category-workspace.ts");
+  assert.match(backend, /requireModuleView\("tournaments"\)/);
+  assert.match(backend, /db = arenaDatabase\(auth\.arenaId\)/);
+  assert.match(backend, /db\.tournamentCategory\.findFirst/);
+  assert.match(backend, /id:\s*categoryId, tournamentId/);
+  assert.match(backend, /tournament:\s*\{\s*arenaId:\s*auth\.arenaId/);
+  assert.match(backend, /db\.player\.findMany\(\{\s*where:\s*\{\s*arenaId:\s*auth\.arenaId/);
+  assert.match(backend, /db\.rankingProfile\.findMany\(\{\s*where:\s*\{\s*arenaId:\s*auth\.arenaId/);
+  assert.match(backend, /db\.leagueMedicalSubstitutionRequest\.findMany/);
 });
 
 test("dedicated category route renders operational panels for the selected category only", async () => {

@@ -5,12 +5,12 @@ import test from "node:test";
 
 test("consultas das telas internas de torneios restringem jogos e pedidos médicos à arena ativa", () => {
   const games = readFileSync(new URL("../src/lib/backend/services/tournament-workspaces.ts", import.meta.url), "utf8");
-  const category = readFileSync(new URL("../src/app/(app)/torneios/[tournamentId]/categorias/[categoryId]/page.tsx", import.meta.url), "utf8");
+  const category = readFileSync(new URL("../src/lib/backend/services/tournament-category-workspace.ts", import.meta.url), "utf8");
   const registrations = readFileSync(new URL("../src/lib/backend/services/tournament-registration-queries.ts", import.meta.url), "utf8");
   const registrationsPage = readFileSync(new URL("../src/app/(app)/torneios/[tournamentId]/inscricoes/page.tsx", import.meta.url), "utf8");
 
   assert.match(games, /categoryMatch\.findMany\(\{ where: \{ competition: \{ category: \{ tournamentId, tournament: \{ arenaId: auth\.arenaId \}/);
-  assert.match(category, /leagueMedicalSubstitutionRequest\.findMany\(\{\s*where: \{ status: "PENDING", pair: \{ competition: \{ categoryId: params\.categoryId, category: \{ tournamentId: params\.tournamentId, tournament: \{ arenaId: auth\.arenaId \}/);
+  assert.match(category, /leagueMedicalSubstitutionRequest\.findMany\(\{\s*where: \{ status: "PENDING", pair: \{ competition: \{ categoryId, category: \{ tournamentId, tournament: \{ arenaId: auth\.arenaId \}/);
   assert.match(registrations, /where: \{ id: tournamentId, arenaId: auth\.arenaId \}/);
   assert.match(registrationsPage, /if \(!tournament\) notFound\(\)/);
 });
