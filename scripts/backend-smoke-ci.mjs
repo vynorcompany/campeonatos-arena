@@ -1,3 +1,4 @@
+import { assertPublicEventPagesSmoke } from "./lib/backend-public-event-pages-smoke.mjs";
 import { assertPublicRegistrationSmoke } from "./lib/backend-public-registration-smoke.mjs";
 import { assertEventResultSmoke } from "./lib/backend-event-result-smoke.mjs";
 import { assertLeagueActionsSmoke } from "./lib/backend-league-actions-smoke.mjs";
@@ -439,6 +440,7 @@ try {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   assert.ok(frontendReady, 'SSR frontend did not become healthy');
+  await assertPublicEventPagesSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
   await assertPublicRegistrationSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
   await assertEventResultSmoke(fixtureDb, origin, "http://127.0.0.1:3014", staffFixtureId, financeFixture.cookie);
   await assertLeagueActionsSmoke(fixtureDb, origin, "http://127.0.0.1:3014", staffFixtureId, financeFixture.cookie);

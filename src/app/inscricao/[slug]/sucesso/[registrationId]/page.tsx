@@ -2,20 +2,15 @@ import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { arenaDatabase } from "@/lib/arena-database";
+import { getPublicRegistrationReceipt } from "@/lib/services/public-event-pages";
 import { RegistrationPaymentControls } from "./payment-controls";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export default async function RegistrationSuccessPage(props: { params: Promise<{ slug: string; registrationId: string }> }) {
   const params = await props.params;
-  const [tournament] = await prisma.$queryRaw<{ id: string; arenaId: string }[]>`SELECT * FROM public.resolve_tournament_public_slug(${params.slug})`;
-  if (!tournament) notFound();
-  const registration = await arenaDatabase(tournament.arenaId).publicTournamentRegistration.findFirst({
-    where: { id: params.registrationId, tournamentId: tournament.id },
-    include: { tournament: { include: { arena: { select: { name: true, logoUrl: true } } } }, category: { select: { name: true, registrationType: true, competition: { select: { format: true } } } } },
-  });
+  const registration = await getPublicRegistrationReceipt(params.slug, params.registrationId);
+
   if (!registration) notFound();
   const individual = registration.category.registrationType === "INDIVIDUAL";
   const trio = registration.category.competition?.format === "TRIO";

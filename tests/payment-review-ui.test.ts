@@ -8,8 +8,10 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8"
 
 test("inscrição em revisão não oferece novo pagamento e mostra o motivo da espera", () => {
   const page = read("src/app/inscricao/[slug]/sucesso/[registrationId]/page.tsx");
-  assert.match(page, /arenaDatabase\(tournament\.arenaId\)\.publicTournamentRegistration\.findFirst/);
-  assert.match(page, /where: \{ id: params\.registrationId, tournamentId: tournament\.id \}/);
+  assert.match(page, /getPublicRegistrationReceipt\(params\.slug, params\.registrationId\)/);
+  const receiptService=read("src/lib/backend/services/public-event-pages.ts");
+  assert.match(receiptService, /arenaDatabase\(owner\.arenaId\)\.publicTournamentRegistration\.findFirst/);
+  assert.match(receiptService, /where:\s*\{id:registrationId,tournamentId:owner\.id,category:\{tournamentId:owner\.id\}\}/);
   assert.match(page, /registration\.paymentStatus === "REVIEW"/);
   assert.match(page, /Não faça outro pagamento agora/);
   assert.match(page, /!canceled && !confirmed && !needsReview && !expired \? <RegistrationPaymentControls/);

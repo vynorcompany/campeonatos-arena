@@ -20,8 +20,7 @@ function page(categories: any[], overrides: Record<string, unknown> = {}) {
       if (name === "react/jsx-runtime") return { jsx: (type: unknown, props: object) => ({ type, props }), jsxs: (type: unknown, props: object) => ({ type, props }) };
       if (name === "next/link") return { default: "link" };
       if (name === "next/navigation") return { notFound: () => { throw new Error("Not found"); } };
-      if (name === "@/lib/prisma") return { prisma: { $queryRaw: async () => [{ id: "event", arenaId: "arena" }] } };
-      if (name === "@/lib/arena-database") return { arenaDatabase: () => ({ tournament: { findUnique: async () => tournament } }) };
+      if (name === "@/lib/services/public-event-pages") return { getPublicRegistrationPage: async () => tournament };
       if (name === "@/components/forms/public-registration-form") return { PublicRegistrationForm: "registration-form" };
       if (name === "@/components/athlete-portal-wordmark") return { AthletePortalWordmark: "portal-wordmark" };
       if (name === "@/components/tournaments/public-trio-matches") return { PublicTrioMatches: "trio-games" };
