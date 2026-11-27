@@ -1,3 +1,4 @@
+import { assertAcademySmoke } from './backend-academy-smoke.mjs';
 import assert from 'node:assert/strict';
 
 /** All records are owned by a disposable arena and removed by the caller. */
@@ -109,6 +110,7 @@ export async function prepareFinanceSmoke(db, databaseUrl, origin, staffId, staf
     await db.arenaMember.updateMany({ where: { arenaId: arena.id, userId: staffId }, data: { viewPermissions: ['finance:receivable:view', 'finance:payable:view'] } });
     const payrollRead = await (await workspace('payroll')).json(); assert.equal(payrollRead.payroll[0].financialEntry.amountCents, 100000); assert.equal(payrollRead.employees.length, 1);
     assert.equal((await fetch(`${origin}/api/management/finance/workspaces/monthly?arenaId=forged`, { headers: { cookie } })).status, 400);
+    await assertAcademySmoke(db, origin, arena.id, cookie, staffId, plan.id);
     return { arenaId: arena.id, cookie, cleanup };
   } catch (error) { await cleanup(); throw error; }
 }

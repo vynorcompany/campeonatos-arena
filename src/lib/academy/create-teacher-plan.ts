@@ -1,3 +1,4 @@
+import { AcademyOperationError } from "@/lib/backend/academy-operation-error";
 import { expiryPolicySchema } from "./credit-expiry-policy";
 import { z } from "zod";
 import type { ArenaTransaction } from "@/lib/rls";
@@ -13,12 +14,12 @@ const inputSchema = z.object({
 
 export async function createIndependentTeacherPlan(tx: ArenaTransaction, arenaId: string, actorId: string, input: unknown) {
   const parsed = inputSchema.safeParse(input);
-  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Revise os dados do plano.");
+  if (!parsed.success) throw new AcademyOperationError(parsed.error.issues[0]?.message ?? "Revise os dados do plano.");
   const data = parsed.data;
   const monthlyPriceCents = parseMoneyToCents(data.monthlyPrice);
-  if (monthlyPriceCents > 2147483647) throw new Error("Valor inválido.");
+  if (monthlyPriceCents > 2147483647) throw new AcademyOperationError("Valor inválido.");
   const teacher = await tx.teacher.findFirst({ where: { id: data.teacherId, arenaId, active: true }, select: { id: true } });
-  if (!teacher) throw new Error("Professor não encontrado nesta arena.");
+  if (!teacher) throw new AcademyOperationError("Professor não encontrado nesta arena.");
   return tx.plan.create({ data: {
     ...expiryPolicySchema.parse(input), creditPolicyConfiguredAt: new Date(), arenaId, name: data.name, classesPerMonth: data.classesPerMonth, monthlyPriceCents, notes: data.notes,
     createdByUserId: actorId, updatedByUserId: actorId,

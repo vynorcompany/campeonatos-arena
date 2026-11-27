@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { PrismaClient,type Prisma } from "@prisma/client";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import { createRequire } from "node:module";
 import vm from "node:vm";
 import ts from "typescript";

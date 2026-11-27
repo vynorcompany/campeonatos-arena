@@ -1,3 +1,4 @@
+import { AcademyOperationError } from "@/lib/backend/academy-operation-error";
 import { paidLessonCreditCycle } from "./paid-lesson-credit-cycle";
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
@@ -10,7 +11,7 @@ export async function lessonCreditState(tx: Prisma.TransactionClient, arenaId: s
   const activationEnd = new Date(local.getFullYear(), local.getMonth(), local.getDate() + 1);
   await tx.$queryRaw`SELECT id FROM "Student" WHERE id=${studentId} AND "arenaId"=${arenaId} FOR UPDATE`;
   const student = await tx.student.findFirst({ where: { id: studentId, arenaId }, include: { subscriptions: { where: { status: "ACTIVE", startedAt: { lt: activationEnd } }, orderBy: { startedAt: "desc" }, include: { plan: true } } } });
-  if (!student) throw new Error("Aluno não encontrado nesta arena.");
+  if (!student) throw new AcademyOperationError("Aluno não encontrado nesta arena.");
   const sub = student.subscriptions[0]; const month = monthKey(local);
   const policy = expiryPolicySchema.parse(sub?.plan ?? {});
   const initialized = await tx.lessonCreditBatch.findUnique({ where: { studentId_sourceKey: { studentId, sourceKey: "INITIAL" } } });
@@ -40,14 +41,14 @@ export async function lessonCreditState(tx: Prisma.TransactionClient, arenaId: s
   }
   const batches = await tx.lessonCreditBatch.findMany({ where: { arenaId, studentId, remaining: { gt: 0 }, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }, include: { request: true }, orderBy: [{ expiresAt: { sort: "asc", nulls: "last" } }, { grantedAt: "asc" }, { id: "asc" }] });
   const available = batches.reduce((n,b)=>n+b.remaining,0);
-  if (!Number.isSafeInteger(available) || available>2147483647) throw new Error("O saldo de créditos ultrapassa o limite permitido.");
+  if (!Number.isSafeInteger(available) || available>2147483647) throw new AcademyOperationError("O saldo de créditos ultrapassa o limite permitido.");
   if (student.remainingClasses !== available) { await tx.student.update({ where: { id: studentId }, data: { remainingClasses: available } }); await syncMonthlyCreditBalance(tx,arenaId,studentId,available,now); }
   return { student, batches, available, policy };
 }
 export async function changeLessonCredits(tx: Prisma.TransactionClient, arenaId: string, studentId: string, delta: number, now = new Date()) {
-  if (!Number.isSafeInteger(delta)) throw new Error("Quantidade de créditos inválida.");
+  if (!Number.isSafeInteger(delta)) throw new AcademyOperationError("Quantidade de créditos inválida.");
   const state=await lessonCreditState(tx,arenaId,studentId,now);
-  if (state.available+delta<0) throw new Error("Não há créditos de aulas disponíveis.");
+  if (state.available+delta<0) throw new AcademyOperationError("Não há créditos de aulas disponíveis.");
   if (delta>0) await tx.lessonCreditBatch.create({ data:{arenaId,studentId,sourceKey:`MANUAL:${randomUUID()}`,granted:delta,remaining:delta,grantedAt:now,expiresAt:creditExpiration(now,state.policy)} });
   let left=-delta;
   for (const batch of state.batches) { if(left<=0)break; const amount=Math.min(batch.remaining,left);await tx.lessonCreditBatch.update({where:{id:batch.id},data:{remaining:{decrement:amount}}}); left-=amount; }
@@ -59,9 +60,9 @@ export async function changeLessonCredits(tx: Prisma.TransactionClient, arenaId:
 export async function consumeLessonCredit(tx: Prisma.TransactionClient, arenaId:string,studentId:string,attendanceId:string,now=new Date()) {
   const state=await lessonCreditState(tx,arenaId,studentId,now);
   const attendance=await tx.lessonAttendance.findFirst({where:{id:attendanceId,studentId,lesson:{arenaId}},select:{id:true,creditBatchId:true}});
-  if (!attendance)throw new Error("Aula não encontrada para este aluno.");
+  if (!attendance)throw new AcademyOperationError("Aula não encontrada para este aluno.");
   if (attendance.creditBatchId)return state.available;
-  const batch=state.batches[0];if(!batch)throw new Error("Não há créditos de aulas disponíveis.");
+  const batch=state.batches[0];if(!batch)throw new AcademyOperationError("Não há créditos de aulas disponíveis.");
   await tx.lessonCreditBatch.update({where:{id:batch.id},data:{remaining:{decrement:1}}});
   await tx.lessonAttendance.update({where:{id:attendance.id},data:{creditBatchId:batch.id}});
   await tx.student.update({where:{id:studentId},data:{remainingClasses:state.available-1}});
