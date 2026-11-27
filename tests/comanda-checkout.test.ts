@@ -31,7 +31,7 @@ test("cash received with a command updates the open daily register in the same t
   assert.match(actions, /cashReceivedCents = parsed\.data\.payments/);
   assert.match(actions, /recordCashSaleIfOpen\(tx, \{ arenaId: auth\.arenaId, referenceDate: cashReferenceDate\(now\), amountCents: cashReceivedCents/);
   assert.match(cashRegisterSales, /cashRegister\.updateMany\([\s\S]*status: "OPEN"[\s\S]*cashMovement\.create/);
-  assert.match(actions, /revalidatePath\("\/relatorios\/caixa"\)/);
+  assert.match(readFileSync(resolve(process.cwd(), "src/lib/comandas/mutation.ts"), "utf8"), /revalidatePath\("\/relatorios\/caixa"\)/);
 });
 
 test("command checkout offers only the client's pending balances for joint settlement", () => {

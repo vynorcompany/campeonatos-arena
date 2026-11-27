@@ -1,3 +1,4 @@
+import { assertComandaSmoke } from "./lib/backend-comanda-smoke.mjs";
 import { assertAgendaOperationsSmoke } from "./lib/backend-agenda-operations-smoke.mjs";
 import { assertPublicCourtBookingSmoke } from "./lib/backend-public-court-booking-smoke.mjs";
 import { assertAgendaQueriesSmoke } from './lib/backend-agenda-queries-smoke.mjs';
@@ -412,6 +413,7 @@ try {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   assert.ok(frontendReady, 'SSR frontend did not become healthy');
+  await assertComandaSmoke(fixtureDb, origin, staffFixtureId, financeFixture.cookie);
   await assertAgendaOperationsSmoke(fixtureDb, origin, staffFixtureId, financeFixture.cookie);
   await assertPublicCourtBookingSmoke(fixtureDb, origin);
   await assertAgendaQueriesSmoke(fixtureDb, origin, 'http://127.0.0.1:3014', staffFixtureId, financeFixture.cookie);

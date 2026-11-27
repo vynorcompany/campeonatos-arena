@@ -4,7 +4,7 @@ import { consumeProductStock } from "../src/lib/products/stock-aggregates";
 import { requireReceivingBankAccount } from "../src/lib/finance/receiving-bank-account";
 import * as operationalPolicy from "../src/lib/comandas/operational-policy";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import vm from "node:vm";

@@ -1,5 +1,5 @@
 import { styleRules, utilityClasses } from "./helpers/utility-styles";
-import { readFileSync } from "./helpers/style-source";
+import { readFileSync } from "./helpers/domain-source";
 import assert from "node:assert/strict";
 
 import { resolve } from "node:path";

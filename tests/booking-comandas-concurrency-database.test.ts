@@ -5,7 +5,7 @@ import * as operationalPolicy from "../src/lib/comandas/operational-policy";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import vm from "node:vm";
 import ts from "typescript";
 import { z } from "zod";
