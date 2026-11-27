@@ -1,3 +1,4 @@
+import { assertBoletoQueueSmoke } from './backend-boleto-queue-smoke.mjs';
 import { assertFiscalInvoicesSmoke } from './backend-fiscal-invoices-smoke.mjs';
 import { assertNfeSmoke } from './backend-nfe-smoke.mjs';
 import { assertCashSmoke } from './backend-cash-smoke.mjs';
@@ -119,6 +120,9 @@ export async function prepareFinanceSmoke(db, databaseUrl, origin, staffId, staf
     await assertCashSmoke(db, origin, arena.id, cookie, staffId);
     await assertNfeSmoke(db, origin, arena.id, cookie, staffId);
     const fiscalDocumentId = await assertFiscalInvoicesSmoke(db, origin, arena.id, cookie, staffId);
+    await assertBoletoQueueSmoke(db, origin, arena.id, cookie, staffId);
+    const queueMember = await db.arenaMember.findFirstOrThrow({ where: { arenaId: arena.id, userId: staffId } });
+    await db.arenaMember.update({ where: { id: queueMember.id }, data: { editPermissions: [...queueMember.editPermissions, "finance:receivable:view"] } });
     return { arenaId: arena.id, cookie, cleanup, teacherId: academy.teacherId, fiscalDocumentId };
   } catch (error) { await cleanup(); throw error; }
 }
