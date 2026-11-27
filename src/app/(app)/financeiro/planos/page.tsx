@@ -1,6 +1,7 @@
+import { getFinanceWorkspace } from "@/lib/finance/workspace-page";
 import { LessonCreditExpiryFields } from "@/components/teachers/lesson-credit-expiry-fields";
 import { LessonPlanExpirySettings } from "@/components/teachers/lesson-credit-settings";
-import { arenaDatabase } from "@/lib/arena-database";
+
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
@@ -8,7 +9,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { createPlanAction } from "@/lib/actions/finance";
 import { requireFinanceView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
+
 
 function formatMoney(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -16,19 +17,8 @@ function formatMoney(cents: number) {
 
 export default async function FinancePlansPage() {
   const auth = await requireFinanceView("receivable");
-  const prisma = arenaDatabase(auth.arenaId);
   const canManagePlans = canPerformPermission("finance:settings:manage", auth.arenaRole, auth.systemRole, auth.editPermissions);
-  const plans = await prisma.plan.findMany({
-    where: { arenaId: auth.arenaId },
-    include: {
-      teacherAssignments: {
-        where: { active: true },
-        include: { teacher: { select: { name: true } } },
-        orderBy: { teacher: { name: "asc" } },
-      },
-    },
-    orderBy: [{ active: "desc" }, { name: "asc" }],
-  });
+  const { plans } = await getFinanceWorkspace(auth.arenaId, 'plans');
 
   return (
     <div className={viewStyles.stack_md}>

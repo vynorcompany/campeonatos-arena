@@ -85,6 +85,30 @@ export async function prepareFinanceSmoke(db, databaseUrl, origin, staffId, staf
     const audit = await db.auditEvent.findMany({ where: { arenaId: arena.id } }); const auditText = JSON.stringify(audit); assert.equal(auditText.includes('synthetic-secret-value'), false); assert.equal(auditText.includes('synthetic-private-key'), false); assert.equal(auditText.includes('synthetic-focus-token'), false);
     for (const area of ['categorias-produtos', 'categorias-financeiras', 'formas-pagamento', 'contas-bancarias']) { const response = await settings(area); assert.equal(response.status, 200, area); }
     assert.equal((await fetch(`${origin}/api/management/finance/settings/cupons?arenaId=forged`, { headers: { cookie } })).status, 400);
+    await db.arenaMember.updateMany({ where: { arenaId: arena.id, userId: staffId }, data: { editPermissions: ['finance:settings:manage', 'finance:receivable:create', 'finance:receivable:settle', 'finance:payable:create', 'finance:payable:edit'] } });
+    const invalidPolicy = await write('academy-create-plan', { name: 'Plano Invalido Contrato', monthlyPrice: '100,00', classesPerMonth: '4', creditExpiryCycle: 'CUSTOM', creditExpiryDays: '', notes: '' }); assert.equal(invalidPolicy.status, 400, await invalidPolicy.text());
+    const planCreated = await write('academy-create-plan', { name: 'Plano Contrato Isolado', monthlyPrice: '100,00', classesPerMonth: '4', creditExpiryCycle: 'MONTHLY', creditExpiryDays: '', notes: '' }); assert.equal(planCreated.status, 200, await planCreated.text());
+    const plan = await db.plan.findFirstOrThrow({ where: { arenaId: arena.id, name: 'Plano Contrato Isolado' } }); assert.equal(plan.createdByUserId, staffId);
+    // The synthetic client deliberately has no fiscal document/address/email:
+    // the existing boleto eligibility check refuses issuance before any provider call.
+    const student = await db.student.create({ data: { arenaId: arena.id, playerId: client.id, name: client.name } });
+    const subscriptionCreated = await write('academy-create-subscription', { studentId: student.id, planId: plan.id, dueDay: '15', startedAt: '2026-11-01', notes: '' }); assert.equal(subscriptionCreated.status, 200, await subscriptionCreated.text());
+    const subscription = await db.studentSubscription.findFirstOrThrow({ where: { arenaId: arena.id, studentId: student.id, planId: plan.id } });
+    assert.equal(await db.financialEntry.count({ where: { arenaId: arena.id, planId: plan.id } }), 12);
+    const payment = await write('academy-record-plan-payment', { subscriptionId: subscription.id, bankAccountId: bank.id, referenceMonth: '2026-11', paidAt: '2026-11-26', paymentMethod: 'PIX', amount: '100,00', fiscalDocumentType: '' }); assert.equal(payment.status, 200, await payment.text());
+    const paidMonth = await db.financialEntry.findFirstOrThrow({ where: { arenaId: arena.id, planId: plan.id, status: 'PAID' } }); assert.equal(await db.financialSettlement.count({ where: { financialEntryId: paidMonth.id } }), 1);
+    const payrollFields = { userId: staffId, referenceMonth: '2026-11', fixedSalary: '1000,00', monthlyHours: '220', overtimeHours: '0', nightHours: '0', nightOvertimeHours: '0', nightPercentage: '20', nightHourMinutes: '52.5', overtimePercentage: '50', bonus: '0', benefits: '0', discount: '0', advance: '0', status: 'PENDING', dueDate: '2026-11-30', paidAt: '', notes: '', expectedVersion: 'NEW' };
+    const payrollSaved = await write('payroll-upsert-payroll-entry', payrollFields); assert.equal(payrollSaved.status, 200, await payrollSaved.text());
+    const payroll = await db.employeePayrollEntry.findFirstOrThrow({ where: { arenaId: arena.id, userId: staffId, referenceMonth: '2026-11' }, include: { financialEntry: true } }); assert.equal(payroll.financialEntry.amountCents, 100000);
+    const stalePayroll = await write('payroll-upsert-payroll-entry', payrollFields); assert.equal(stalePayroll.status, 200); assert.ok((await stalePayroll.json()).error);
+    const foreignEmployee = await write('payroll-upsert-payroll-entry', { ...payrollFields, userId: 'goal-test' }); assert.equal(foreignEmployee.status, 400, await foreignEmployee.text());
+    const workspace = area => fetch(`${origin}/api/management/finance/workspaces/${area}?mes=2026-11`, { headers: { cookie } });
+    for (const area of ['plans', 'monthly', 'payroll']) { const response = await workspace(area); assert.equal(response.status, 200, area); const text = await response.text(); assert.equal(text.includes('passwordHash'), false); }
+    await db.arenaMember.updateMany({ where: { arenaId: arena.id, userId: staffId }, data: { viewPermissions: ['finance:receivable:view'] } });
+    assert.equal((await workspace('payroll')).status, 404, 'Receivable read must not expose employee payroll');
+    await db.arenaMember.updateMany({ where: { arenaId: arena.id, userId: staffId }, data: { viewPermissions: ['finance:receivable:view', 'finance:payable:view'] } });
+    const payrollRead = await (await workspace('payroll')).json(); assert.equal(payrollRead.payroll[0].financialEntry.amountCents, 100000); assert.equal(payrollRead.employees.length, 1);
+    assert.equal((await fetch(`${origin}/api/management/finance/workspaces/monthly?arenaId=forged`, { headers: { cookie } })).status, 400);
     return { arenaId: arena.id, cookie, cleanup };
   } catch (error) { await cleanup(); throw error; }
 }
@@ -102,5 +126,13 @@ export async function assertFinancialSettingsSSR(frontendOrigin, cookie) {
     const response = await fetch(`${frontendOrigin}/financeiro/configuracoes/${area}`, { headers: { cookie }, redirect: 'manual' });
     assert.equal(response.status, 200, `Settings SSR failed: ${area}`);
     const html = await response.text(); assert.equal(html.includes('synthetic-focus-token'), false); assert.equal(html.includes('synthetic-secret-value'), false);
+  }
+}
+
+export async function assertFinanceWorkspacesSSR(frontendOrigin, cookie) {
+  for (const path of ['planos', 'mensalidades', 'folha']) {
+    const response = await fetch(`${frontendOrigin}/financeiro/${path}?mes=2026-11`, { headers: { cookie }, redirect: 'manual' });
+    assert.equal(response.status, 200, `Workspace SSR failed: ${path}`);
+    assert.equal((await response.text()).includes('passwordHash'), false);
   }
 }

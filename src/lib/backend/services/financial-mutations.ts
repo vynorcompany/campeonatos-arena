@@ -1,8 +1,16 @@
+import * as subscriptions from '@/lib/backend/services/financial-subscriptions-actions';
+import * as payroll from '@/lib/backend/services/financial-payroll-actions';
 import 'server-only';
 import * as settings from '@/lib/backend/services/financial-settings-actions';
 import * as actions from '@/lib/backend/services/financial-actions';
 import { financialMutationOutcomeSchema, type FinancialMutationOperation } from '@/lib/backend/contracts/financial-mutations';
 const handlers = {
+  'academy-create-plan': subscriptions.createPlanAction,
+  'academy-create-subscription': subscriptions.createSubscriptionAction,
+  'academy-record-plan-payment': subscriptions.recordPlanPaymentAction,
+  'payroll-create-teacher-monthly-payable': payroll.createTeacherMonthlyPayableAction,
+  'payroll-upsert-payroll-entry': payroll.upsertPayrollEntryAction,
+
   'settings-create-financial-setting': settings.createFinancialSettingAction,
   'settings-reconcile-bank-account-balance': settings.reconcileBankAccountBalanceAction,
   'settings-create-product-category': settings.createProductCategoryAction,

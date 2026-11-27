@@ -1,17 +1,12 @@
+import { getFinanceWorkspace } from "@/lib/finance/workspace-page";
 import { EmployeePayrollWorkspace } from "@/components/finance/employee-payroll-workspace";
 import { requireFinanceView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
-import { withArenaTransaction } from "@/lib/rls";
+
 
 export default async function PayrollPage({ searchParams }: { searchParams?: Promise<Record<string, string | undefined>> }) {
   const auth = await requireFinanceView("payable");
-  const requested = (await searchParams)?.mes;
-  const current = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo" }).format(new Date()).slice(0, 7);
-  const referenceMonth = requested && /^(?:20|21)\d{2}-(?:0[1-9]|1[0-2])$/.test(requested) ? requested : current;
-  const [members, rows] = await withArenaTransaction(auth.arenaId, tx => Promise.all([
-    tx.arenaMember.findMany({ where: { arenaId: auth.arenaId }, select: { user: { select: { id: true, name: true } } }, orderBy: { user: { name: "asc" } } }),
-    tx.employeePayrollEntry.findMany({ where: { arenaId: auth.arenaId, referenceMonth }, include: { financialEntry: { include: { settlements: { select: { amountCents: true, interestCents: true, discountCents: true } } } } }, orderBy: { employeeName: "asc" } }),
-  ]));
+  const { referenceMonth, employees, payroll } = await getFinanceWorkspace(auth.arenaId, 'payroll', (await searchParams)?.mes);
   const allowed = (key: string) => canPerformPermission(key, auth.arenaRole, auth.systemRole, auth.editPermissions);
-  return <EmployeePayrollWorkspace referenceMonth={referenceMonth} employees={members.map(member => member.user)} entries={rows.map(row => ({ ...row, updatedAt: row.updatedAt.toISOString(), financialEntry: row.financialEntry ? { ...row.financialEntry, updatedAt: row.financialEntry.updatedAt.toISOString(), dueDate: row.financialEntry.dueDate?.toISOString().slice(0, 10) ?? "", paidAt: row.financialEntry.paidAt?.toISOString().slice(0, 10) ?? "" } : null }))} canCreate={allowed("finance:payable:create")} canEdit={allowed("finance:payable:edit")} canSettle={allowed("finance:payable:settle")} />;
+  return <EmployeePayrollWorkspace referenceMonth={referenceMonth} employees={employees} entries={payroll} canCreate={allowed("finance:payable:create")} canEdit={allowed("finance:payable:edit")} canSettle={allowed("finance:payable:settle")} />;
 }

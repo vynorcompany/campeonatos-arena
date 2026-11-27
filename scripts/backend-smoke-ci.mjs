@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { runtimeEnvironment } from './runtime-server.mjs';
-import { prepareFinanceSmoke, assertFinanceSSR, assertFinancialSettingsSSR } from './lib/backend-finance-smoke.mjs';
+import { prepareFinanceSmoke, assertFinanceSSR, assertFinancialSettingsSSR, assertFinanceWorkspacesSSR } from './lib/backend-finance-smoke.mjs';
 import { readBackendBuild } from './lib/backend-build.mjs';
 
 const url = new URL(process.env.DATABASE_URL || 'http://invalid');
@@ -13,6 +13,7 @@ if ((process.env.GITHUB_ACTIONS !== 'true' && process.env.ARENA_VISUAL_LOCAL !==
     url.hostname !== '127.0.0.1' || url.port !== '55433' || url.pathname !== '/arena_goal' || url.username !== 'postgres') {
   throw new Error('Backend smoke requires the disposable local CI database.');
 }
+assert.ok(existsSync(resolve('.next/standalone/server.js')), 'Build the SSR frontend artifact before running the integration.');
 const token = process.env.ARENA_GOAL_TEST_SESSION_TOKEN || '';
 assert.match(token, /^[a-f0-9]{40}$/i);
 // Refuse to exercise a stale or unrelated server already occupying the test ports.
@@ -408,6 +409,7 @@ try {
   assert.equal(clientHtml.includes('Atleta Exclusivo Outra Arena GOAL'), false);
   await assertFinanceSSR('http://127.0.0.1:3014', financeFixture.cookie);
   await assertFinancialSettingsSSR('http://127.0.0.1:3014', financeFixture.cookie);
+  await assertFinanceWorkspacesSSR('http://127.0.0.1:3014', financeFixture.cookie);
   console.log('Independent backend and SSR frontend: authentication, session contracts, arena isolation, restricted credentials and API-only boundary passed.');
 } catch (error) { console.error(output); throw error; }
 finally {

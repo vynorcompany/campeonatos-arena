@@ -17,7 +17,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ op
   const auth = await requireArenaAccess();
   const may = (key: string) => canPerformPermission(key, auth.arenaRole, auth.systemRole, auth.editPermissions);
   const capability = ['create', 'recurrence'].includes(operation) ? 'create' : ['settle', 'settle-bulk', 'charge'].includes(operation) ? 'settle' : 'edit';
-  const permitted = operation.startsWith('settings-') ? may('finance:settings:manage') : operation.startsWith('delete') ? canDeleteFinancialEntries(auth.arenaRole, auth.systemRole, auth.editPermissions)
+  const permitted = operation === 'academy-create-plan' ? may('finance:settings:manage')
+    : operation === 'academy-create-subscription' ? may('finance:receivable:create')
+    : operation === 'academy-record-plan-payment' ? may('finance:receivable:settle')
+    : operation === 'payroll-create-teacher-monthly-payable' ? may('teachers:payable') || may('finance:payable:create')
+    : operation === 'payroll-upsert-payroll-entry' ? may('finance:payable:create') || may('finance:payable:edit')
+    : operation.startsWith('settings-') ? may('finance:settings:manage') : operation.startsWith('delete') ? canDeleteFinancialEntries(auth.arenaRole, auth.systemRole, auth.editPermissions)
     : operation === 'charge' ? may('finance:receivable:settle') : may(`finance:receivable:${capability}`) || may(`finance:payable:${capability}`);
   if (!permitted) return NextResponse.json({ error: 'Sem permissão para executar esta ação financeira.' }, { status: 403, headers });
   let input;
