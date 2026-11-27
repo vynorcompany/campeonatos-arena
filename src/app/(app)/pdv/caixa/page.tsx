@@ -9,8 +9,7 @@ import { SectionCard } from "@/components/section-card";
 import styles from "./page.styles";
 import { closeCashRegisterAction, createCashMovementAction, openCashRegisterAction } from "@/lib/actions/cash-register";
 import { requireModuleView } from "@/lib/auth/guards";
-import { cashReferenceDate } from "@/lib/finance/cash-day";
-import { withArenaTransaction } from "@/lib/rls";
+import { getCashWorkspaceData } from "@/lib/products/pos-workspace-data";
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
 
@@ -20,12 +19,7 @@ function CurrencyField({ label, name, defaultValue }: { label: string; name: str
 
 export default async function CashRegisterPage() {
   const auth = await requireModuleView("pos");
-  const referenceDate = cashReferenceDate();
-  const [register, previousClosing] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([tx.cashRegister.findFirst({
-    where: { arenaId: auth.arenaId, referenceDate },
-    orderBy: [{ openedAt: "desc" }, { id: "desc" }],
-    include: { movements: { orderBy: { createdAt: "desc" } } }
-  }), tx.cashRegister.findFirst({ where: { arenaId: auth.arenaId, status: "CLOSED" }, orderBy: [{ closedAt: "desc" }, { id: "desc" }], select: { countedAmountCents: true, expectedAmountCents: true, closedAt: true } })]));
+  const { referenceDate, register, previousClosing } = await getCashWorkspaceData(auth.arenaId);
   const suggestedOpeningCents = previousClosing?.countedAmountCents ?? previousClosing?.expectedAmountCents ?? 0;
   const isOpen = register?.status === "OPEN";
   const dayLabel = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(referenceDate);

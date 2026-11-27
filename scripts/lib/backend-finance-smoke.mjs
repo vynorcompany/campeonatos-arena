@@ -1,3 +1,4 @@
+import { assertCashSmoke } from './backend-cash-smoke.mjs';
 import { assertProductsSmoke } from './backend-products-smoke.mjs';
 import { assertAcademySmoke } from './backend-academy-smoke.mjs';
 import assert from 'node:assert/strict';
@@ -113,6 +114,7 @@ export async function prepareFinanceSmoke(db, databaseUrl, origin, staffId, staf
     assert.equal((await fetch(`${origin}/api/management/finance/workspaces/monthly?arenaId=forged`, { headers: { cookie } })).status, 400);
     const academy = await assertAcademySmoke(db, origin, arena.id, cookie, staffId, plan.id);
     await assertProductsSmoke(db, origin, arena.id, cookie, staffId);
+    await assertCashSmoke(db, origin, arena.id, cookie, staffId);
     return { arenaId: arena.id, cookie, cleanup, teacherId: academy.teacherId };
   } catch (error) { await cleanup(); throw error; }
 }

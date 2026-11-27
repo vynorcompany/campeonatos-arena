@@ -410,7 +410,7 @@ try {
   await assertFinanceSSR('http://127.0.0.1:3014', financeFixture.cookie);
   await assertFinancialSettingsSSR('http://127.0.0.1:3014', financeFixture.cookie);
   await assertFinanceWorkspacesSSR('http://127.0.0.1:3014', financeFixture.cookie);
-  for (const path of ['/professores', '/aulas/alunos', '/aulas/registrar', '/aulas', '/pdv/servicos', '/pdv/estoque']) { const response = await fetch('http://127.0.0.1:3014' + path, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200, path); assert.equal((await response.text()).includes('passwordHash'), false); }
+  for (const path of ['/professores', '/aulas/alunos', '/aulas/registrar', '/aulas', '/pdv/servicos', '/pdv/estoque', '/pdv/vendas', '/pdv/caixa']) { const response = await fetch('http://127.0.0.1:3014' + path, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200, path); assert.equal((await response.text()).includes('passwordHash'), false); }
   for (const path of ['/pdv/balanco', '/pdv/balanco?historico=1']) { const response = await fetch('http://127.0.0.1:3014' + path, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200, path); }
   const stockMember = await fixtureDb.arenaMember.findFirstOrThrow({ where: { arenaId: financeFixture.arenaId, userId: staffFixtureId } });
   assert.equal((await fetch('http://127.0.0.1:3014/pdv/novo', { headers: { cookie: financeFixture.cookie }, redirect: 'manual' })).status, 404);

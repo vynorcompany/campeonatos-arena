@@ -95,6 +95,11 @@ export async function assertProductsSmoke(db, origin, arenaId, cookie, staffId) 
   const receipts = await db.financialEntry.findMany({ where: { arenaId, bankAccountId: bank.id }, include: { sale: { include: { payments: true } } } });
   assert.equal(receipts.length, 2); for (const receipt of receipts) { assert.equal(receipt.status, 'PAID'); assert.equal(receipt.amountCents, 1750); assert.equal(receipt.sale.payments[0].amountCents, 1750); }
   assert.equal((await db.product.findUniqueOrThrow({ where: { id: current.id } })).stockQuantity, 10);
+  await db.arenaMember.update({ where: { id: member.id }, data: { viewPermissions: [...member.viewPermissions, 'stock', 'pos'] } });
+  const salesResponse = await fetch(`${origin}/api/management/pos/workspaces/sales`, { headers: { cookie } }); assert.equal(salesResponse.status, 200); assert.equal(salesResponse.headers.get('cache-control'), 'private, no-store'); const salesData = await salesResponse.json();
+  assert.ok(salesData.sales.some(row => row.totalCents === 1750 && row.items[0].quantity === 2 && row.items[0].productName === 'Produto detalhe atualizado'));
+  for (const key of ['fiscalProfile','customerName','bankAccountId','arenaId']) assert.equal(JSON.stringify(salesData).includes(key), false);
+  await db.arenaMember.update({ where: { id: member.id }, data: { viewPermissions: [...member.viewPermissions, 'stock'] } });
   // Sales restrict product deletion; release only this helper's synthetic receipts before arena teardown.
   await db.sale.deleteMany({ where: { arenaId, customerName: saleFields.customerName } });
   await db.arenaMember.update({ where: { id: member.id }, data: { editPermissions: member.editPermissions } });

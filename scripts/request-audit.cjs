@@ -103,8 +103,14 @@ async function resolveActor(db, req, source = process.env, responseCookies = [],
   return { arenaId: publicArena?.id || null, actorId: 'ANONYMOUS', actorName: 'Não autenticado' };
 }
 
+// Never log driver messages, SQL, connection strings, bodies or request tokens.
+function auditFailure(error, stage) {
+  const names = new Set(['Error', 'PrismaClientKnownRequestError', 'PrismaClientUnknownRequestError', 'PrismaClientInitializationError', 'PrismaClientRustPanicError', 'PrismaClientValidationError', 'TimeoutError', 'AbortError']);
+  return { stage: stage === 'REQUESTED' ? 'REQUESTED' : 'COMPLETION', name: names.has(error?.name) ? error.name : 'Error', ...(typeof error?.code === 'string' && /^P\d{4}$/.test(error.code) ? { code: error.code } : {}) };
+}
+
 /** Audit every application request centrally, without inspecting its body or query string. */
-function createAuditedHandler(handle, { db, authDb = db, manifest = {}, source = process.env, onError = () => console.error('Falha ao atualizar o registro de auditoria da requisição.') }) {
+function createAuditedHandler(handle, { db, authDb = db, manifest = {}, source = process.env, onError = failure => console.error('Falha ao atualizar o registro de auditoria da requisição.', failure) }) {
   return async (req, res) => {
     if (!shouldAudit(req)) return handle(req, res);
     const id = randomUUID();
@@ -117,11 +123,11 @@ function createAuditedHandler(handle, { db, authDb = db, manifest = {}, source =
     try {
       actor = await resolveActor(db, req, source, [], publicAction, authDb);
       await scoped(db, actor.arenaId, tx => tx.auditEvent.create({ data: { id, ...actor, action: operationOf(req, manifest), entityId: id, details } }), id);
-    } catch {
+    } catch (error) {
       res.statusCode = 503;
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.end('Não foi possível registrar a solicitação. Tente novamente.');
-      onError();
+      onError(auditFailure(error, 'REQUESTED'));
       return;
     }
     const scope = { arenaIds: new Set(), requestId: id, ...actor };
@@ -138,7 +144,7 @@ function createAuditedHandler(handle, { db, authDb = db, manifest = {}, source =
         const targetArenaId = identified.arenaId || (!agencyRequest && observed.length === 1 ? observed[0] : null);
         const attribution = !actor.arenaId ? { ...identified, arenaId: targetArenaId } : { actorId: identified.actorId, actorName: identified.actorName };
         await scoped(db, identified.arenaId, tx => tx.auditEvent.update({ where: { id }, data: { ...attribution, details: { ...details, stage: aborted ? 'INTERRUPTED' : 'RESPONDED', affectedArenaCount: observed.length, statusCode: res.statusCode, elapsedMs: Date.now() - started, attachment: /attachment/i.test(String(res.getHeader('content-disposition') || '')) } } }), id);
-      } catch { onError(); }
+      } catch (error) { onError(auditFailure(error, 'COMPLETION')); }
     };
     res.once('finish', () => { void complete(false); });
     res.once('close', () => { if (!res.writableFinished) void complete(true); });
@@ -160,4 +166,4 @@ function productionAuditHandler(handle, rootDir) {
   const authDb = process.env.AUTH_DATABASE_URL ? new PrismaClient({ datasources: { db: { url: process.env.AUTH_DATABASE_URL } } }) : db;
   return createAuditedHandler(handle, { db, authDb, manifest });
 }
-module.exports = { cookiesOf, shouldAudit, operationOf, resolveActor, createAuditedHandler, productionAuditHandler };
+module.exports = { auditFailure, cookiesOf, shouldAudit, operationOf, resolveActor, createAuditedHandler, productionAuditHandler };
