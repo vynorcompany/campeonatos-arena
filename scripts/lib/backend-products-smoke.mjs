@@ -42,5 +42,45 @@ export async function assertProductsSmoke(db, origin, arenaId, cookie, staffId) 
   const services = await (await page('services')).json(); assert.ok(services.services.some(row => row.id === standard.id)); assert.equal(services.services.some(row => row.id === service.id), false); assert.ok(services.courts.some(row => row.id === court.id));
   assert.equal((await fetch(`${origin}/api/management/products/pages/services?arenaId=forged`, { headers: { cookie } })).status, 400);
   assert.equal((await db.product.findUniqueOrThrow({ where: { id: product.id } })).stockQuantity, 4);
+  // Exercise product writes through the real HTTP boundary, including concurrent increments.
+  const productFields = { name: 'Produto detalhe sintético', sku: 'SYN-DETAIL', notes: 'Contrato', cost: '2,50', price: '8,75', categoryId: category.id, stockQuantity: '10', minStock: '2' };
+  assert.equal((await post('create-product', productFields)).status, 200);
+  const detailProduct = await db.product.findFirstOrThrow({ where: { arenaId, sku: productFields.sku } });
+  assert.equal(detailProduct.priceCents, 875); assert.equal(detailProduct.costCents, 250); assert.equal(detailProduct.createdByUserId, staffId);
+  const detailResponse = await fetch(`${origin}/api/management/products/detail/${detailProduct.id}`, { headers: { cookie } });
+  assert.equal(detailResponse.status, 200); assert.equal(detailResponse.headers.get('cache-control'), 'private, no-store');
+  const detail = await detailResponse.json(); assert.equal(detail.product.name, productFields.name); assert.equal(detail.product.stockQuantity, 10); assert.equal(detail.product.arenaId, undefined); assert.equal(detail.product.createdByUserId, undefined);
+  assert.equal(await (await fetch(`${origin}/api/management/products/detail/missing-product`, { headers: { cookie } })).json(), null);
+  const increments = await Promise.all(Array.from({ length: 6 }, () => post('adjust-stock', { productId: detailProduct.id, type: 'IN', quantity: '1', reason: 'Concurrent fixture' })));
+  for (const response of increments) assert.equal(response.status, 200, await response.text());
+  assert.equal((await db.product.findUniqueOrThrow({ where: { id: detailProduct.id } })).stockQuantity, 16, 'Concurrent stock writes must not overwrite each other');
+  assert.equal(await db.stockMovement.count({ where: { arenaId, productId: detailProduct.id, reason: 'Concurrent fixture' } }), 6);
+  const current = await db.product.findUniqueOrThrow({ where: { id: detailProduct.id } });
+  const updateFields = { ...productFields, productId: current.id, expectedUpdatedAt: current.updatedAt.toISOString(), name: 'Produto detalhe atualizado', stockQuantity: '999' };
+  assert.equal((await post('update-product', updateFields)).status, 200);
+  assert.equal((await db.product.findUniqueOrThrow({ where: { id: current.id } })).stockQuantity, 16, 'Editing metadata must not overwrite inventory');
+  const stale = await post('update-product', updateFields); assert.equal(stale.status, 200); assert.ok((await stale.json()).error);
+  const balance = await post('stock-balance', { title: 'Inventário sintético', reason: 'Contagem', [`count_${current.id}`]: '14', [`count_${product.id}`]: '' });
+  assert.equal(balance.status, 200, await balance.clone().text()); assert.deepEqual(await balance.json(), { updated: 1 });
+  assert.equal((await db.product.findUniqueOrThrow({ where: { id: current.id } })).stockQuantity, 14);
+  assert.equal((await db.product.findUniqueOrThrow({ where: { id: product.id } })).stockQuantity, 4);
+  assert.equal((await post('create-sale', { productId: current.id, quantity: '1', paymentMethod: 'PIX', customerName: 'Sintético' })).status, 403, 'Stock editing must not grant sales access');
+  const invalidFiscal = await post('product-fiscal', { productId: current.id, fiscalProfile: '{invalid' }); assert.equal(invalidFiscal.status, 200); assert.ok((await invalidFiscal.json()).error);
+  assert.equal((await post('product-fiscal', { productId: current.id, fiscalProfile: JSON.stringify({ additionalInfo: 'Informação sintética' }) })).status, 200);
+  assert.equal((await db.product.findUniqueOrThrow({ where: { id: current.id } })).fiscalProfile.additionalInfo, 'Informação sintética');
+  await db.arenaMember.update({ where: { id: member.id }, data: { editPermissions: [...member.editPermissions.filter(value => value !== 'stock'), 'pos'] } });
+  assert.equal((await post('adjust-stock', { productId: current.id, type: 'IN', quantity: '1', reason: 'Denied' })).status, 403, 'Sales permission must not grant inventory editing');
+  const bank = await db.bankAccount.create({ data: { arenaId, name: 'PDV contrato sintético' } });
+  const saleFields = { productId: current.id, quantity: '2', paymentMethod: 'PIX', customerName: 'Venda contrato sintética' };
+  assert.notEqual((await post('create-sale', saleFields)).status, 200, 'Positive sale requires a valid receiving account');
+  for (const operation of ['create-sale', 'create-cart-sale']) {
+    const sale = await post(operation, operation === 'create-sale' ? { ...saleFields, bankAccountId: bank.id } : { items: JSON.stringify([{ productId: current.id, quantity: 2 }]), paymentMethod: 'PIX', customerName: saleFields.customerName, bankAccountId: bank.id });
+    assert.equal(sale.status, 200, await sale.text());
+  }
+  const receipts = await db.financialEntry.findMany({ where: { arenaId, bankAccountId: bank.id }, include: { sale: { include: { payments: true } } } });
+  assert.equal(receipts.length, 2); for (const receipt of receipts) { assert.equal(receipt.status, 'PAID'); assert.equal(receipt.amountCents, 1750); assert.equal(receipt.sale.payments[0].amountCents, 1750); }
+  assert.equal((await db.product.findUniqueOrThrow({ where: { id: current.id } })).stockQuantity, 10);
+  // Sales restrict product deletion; release only this helper's synthetic receipts before arena teardown.
+  await db.sale.deleteMany({ where: { arenaId, customerName: saleFields.customerName } });
   await db.arenaMember.update({ where: { id: member.id }, data: { editPermissions: member.editPermissions } });
 }

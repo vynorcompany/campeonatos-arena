@@ -1,0 +1,389 @@
+import "server-only";
+import { ProductOperationError } from "@/lib/backend/product-operation-error";
+import { expectedRecordDate, staleRecordMessage } from "@/lib/record-version";
+import { consumeProductStock, saveStockAggregates } from "@/lib/products/stock-aggregates";
+import { Prisma } from "@prisma/client";
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
+import { arenaDatabase } from "@/lib/arena-database";
+
+import { cashReferenceDate } from "@/lib/finance/cash-day";
+import { recordCashSaleIfOpen } from "@/lib/finance/cash-register-sales";
+import { z } from "zod";
+import { requireModuleEdit } from "@/lib/auth/guards";
+import { prisma } from "@/lib/prisma";
+
+const paymentMethods = ["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH", "OTHER"] as const;
+
+const productSchema = z.object({
+  name: z.string().trim().min(2, "Informe o nome do produto."),
+  sku: z.string().trim().max(40).default(""),
+  notes: z.string().trim().max(2000, "Observações devem ter até 2.000 caracteres.").default(""),
+  cost: z.string().trim().min(1, "Informe o preço de custo."),
+  price: z.string().trim().min(1, "Informe o preço."),
+  categoryId: z.string().trim().optional().default(""),
+  stockQuantity: z.coerce.number().int().min(0, "Estoque inválido.").default(0),
+  minStock: z.coerce.number().int().min(0, "Estoque mínimo inválido.").default(0)
+});
+
+const stockSchema = z.object({
+  productId: z.string().min(1, "Produto inválido."),
+  type: z.enum(["IN", "OUT", "ADJUST"]),
+  quantity: z.coerce.number().int().min(0, "Quantidade inválida."),
+  reason: z.string().trim().max(120).default("")
+});
+
+const saleSchema = z.object({
+  productId: z.string().min(1, "Produto inválido."),
+  quantity: z.coerce.number().int().min(1, "Quantidade inválida."),
+  bankAccountId: z.string().trim().max(100).optional().default(""),
+  paymentMethod: z.enum(paymentMethods),
+  customerName: z.string().trim().max(80).default("")
+});
+
+const cartSaleSchema = z.object({
+  items: z
+    .string()
+    .min(2, "Adicione pelo menos um produto.")
+    .transform((value) => JSON.parse(value) as Array<{ productId: string; quantity: number }>),
+  bankAccountId: z.string().trim().max(100).optional().default(""),
+  paymentMethod: z.enum(paymentMethods),
+  customerName: z.string().trim().max(80).default("")
+});
+
+function parseMoneyToCents(value: string) {
+  const normalized = value.trim().replace(/^R\$\s*/, "").replace(/\./g, "").replace(",", ".");
+  const amount = Number(normalized);
+
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new ProductOperationError("Preço inválido.");
+  }
+
+  return Math.round(amount * 100);
+}
+
+function formatSaleCode() {
+  return `SALE-${Date.now().toString(36).toUpperCase()}`;
+}
+
+export async function createProductAction(formData: FormData) {
+  const auth = await requireModuleEdit("stock");
+  const prisma = arenaDatabase(auth.arenaId);
+  const parsed = productSchema.safeParse({
+    name: formData.get("name"),
+    sku: formData.get("sku"), notes: formData.get("notes") ?? "",
+    cost: formData.get("cost"),
+    price: formData.get("price"),
+    categoryId: formData.get("categoryId"),
+    stockQuantity: formData.get("stockQuantity"),
+    minStock: formData.get("minStock")
+  });
+
+  if (!parsed.success) {
+    throw new ProductOperationError(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  const priceCents = parseMoneyToCents(parsed.data.price);
+  const costCents = parseMoneyToCents(parsed.data.cost);
+  if (parsed.data.categoryId) {
+    const category = await prisma.productCategory.findFirst({ where: { id: parsed.data.categoryId, arenaId: auth.arenaId, active: true }, select: { id: true } });
+    if (!category) throw new ProductOperationError("Categoria de produto inválida.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const product = await tx.product.create({
+      data: {
+        arenaId: auth.arenaId,
+        createdByUserId: auth.userId,
+        updatedByUserId: auth.userId,
+        name: parsed.data.name,
+        sku: parsed.data.sku,
+        priceCents,
+        costCents,
+        stockQuantity: parsed.data.stockQuantity,
+        minStock: parsed.data.minStock, notes: parsed.data.notes
+        , categoryId: parsed.data.categoryId || null
+      }
+    });
+
+    if (parsed.data.stockQuantity > 0) {
+      await tx.stockMovement.create({
+        data: {
+          arenaId: auth.arenaId,
+          productId: product.id,
+          type: "IN",
+          quantity: parsed.data.stockQuantity,
+          reason: "Estoque inicial"
+        }
+      });
+    }
+  });
+
+}
+
+export async function updateProductAction(formData: FormData) {
+  const auth = await requireModuleEdit("stock");
+  const prisma = arenaDatabase(auth.arenaId);
+  const productId = String(formData.get("productId") ?? "");
+  const parsed = productSchema.safeParse({
+    name: formData.get("name"), sku: formData.get("sku"), notes: formData.get("notes") ?? "", cost: formData.get("cost"), price: formData.get("price"),
+    stockQuantity: formData.get("stockQuantity"), minStock: formData.get("minStock"), categoryId: formData.get("categoryId")
+  });
+  if (!productId || !parsed.success) throw new ProductOperationError(parsed.success ? "Produto inválido." : parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  if (parsed.data.categoryId) {
+    const category = await prisma.productCategory.findFirst({ where: { id: parsed.data.categoryId, arenaId: auth.arenaId, active: true }, select: { id: true } });
+    if (!category) throw new ProductOperationError("Categoria de produto inválida.");
+  }
+  const expectedUpdatedAt = expectedRecordDate(formData.get("expectedUpdatedAt"));
+  if (!expectedUpdatedAt) return { error: staleRecordMessage };
+  const updated = await prisma.product.updateMany({ where: { id: productId, arenaId: auth.arenaId, updatedAt: expectedUpdatedAt, serviceDeletedAt: null }, data: { name: parsed.data.name, sku: parsed.data.sku, notes: formData.has("notes") ? parsed.data.notes : undefined, costCents: parseMoneyToCents(parsed.data.cost), priceCents: parseMoneyToCents(parsed.data.price), minStock: parsed.data.minStock, categoryId: parsed.data.categoryId || null, updatedByUserId: auth.userId } });
+  if (!updated.count) return { error: staleRecordMessage };
+}
+
+export async function adjustStockAction(formData: FormData) {
+  const auth = await requireModuleEdit("stock");
+  const prisma = arenaDatabase(auth.arenaId);
+  const parsed = stockSchema.safeParse({
+    productId: formData.get("productId"),
+    type: formData.get("type"),
+    quantity: formData.get("quantity"),
+    reason: formData.get("reason")
+  });
+
+  if (!parsed.success) {
+    throw new ProductOperationError(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT id FROM "Product" WHERE id = ${parsed.data.productId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
+    const product = await tx.product.findFirst({ where: { id: parsed.data.productId, arenaId: auth.arenaId, isService: false } });
+    if (!product) throw new ProductOperationError("Produto não encontrado.");
+    // Read and write under the same lock; retain the existing negative-stock policy.
+    const nextStock = parsed.data.type === "ADJUST" ? parsed.data.quantity : parsed.data.type === "IN" ? product.stockQuantity + parsed.data.quantity : product.stockQuantity - parsed.data.quantity;
+    await tx.product.update({ where: { id: product.id }, data: { stockQuantity: nextStock, updatedByUserId: auth.userId } });
+    await tx.stockMovement.create({ data: { arenaId: auth.arenaId, productId: product.id, type: parsed.data.type, quantity: parsed.data.quantity, reason: parsed.data.reason } });
+  });
+
+}
+
+/**
+ * Applies a physical stock count. Empty fields intentionally do nothing: this
+ * lets the operator finish a balance gradually without accidentally zeroing
+ * products that were not counted.
+ */
+export async function createStockBalanceAction(formData: FormData) {
+  const auth = await requireModuleEdit("stock");
+  const prisma = arenaDatabase(auth.arenaId);
+  const reason = String(formData.get("reason") ?? "").trim().slice(0, 80);
+  const requestedCounts = [...formData.entries()]
+    .filter(([key, value]) => key.startsWith("count_") && String(value).trim() !== "")
+    .map(([key, value]) => ({ productId: key.slice("count_".length), count: Number(value) }));
+
+  if (!requestedCounts.length) {
+    throw new ProductOperationError("Informe a contagem de pelo menos um produto.");
+  }
+  if (requestedCounts.some((item) => !item.productId || !Number.isSafeInteger(item.count) || item.count < 0 || item.count > 2147483647)) {
+    throw new ProductOperationError("Cada contagem informada deve ser um número inteiro igual ou maior que zero.");
+  }
+
+  const productIds = [...new Set(requestedCounts.map((item) => item.productId))];
+  if (productIds.length !== requestedCounts.length) {
+    throw new ProductOperationError("Há produtos repetidos no balanço.");
+  }
+
+  const stamp = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date());
+  const title = String(formData.get("title") ?? "").trim().slice(0, 100) || `Balanço ${stamp}`;
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Product" WHERE "arenaId" = ${auth.arenaId} AND id IN (${Prisma.join([...productIds].sort())}) ORDER BY id FOR UPDATE`;
+    const products = await tx.product.findMany({ where: { arenaId: auth.arenaId, isService: false, id: { in: productIds } }, select: { id: true, name: true, sku: true, stockQuantity: true } });
+    if (products.length !== productIds.length) throw new ProductOperationError("Um ou mais produtos não pertencem a esta arena.");
+    const productById = new Map(products.map(product => [product.id, product]));
+    const items = requestedCounts.map(item => { const product = productById.get(item.productId)!; return { productId: product.id, name: product.name, sku: product.sku, systemQuantity: product.stockQuantity, countedQuantity: item.count, difference: item.count - product.stockQuantity }; });
+    for (const item of requestedCounts) {
+      const product = productById.get(item.productId)!;
+      const difference = item.count - product.stockQuantity;
+      if (!difference) continue;
+      await tx.product.update({
+        where: { id: product.id },
+        data: { stockQuantity: item.count, updatedByUserId: auth.userId }
+      });
+      await tx.stockMovement.create({
+        data: {
+          arenaId: auth.arenaId,
+          productId: product.id,
+          type: "ADJUST",
+          quantity: item.count,
+          reason: `Balanço ${stamp} | sistema: ${product.stockQuantity} | contado: ${item.count} | diferença: ${difference >= 0 ? "+" : ""}${difference}${reason ? ` | ${reason}` : ""}`
+        }
+      });
+    }
+    await tx.auditEvent.create({ data: { arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName, action: "STOCK_BALANCE_COMPLETED", entityId: crypto.randomUUID(), details: { title, reason, items } } });
+  });
+
+  return { updated: requestedCounts.length };
+}
+
+export async function createSaleAction(formData: FormData) {
+  const auth = await requireModuleEdit("pos");
+  const prisma = arenaDatabase(auth.arenaId);
+  const parsed = saleSchema.safeParse({
+    productId: formData.get("productId"),
+    quantity: formData.get("quantity"),
+    bankAccountId: formData.get("bankAccountId") ?? "",
+    paymentMethod: formData.get("paymentMethod"),
+    customerName: formData.get("customerName")
+  });
+
+  if (!parsed.success) {
+    throw new ProductOperationError(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  const product = await prisma.product.findFirst({
+    where: {
+      id: parsed.data.productId,
+      arenaId: auth.arenaId,
+      active: true
+    }
+  });
+
+  if (!product) {
+    throw new ProductOperationError("Produto não encontrado.");
+  }
+
+  await createSaleFromProducts({
+    arenaId: auth.arenaId,
+    customerName: parsed.data.customerName,
+    paymentMethod: parsed.data.paymentMethod,
+    bankAccountId: parsed.data.bankAccountId,
+    products: [{ ...product, quantity: parsed.data.quantity }]
+  });
+
+}
+
+export async function createCartSaleAction(formData: FormData) {
+  const auth = await requireModuleEdit("pos");
+  const prisma = arenaDatabase(auth.arenaId);
+  const parsed = cartSaleSchema.safeParse({
+    items: formData.get("items"),
+    bankAccountId: formData.get("bankAccountId") ?? "",
+    paymentMethod: formData.get("paymentMethod"),
+    customerName: formData.get("customerName")
+  });
+
+  if (!parsed.success) {
+    throw new ProductOperationError(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  const cartItems = parsed.data.items
+    .map((item) => ({
+      productId: String(item.productId ?? ""),
+      quantity: Number(item.quantity ?? 0)
+    }))
+    .filter((item) => item.productId && Number.isInteger(item.quantity) && item.quantity > 0);
+
+  if (!cartItems.length) {
+    throw new ProductOperationError("Adicione pelo menos um produto.");
+  }
+
+  const quantitiesByProduct = new Map<string, number>();
+  for (const item of cartItems) {
+    quantitiesByProduct.set(item.productId, (quantitiesByProduct.get(item.productId) ?? 0) + item.quantity);
+  }
+
+  const products = await prisma.product.findMany({
+    where: {
+      arenaId: auth.arenaId,
+      active: true,
+      id: {
+        in: [...quantitiesByProduct.keys()]
+      }
+    }
+  });
+
+  if (products.length !== quantitiesByProduct.size) {
+    throw new ProductOperationError("Um ou mais produtos não foram encontrados.");
+  }
+
+  const productsWithQuantities = products.map((product) => ({
+    ...product,
+    quantity: quantitiesByProduct.get(product.id) ?? 0
+  }));
+
+  await createSaleFromProducts({
+    arenaId: auth.arenaId,
+    customerName: parsed.data.customerName,
+    paymentMethod: parsed.data.paymentMethod,
+    bankAccountId: parsed.data.bankAccountId,
+    products: productsWithQuantities
+  });
+
+}
+
+async function createSaleFromProducts({
+  arenaId,
+  customerName,
+  paymentMethod,
+  bankAccountId: selectedBankAccountId,
+  products
+}: {
+  arenaId: string;
+  customerName: string;
+  paymentMethod: (typeof paymentMethods)[number];
+  bankAccountId: string;
+  products: Array<{
+    id: string;
+    name: string;
+    priceCents: number;
+    quantity: number;
+    isService?: boolean;
+    fiscalProfile?: Prisma.JsonValue;
+  }>;
+}) {
+  const prisma = arenaDatabase(arenaId);
+  const totalCents = products.reduce((total, product) => total + product.priceCents * product.quantity, 0);
+
+  await prisma.$transaction(async (tx) => {
+    const bankAccountId = totalCents > 0 ? await requireReceivingBankAccount(tx, arenaId, selectedBankAccountId) : null;
+    const paidAt = new Date();
+    const sale = await tx.sale.create({
+      data: {
+        arenaId,
+        code: formatSaleCode(),
+        customerName,
+        paymentMethod,
+        totalCents
+      }
+    });
+    if (totalCents > 0) {
+      await tx.salePayment.create({ data: { saleId: sale.id, bankAccountId, amountCents: totalCents, paymentMethod } });
+      await tx.financialEntry.create({ data: { arenaId, saleId: sale.id, bankAccountId, type: "INCOME", category: "VENDAS_DIRETAS", description: `Recebimento da venda ${sale.code}`, counterpartyName: customerName, amountCents: totalCents, paymentMethod, status: "PAID", paidAt } });
+    }
+    if (paymentMethod === "CASH" && totalCents > 0) {
+      await recordCashSaleIfOpen(tx, { arenaId, referenceDate: cashReferenceDate(), amountCents: totalCents, description: `Venda ${sale.code}`, createdByName: "PDV" });
+    }
+
+    for (const product of products) {
+      const itemTotalCents = product.priceCents * product.quantity;
+
+      await tx.saleItem.create({
+        data: {
+          saleId: sale.id,
+          productId: product.id,
+          fiscalProfile: product.fiscalProfile == null ? undefined : product.fiscalProfile,
+          quantity: product.quantity,
+          unitPriceCents: product.priceCents,
+          totalCents: itemTotalCents
+        }
+      });
+    }
+    await consumeProductStock(tx, arenaId, products.map(product => ({ productId: product.id, quantity: product.quantity })), `Venda ${sale.code}`, sale.id);
+  });
+}
+
+export async function updateStockAggregatesAction(formData: FormData) {
+  const auth = await requireModuleEdit("stock");
+  const productId = String(formData.get("productId") ?? "");
+  let rows: unknown; let choices: unknown;
+  try { rows = JSON.parse(String(formData.get("stockAggregates") ?? "[]")); choices = formData.has("stockChoices") ? JSON.parse(String(formData.get("stockChoices"))) : undefined; }
+  catch { throw new ProductOperationError("Revise os produtos agregados."); }
+  await arenaDatabase(auth.arenaId).$transaction(tx => saveStockAggregates(tx, auth.arenaId, productId, rows, choices));
+}

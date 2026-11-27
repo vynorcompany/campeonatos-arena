@@ -3,10 +3,10 @@ import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { ProductEditorTabs } from "@/components/products/product-editor-tabs";
 import { ProductFiscalForm } from "@/components/products/product-fiscal-form";
-import { compositionIds, readStockChoices } from "@/lib/products/composition";
+import { compositionIds, readStockChoices } from "@/lib/products/composition-schema";
 import { StockAggregatesEditor } from "@/components/products/stock-aggregates-editor";
-import { readStockAggregates } from "@/lib/products/stock-aggregates";
-import { arenaDatabase } from "@/lib/arena-database";
+import { readStockAggregates } from "@/lib/products/stock-recipe";
+import { getProductDetailData } from "@/lib/products/detail-data";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -32,37 +32,9 @@ export default async function ProductDetailPage(props: {
     auth.systemRole,
     auth.editPermissions,
   );
-  const prisma = arenaDatabase(auth.arenaId);
-  const [product, categories, aggregateProducts, issuer] = await Promise.all([
-    prisma.product.findFirst({
-      where: { id: params.productId, arenaId: auth.arenaId },
-      include: { stockMovements: { orderBy: { createdAt: "desc" }, take: 8 } },
-    }),
-    prisma.productCategory.findMany({
-      where: { arenaId: auth.arenaId, active: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.product.findMany({
-      where: {
-        arenaId: auth.arenaId,
-        isService: false,
-        active: true,
-        id: { not: params.productId },
-      },
-      select: {
-        id: true,
-        name: true,
-        stockAggregates: true,
-        stockChoices: true,
-      },
-      orderBy: { name: "asc" },
-    }),
-    prisma.fiscalSettings.findUnique({
-      where: { arenaId: auth.arenaId },
-      select: { crt: true, issuerState: true },
-    }),
-  ]);
-  if (!product) notFound();
+  const data = await getProductDetailData(auth.arenaId, params.productId);
+  if (!data) notFound();
+  const { product, categories, aggregateProducts, issuer } = data;
   return (
     <div className={`${viewStyles.product_management_stack_md} tw:mx-auto tw:w-full tw:max-w-[1320px]`}>
       <header className={ui.toolbar}>

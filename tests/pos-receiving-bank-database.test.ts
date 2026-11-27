@@ -2,7 +2,7 @@ import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import * as stockAggregates from "../src/lib/products/stock-aggregates";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import { createRequire } from "node:module";
 import test from "node:test";
 import vm from "node:vm";

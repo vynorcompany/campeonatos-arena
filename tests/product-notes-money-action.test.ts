@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import vm from "node:vm";
 import ts from "typescript";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import { z } from "zod";
 
 test("cadastro/edição de produto: moeda brasileira, observações e isolamento da arena", async () => {
