@@ -1,0 +1,59 @@
+import "server-only";
+import { publicCheckinError } from "@/lib/backend/checkin-operation-error";
+import { randomBytes } from "node:crypto";
+import { z } from "zod";
+import { requirePermission } from "@/lib/auth/guards";
+import { requirePublicPlayerAuth } from "@/lib/auth/player-session";
+import { withArenaTransaction } from "@/lib/rls";
+import { registerQrLessonCheckin } from "@/lib/checkin/lesson";
+import { registerCourtCheckin, registerSelectedCourtCheckins } from "@/lib/checkin/register";
+
+export async function configureCourtCheckinAction(form: FormData) {
+  const auth = await requirePermission("calendar:settings:manage");
+  const lessonPolicy = form.get("lessonDebtPolicy") === "true";
+  const enabled = form.has("checkinMode") || lessonPolicy ? undefined : form.get("enabled") === "true";
+  const checkinMode = form.has("checkinMode") ? z.enum(["SELF", "GROUP"]).parse(form.get("checkinMode")) : undefined;
+  await withArenaTransaction(auth.arenaId, async tx => {
+    const arena = await tx.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { checkinToken: true } });
+    if (lessonPolicy) {
+      const lessonCheckinBlockOverdue = z.enum(["true", "false"]).parse(form.get("lessonCheckinBlockOverdue")) === "true";
+      await tx.arenaOperationalSettings.upsert({ where: { arenaId: auth.arenaId }, create: { arenaId: auth.arenaId, lessonCheckinBlockOverdue }, update: { lessonCheckinBlockOverdue } });
+    }
+    await tx.arena.update({ where: { id: auth.arenaId }, data: { ...(enabled === undefined ? {} : { checkinEnabled: enabled }), ...(checkinMode ? { checkinMode } : {}),
+      ...(enabled && (!arena.checkinToken || form.get("rotate") === "true") ? { checkinToken: randomBytes(32).toString("hex") } : {}),
+    } });
+  });
+}
+
+export async function registerCourtCheckinAction(form: FormData) {
+  const parsed = z.object({ arenaSlug: z.string().min(1), token: z.string().length(64), occurrenceId: z.string().min(1), courtId: z.string().min(1) }).safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: "Escolha uma quadra e um horário válidos usando o QR Code da arena." };
+  try {
+    const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+    const selected = z.array(z.string().min(1)).max(64).parse(form.getAll("playerIds"));
+    await withArenaTransaction(auth.arenaId, async tx => {
+      if (selected.length || form.get("selectionMode") === "group") await registerSelectedCourtCheckins(tx, { ...parsed.data, arenaId: auth.arenaId, playerId: auth.playerId, playerIds: selected });
+      else await registerCourtCheckin(tx, { ...parsed.data, arenaId: auth.arenaId, playerId: auth.playerId, joinOwnGame: form.get("joinOwnGame") === "true" });
+    });
+  } catch (error) {
+    return { error: publicCheckinError(error) ?? "Não foi possível confirmar sua presença. Tente novamente ou procure a recepção." };
+  }
+}
+
+export async function registerLessonQrCheckinAction(form: FormData) {
+  const parsed = z.object({ arenaSlug: z.string().min(1), token: z.string().length(64), lessonId: z.string().min(1) }).safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: "Escolha uma aula válida usando o QR Code da arena." };
+  try {
+    const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+    await withArenaTransaction(auth.arenaId, tx => registerQrLessonCheckin(tx, { ...parsed.data, arenaId: auth.arenaId, playerId: auth.playerId }));
+  } catch (error) { return { error: publicCheckinError(error) ?? "Não foi possível confirmar sua presença na aula." }; }
+}
+
+
+export async function shareCheckinGameAction(form: FormData) {
+  const parsed = z.object({ arenaSlug: z.string().min(1).max(160), occurrenceId: z.string().min(1).max(160) }).safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: "Selecione um jogo válido." };
+  const auth = await requirePublicPlayerAuth(parsed.data.arenaSlug);
+  const { shareCheckinGame } = await import("@/lib/checkin/share-game");
+  return withArenaTransaction(auth.arenaId, tx => shareCheckinGame(tx, { ...parsed.data, arenaId: auth.arenaId, playerId: auth.playerId }));
+}
