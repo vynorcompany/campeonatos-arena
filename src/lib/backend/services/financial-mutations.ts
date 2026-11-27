@@ -1,3 +1,6 @@
+import * as operationsSettings from './financial-operations-settings';
+import * as portalPaymentSettings from './portal-payment-settings';
+import * as comandaWhatsappSettings from './comanda-whatsapp-settings';
 import * as subscriptions from '@/lib/backend/services/financial-subscriptions-actions';
 import * as payroll from '@/lib/backend/services/financial-payroll-actions';
 import 'server-only';
@@ -5,6 +8,11 @@ import * as settings from '@/lib/backend/services/financial-settings-actions';
 import * as actions from '@/lib/backend/services/financial-actions';
 import { financialMutationOutcomeSchema, type FinancialMutationOperation } from '@/lib/backend/contracts/financial-mutations';
 const handlers = {
+  'settings-save-financial-operations': operationsSettings.saveFinancialOperationsSettingsAction,
+  'settings-save-portal-payment': portalPaymentSettings.savePortalPaymentSettingsAction,
+  'settings-save-comanda-whatsapp': comandaWhatsappSettings.saveComandaWhatsappSettingsAction,
+  'settings-send-pending-comanda-whatsapp': comandaWhatsappSettings.sendPendingComandaWhatsappAction,
+
   'academy-create-plan': subscriptions.createPlanAction,
   'academy-create-subscription': subscriptions.createSubscriptionAction,
   'academy-record-plan-payment': subscriptions.recordPlanPaymentAction,
@@ -38,5 +46,7 @@ const handlers = {
   'split-card': actions.splitFinancialEntryCardAction,
 } as const;
 export async function executeFinancialMutation(operation: FinancialMutationOperation, form: FormData) {
-  return financialMutationOutcomeSchema.parse(await handlers[operation](form) ?? {});
+  const result = await handlers[operation](form);
+  const nullableSettings = ['settings-save-financial-operations','settings-save-portal-payment','settings-save-comanda-whatsapp','settings-send-pending-comanda-whatsapp'].includes(operation);
+  return financialMutationOutcomeSchema.parse(nullableSettings && result && 'error' in result && result.error === null ? {} : result ?? {});
 }

@@ -1,6 +1,6 @@
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import Link from "next/link";
-import { arenaDatabase } from "@/lib/arena-database";
+import { getPortalPaymentOptions } from "@/lib/finance/options";
 import { portalCheckoutPolicy } from "@/lib/payments/portal-checkout-policy";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -8,13 +8,8 @@ import { FinancialSettingsSwitch } from "./financial-operations-settings";
 import { savePortalPaymentSettingsAction } from "@/lib/actions/portal-payment-settings";
 
 export async function PortalPaymentSettings({ arenaId }: { arenaId: string }) {
-  const db = arenaDatabase(arenaId);
-  const [settings, connection] = await Promise.all([
-    db.arenaOperationalSettings.findUnique({ where: { arenaId } }),
-    db.paymentConnection.findUnique({ where: { arenaId_provider: { arenaId, provider: "MERCADO_PAGO" } }, select: { status: true } }),
-  ]);
+  const {settings,connection,accounts}=await getPortalPaymentOptions(arenaId);
   const policy = portalCheckoutPolicy(settings);
-  const accounts = await db.bankAccount.findMany({ where: { arenaId, OR: [{ active: true }, ...(settings?.portalPaymentBankAccountId ? [{ id: settings.portalPaymentBankAccountId }] : [])] }, orderBy: { name: "asc" }, select: { id: true, name: true, active: true } });
   return <section id="pagamentos-portal" tabIndex={-1} aria-label="Faturas, consumos e pagamentos" className="tw:grid tw:min-w-0 tw:gap-4 tw:rounded-md tw:border tw:border-[var(--line)] tw:bg-[var(--panel)] tw:p-5"><h2 className="tw:sr-only">Faturas, consumos e pagamentos</h2><p role="status" className="tw:m-0 tw:text-xs tw:text-[var(--muted)]">{connection?.status === "CONNECTED" ? "Mercado Pago conectado" : "Mercado Pago não conectado"}</p>
     <SafeActionForm action={savePortalPaymentSettingsAction} successMessage="Preferências de pagamento do Portal salvas." className="tw:grid tw:gap-4"><div className="tw:grid tw:gap-3 tw:xl:grid-cols-2">
       <FinancialSettingsSwitch name="portalConsumptionEnabled" label="Exibir faturas e consumos no Portal" description="Controla a consulta financeira, comandas e resumo da tela inicial. Os registros da equipe permanecem disponíveis." checked={policy.visible}/>

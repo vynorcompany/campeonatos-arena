@@ -1,6 +1,6 @@
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import Link from "next/link";
-import { arenaDatabase } from "@/lib/arena-database";
+import { getFinancialOperationsOptions } from "@/lib/finance/options";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { saveFinancialOperationsSettingsAction } from "@/lib/actions/financial-operations-settings";
@@ -14,7 +14,7 @@ export function FinancialSettingsSwitch({ name, label, description, checked, dis
   </label>;
 }
 export async function FinancialOperationsSettings({ arenaId }: { arenaId: string }) {
-  const settings = await arenaDatabase(arenaId).arenaOperationalSettings.findUnique({ where: { arenaId } });
+  const {settings}=await getFinancialOperationsOptions(arenaId);
   return <section id="regras-comandas" tabIndex={-1} aria-label="Regras de comandas" className="tw:grid tw:min-w-0 tw:gap-4 tw:rounded-md tw:border tw:border-[var(--line)] tw:bg-[var(--panel)] tw:p-5"><h1 className="tw:sr-only">Configurações Financeiras</h1><SafeActionForm action={saveFinancialOperationsSettingsAction} successMessage="Regras financeiras salvas." className="tw:grid tw:gap-4"><div className="tw:grid tw:gap-3 tw:xl:grid-cols-2">
     <FinancialSettingsSwitch name="cashRegisterRequired" label="Exigir caixa aberto para receber" description="Recebimentos em comandas precisam de um caixa aberto no dia. O controle de abertura e fechamento continua em Gerenciar Caixa." checked={settings?.cashRegisterRequired ?? false}/>
     <FinancialSettingsSwitch name="comandaCardsEnabled" label="Usar cartões de comanda" description="Identifique a comanda por um número de cartão. O mesmo cartão só pode estar em uma comanda aberta por vez." checked={settings?.comandaCardsEnabled ?? false}/>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireArenaAccess } from '@/lib/backend/services/management-session';
-import { canDeleteFinancialEntries, canPerformPermission } from '@/lib/permissions';
+import { canDeleteFinancialEntries, canPerformPermission, canViewModule, canManageWhatsApp, canSendWhatsApp } from '@/lib/permissions';
 import { financialMutationOperations, financialMutationInputSchema, type FinancialMutationOperation } from '@/lib/backend/contracts/financial-mutations';
 import { executeFinancialMutation } from '@/lib/backend/services/financial-mutations';
 import { FinanceOperationError } from '@/lib/finance/action-error';
@@ -24,10 +24,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ op
     : operation === 'payroll-upsert-payroll-entry' ? may('finance:payable:create') || may('finance:payable:edit')
     : operation.startsWith('settings-') ? may('finance:settings:manage') : operation.startsWith('delete') ? canDeleteFinancialEntries(auth.arenaRole, auth.systemRole, auth.editPermissions)
     : operation === 'charge' ? may('finance:receivable:settle') : may(`finance:receivable:${capability}`) || may(`finance:payable:${capability}`);
+  const optionsOperation = ['settings-save-financial-operations','settings-save-portal-payment','settings-save-comanda-whatsapp','settings-send-pending-comanda-whatsapp'].includes(operation);
+  if (optionsOperation && !canViewModule('finance', auth.arenaRole, auth.systemRole, auth.viewPermissions)) return NextResponse.json({error:'Sem permissão para consultar o financeiro.'},{status:403,headers});
   if (!permitted) return NextResponse.json({ error: 'Sem permissão para executar esta ação financeira.' }, { status: 403, headers });
   let input;
   try { input = financialMutationInputSchema(operation).parse(await readBoundedJson(request, 768 * 1024)); }
   catch (error) { return NextResponse.json({ error: 'Dados financeiros inválidos.' }, { status: error instanceof RequestBodyTooLargeError ? 413 : 400, headers }); }
+  const enablingWhatsapp = operation === 'settings-save-comanda-whatsapp' && (input.fields.whatsappPaidEnabled?.[0] === 'on' || input.fields.whatsappUnpaidEnabled?.[0] === 'on');
+  if ((enablingWhatsapp && !canManageWhatsApp(auth.arenaRole,auth.systemRole,auth.editPermissions)) || (operation === 'settings-send-pending-comanda-whatsapp' && !canSendWhatsApp(auth.arenaRole,auth.systemRole,auth.editPermissions))) return NextResponse.json({error:'Sem permissão para configurar ou enviar mensagens financeiras.'},{status:403,headers});
   const form = new FormData();
   for (const [name, values] of Object.entries(input.fields)) for (const value of values) form.append(name, value);
   // Services check the actual entry type inside their transaction, including

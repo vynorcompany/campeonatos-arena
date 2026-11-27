@@ -1,18 +1,20 @@
+import{LookupOperationError}from"../src/lib/backend/lookup-operation-error";
 import test from "node:test";
 import assert from "node:assert/strict";
-import {readFileSync} from "node:fs";
+import {readFileSync} from "./helpers/domain-source";
 import vm from "node:vm";
 import {createRequire} from "node:module";
 import ts from "typescript";
 const source=readFileSync("src/lib/actions/smart-lookup.ts","utf8");
-function lookup({existing=null,arena="arena-a"}:{existing?:any;arena?:string}={}){
+function lookup({existing=null,arena="arena-a",failure}:{existing?:any;arena?:string;failure?:Error}={}){
  const permissions:string[]=[],writes:any[]=[],queries:any[]=[];
- const tx:any={$executeRaw:async()=>1};
+ const tx:any={$executeRaw:async()=>{if(failure)throw failure;return 1;}};
  for(const model of ["supplier","productCategory","financialCategory"]){tx[model]={findFirst:async(q:any)=>{queries.push(q);return existing;},create:async(q:any)=>{writes.push(q);return{id:"created",...q.data};}};}
  const exports:any={};vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,Error,require:(name:string)=>{
+ if(name==="@/lib/backend/lookup-operation-error")return{LookupOperationError};
  if(name==="@/lib/auth/guards")return{requirePermission:async(p:string)=>{permissions.push(p);return{arenaId:arena};},requireModuleEdit:async(p:string)=>{permissions.push(p);return{arenaId:arena};}};
  if(name==="@/lib/rls")return{withArenaTransaction:async(id:string,fn:any)=>{assert.equal(id,arena);return fn(tx);}};
- if(name==="@/lib/actions/calendar")return{createQuickPlayerAction:async()=>{permissions.push("players:create delegate");return{id:"client",name:"Cliente QA"};}};
+ if(name==="./calendar-clients-actions")return{createQuickPlayerAction:async()=>{permissions.push("players:create delegate");return{id:"client",name:"Cliente QA"};}};
  throw new Error(name);
  }});
  return{run:async(kind:string,name="Categoria QA",type="REVENUE")=>{const f=new FormData();f.set("kind",kind);f.set("name",name);f.set("financeType",type);return exports.createSmartLookupAction(f);},permissions,writes,queries};
@@ -52,3 +54,5 @@ test("seletor mantém a primeira opção implícita e valores controlados sem tr
  const controlled=renderToStaticMarkup(React.createElement(exports.SmartEntitySelect,{name:"categoryId",value:"id-b"},options));
  assert.match(controlled,/value="Categoria B"/);assert.match(controlled,/value="id-b" selected/);
 });
+
+test("cadastro inteligente não expõe falhas de infraestrutura como validação",async()=>{const service=lookup({failure:new Error("private-provider-token")});assert.equal((await service.run("supplier")).error,"Não foi possível criar o cadastro.");});

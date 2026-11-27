@@ -16,7 +16,7 @@ export async function remoteFinancialMutation(origin: string, operation: Financi
   // A timeout may follow a committed settlement. Never retry a financial write.
   const response = await fetch(new URL(`/api/management/finance/actions/${operation}`, backendOrigin(origin)), {
     method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...(cookie ? { cookie } : {}), ...(browserOrigin ? { origin: browserOrigin } : {}) },
-    body: JSON.stringify(payload), cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(90_000),
+    body: JSON.stringify(payload), cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(operation === 'settings-send-pending-comanda-whatsapp' ? 450_000 : 90_000),
   });
   const result = financialMutationOutcomeSchema.parse(await response.json());
   if (!response.ok) throw new Error('error' in result ? result.error : 'Não foi possível confirmar a alteração financeira. Confira os lançamentos antes de tentar novamente.');

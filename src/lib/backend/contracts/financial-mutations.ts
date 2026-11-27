@@ -1,5 +1,10 @@
 import { z } from "zod";
 export const financialMutationFields = {
+  "settings-save-financial-operations": ["cashRegisterRequired", "comandaCardsEnabled", "preventOverpayment", "requireFullPayment", "blockDelinquentComandas", "delinquentAfterDays"],
+  "settings-save-portal-payment": ["portalConsumptionEnabled", "portalPaymentBankAccountId", "portalPaymentEnabled", "portalPixEnabled", "portalCreditCardEnabled", "checkoutExpiryMinutes"],
+  "settings-save-comanda-whatsapp": ["whatsappPaidEnabled", "whatsappUnpaidEnabled", "whatsappPaidMessage", "whatsappUnpaidMessage", "whatsappMessage"],
+  "settings-send-pending-comanda-whatsapp": [],
+
   "academy-create-plan": ["classesPerMonth", "monthlyPrice", "name", "notes", "creditExpiryCycle", "creditExpiryDays"],
   "academy-create-subscription": ["dueDay", "notes", "planId", "startedAt", "studentId"],
   "academy-record-plan-payment": ["amount", "bankAccountId", "fiscalDocumentType", "paidAt", "paymentMethod", "referenceMonth", "subscriptionId"],
