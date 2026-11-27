@@ -15,17 +15,24 @@ const domains = new Set([
   "src/lib/services/tournament.ts", "src/lib/services/category-competition.ts",
 ]);
 
+// Characterization follows the business implementation; facade transport has
+// separate contract/HTTP tests and must never be mistaken for domain execution.
+const backendDomains = new Map([
+  [path.resolve('src/lib/actions/tournament/players.ts'), path.resolve('src/lib/backend/services/players.ts')],
+  [path.resolve('src/lib/actions/client-management.ts'), path.resolve('src/lib/backend/services/client-management.ts')],
+]);
 export function domainSource(filename: string): string {
   const root = path.resolve(filename), directory = root.replace(/\.ts$/, "");
   const visited = new Set<string>(), bodies: string[] = [], imports = new Map<string, { default?: string; namespace?: string; named: Map<string, string> }>();
   const externalExports: string[] = [];
   function visit(file: string) {
+    file = backendDomains.get(file) ?? file;
     if (visited.has(file)) return;
     visited.add(file);
     const text = readOriginal(file, "utf8");
     const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
     const local = (name: string) => name.startsWith("@/") ? path.resolve("src", name.slice(2)) + ".ts" : path.resolve(path.dirname(file), name) + ".ts";
-    const internal = (name: string) => (name.startsWith("@/") || name.startsWith(".")) && local(name).startsWith(directory + path.sep);
+    const internal = (name: string) => (name.startsWith("@/") || name.startsWith(".")) && (local(name).startsWith(directory + path.sep) || local(name) === path.resolve("src/lib/backend/client-operation-error.ts"));
     for (const statement of source.statements) {
       if ((ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)) && statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier) && internal(statement.moduleSpecifier.text)) visit(local(statement.moduleSpecifier.text));
     }
@@ -67,6 +74,7 @@ function modularPath(file: unknown): string | null {
   const value = file instanceof URL ? fileURLToPath(file) : typeof file === "string" ? file : null;
   if (!value) return null;
   const relative = path.relative(process.cwd(), path.resolve(value)).replaceAll(path.sep, "/");
+  if (backendDomains.has(path.resolve(value))) return value;
   if (!domains.has(relative)) return null;
   // Keeps the helper useful before and after the extraction, without following arbitrary modules.
   return /Public entry point/.test(readOriginal(value, "utf8")) ? value : null;
