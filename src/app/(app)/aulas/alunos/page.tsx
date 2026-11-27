@@ -1,8 +1,9 @@
+import { getAcademyPageData } from "@/lib/academy/page-data";
 
 
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
-import { lessonCreditBalances } from "@/lib/academy/lesson-credits";
-import { withArenaTransaction } from "@/lib/rls";
+
+
 import { viewStyles } from "./page.utilities";
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { SectionCard } from "@/components/section-card";
@@ -11,7 +12,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { StudentActionsCell } from "@/components/students/student-actions-cell";
 import { addStudentCreditsAction, createStudentAction } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
-import { arenaDatabase } from "@/lib/arena-database";
+
 
 function attendanceRate(student: { attendedClasses: number; missedClasses: number }) {
   const total = student.attendedClasses + student.missedClasses;
@@ -20,20 +21,7 @@ function attendanceRate(student: { attendedClasses: number; missedClasses: numbe
 
 export default async function StudentsPage() {
   const auth = await requireModuleView("students");
-  const prisma = arenaDatabase(auth.arenaId);
-  const [students, players] = await Promise.all([
-    prisma.student.findMany({
-      where: { arenaId: auth.arenaId },
-      include: { player: true },
-      orderBy: [{ active: "desc" }, { name: "asc" }]
-    }),
-    prisma.player.findMany({
-      where: { arenaId: auth.arenaId, active: true },
-      orderBy: { name: "asc" }
-    })
-  ]);
-  const paidCreditBalances = await withArenaTransaction(auth.arenaId, tx => lessonCreditBalances(tx, auth.arenaId, students.map(student => student.id)));
-  for (const student of students) student.remainingClasses = paidCreditBalances.get(student.id) ?? student.remainingClasses;
+  const { students, playerOptions: players } = await getAcademyPageData(auth.arenaId, 'students');
   const linkedPlayerIds = new Set(students.map((student) => student.playerId).filter(Boolean));
   const availablePlayers = players.filter((player) => !linkedPlayerIds.has(player.id));
 
@@ -81,7 +69,7 @@ export default async function StudentsPage() {
       </SectionCard>
 
       <SectionCard title="Alunos e créditos" className={viewStyles.panel} hideHeading>
-        <table className={viewStyles.data_table}>
+        <table role="table" aria-label="Alunos e créditos" className={viewStyles.data_table}>
           <thead>
             <tr>
               <th>Aluno</th>
@@ -106,11 +94,12 @@ export default async function StudentsPage() {
                     linkedPlayerName={student.player?.name}
                   />
                 </td>
-                <td>{student.remainingClasses}</td>
-                <td>{student.attendedClasses}</td>
-                <td>{student.missedClasses}</td>
-                <td>{attendanceRate(student)}</td>
+                <td><span aria-hidden="true" className={viewStyles.mobile_column_label}>Aulas restantes</span>{student.remainingClasses}</td>
+                <td><span aria-hidden="true" className={viewStyles.mobile_column_label}>Presenças</span>{student.attendedClasses}</td>
+                <td><span aria-hidden="true" className={viewStyles.mobile_column_label}>Faltas</span>{student.missedClasses}</td>
+                <td><span aria-hidden="true" className={viewStyles.mobile_column_label}>Frequência</span>{attendanceRate(student)}</td>
                 <td>
+                  <span aria-hidden="true" className={viewStyles.mobile_column_label}>Adicionar aulas</span>
                   <SafeActionForm action={addStudentCreditsAction} className={viewStyles.inline_form} successMessage="Aulas adicionadas.">
                     <input type="hidden" name="studentId" value={student.id} />
                     <input name="quantity" type="number" min="1" defaultValue="1" aria-label={`Quantidade de aulas para ${student.name}`} />

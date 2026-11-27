@@ -5,7 +5,9 @@ export async function assertAcademySmoke(db, origin, arenaId, cookie, staffId, p
   const studentFields = { name: 'Aluno Academia Contrato', playerId: '', phone: '', email: '', remainingClasses: '2', notes: '' };
   assert.equal((await post('create-student', studentFields)).status, 403, 'Financial permission cannot create academy students');
   const member = await db.arenaMember.findFirstOrThrow({ where: { arenaId, userId: staffId } });
-  await db.arenaMember.update({ where: { id: member.id }, data: { editPermissions: [...member.editPermissions, 'students', 'teachers', 'lessons'] } });
+  const page = name => fetch(`${origin}/api/management/academy/pages/${name}`, { headers: { cookie } });
+  assert.equal((await page('teachers')).status, 404, 'Financial access must not expose teachers');
+  await db.arenaMember.update({ where: { id: member.id }, data: { editPermissions: [...member.editPermissions, 'students', 'teachers', 'lessons'], viewPermissions: [...member.viewPermissions, 'students', 'teachers', 'lessons'] } });
   assert.equal((await post('create-student', { ...studentFields, arenaId: 'forged' })).status, 400);
   assert.equal((await post('create-student', studentFields, 'management', 'https://foreign.invalid')).status, 403);
   const created = await post('create-student', studentFields); assert.equal(created.status, 200, await created.text());
@@ -38,6 +40,11 @@ export async function assertAcademySmoke(db, origin, arenaId, cookie, staffId, p
     await db.playerSession.create({ data: { playerAccountId: account.id, token: createHash('sha256').update(token).digest('hex'), expiresAt: new Date(Date.now() + 3600000) } }); return token;
   }
   const studentToken = await athleteSession(athletePlayer.id, '41900000777'); const teacherToken = await athleteSession(player.id, '41900000778');
+  const classRequest = await post('request-class-group', { arenaSlug: arena.slug, classGroupId: groupStored.id, message: 'Inscrição sintética' }, 'portal', undefined, `arena_player_session=${studentToken}`); assert.equal(classRequest.status, 200, await classRequest.text());
+  assert.equal((await post('request-class-group', { arenaSlug: arena.slug, classGroupId: groupStored.id }, 'portal', undefined, `arena_player_session=${studentToken}`)).status, 400);
+  const groupRequest = await db.classGroupRequest.findFirstOrThrow({ where: { arenaId, classGroupId: groupStored.id, studentId: student.id, status: 'PENDING' } });
+  const approved = await post('approve-class-group-request', { requestId: groupRequest.id, planId, dueDay: '15', startedAt: '2026-11-27' }); assert.equal(approved.status, 200, await approved.text());
+  assert.equal((await db.classGroupRequest.findUniqueOrThrow({ where: { id: groupRequest.id } })).status, 'APPROVED');
   const batch = await db.lessonCreditBatch.create({ data: { arenaId, studentId: student.id, sourceKey: 'SYNTHETIC-REQUEST', granted: 1, remaining: 1, expiresAt: new Date(Date.now() + 2 * 86400000) } });
   const ownRequestFields = { arenaSlug: arena.slug, batchId: batch.id, message: 'Preferência sintética' };
   const requested = await post('request-lesson-credit-reschedule', ownRequestFields, 'portal', undefined, `arena_player_session=${studentToken}`); assert.equal(requested.status, 200, await requested.text());
@@ -50,5 +57,20 @@ export async function assertAcademySmoke(db, origin, arenaId, cookie, staffId, p
   assert.equal((await db.lessonCreditRequest.findUniqueOrThrow({ where: { id: request.id } })).status, 'APPROVED');
   assert.ok((await db.lessonCreditBatch.findUniqueOrThrow({ where: { id: batch.id } })).expiresAt > batch.expiresAt);
 
+  const wallClock = instant => new Date(new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(instant).replace(' ', 'T') + 'Z');
+  const checkinLesson = await db.lesson.create({ data: { arenaId, teacherId: teacher.id, title: 'Checkin sintético', scheduledAt: wallClock(new Date()), durationMinutes: 60, attendances: { create: { studentId: student.id } } } });
+  const beforeCheckin = await db.student.findUniqueOrThrow({ where: { id: student.id } });
+  const checkinFields = { arenaSlug: arena.slug, lessonId: checkinLesson.id };
+  const checkedIn = await post('check-in-portal-lesson', checkinFields, 'portal', undefined, `arena_player_session=${studentToken}`); assert.equal(checkedIn.status, 200, await checkedIn.text());
+  assert.equal((await post('check-in-portal-lesson', checkinFields, 'portal', undefined, `arena_player_session=${studentToken}`)).status, 200);
+  const afterCheckin = await db.student.findUniqueOrThrow({ where: { id: student.id } }); assert.equal(afterCheckin.remainingClasses, beforeCheckin.remainingClasses - 1); assert.equal(afterCheckin.attendedClasses, beforeCheckin.attendedClasses + 1);
+  const futureLesson = await db.lesson.create({ data: { arenaId, teacherId: teacher.id, title: 'Reposição sintética', scheduledAt: wallClock(new Date(Date.now() + 2 * 86400000)), durationMinutes: 60, attendances: { create: { studentId: student.id } } } });
+  const makeupFields = { arenaSlug: arena.slug, lessonId: futureLesson.id };
+  const makeup = await post('request-portal-lesson-makeup', makeupFields, 'portal', undefined, `arena_player_session=${studentToken}`); assert.equal(makeup.status, 200, await makeup.text());
+  assert.equal((await post('request-portal-lesson-makeup', makeupFields, 'portal', undefined, `arena_player_session=${studentToken}`)).status, 400);
+  for (const name of ['teachers', 'students', 'register', 'policy']) { const response = await page(name); assert.equal(response.status, 200, name); const body = await response.text(); assert.equal(body.includes('passwordHash'), false); }
+  const registration = await (await page('register')).json(); assert.equal(registration.students.length, 0); assert.equal(registration.teachers.length, 0); assert.ok(registration.studentOptions.length); assert.equal(JSON.stringify(registration).includes('\"email\"'), false); assert.equal(JSON.stringify(registration).includes('\"notes\"'), false);
+  const directory = await (await page('teachers')).json(); assert.equal(directory.teachers[0].name, player.name); assert.equal(directory.teachers[0].studentAssignments.length, 1);
+  assert.equal((await fetch(`${origin}/api/management/academy/pages/students?arenaId=forged`, { headers: { cookie } })).status, 400);
   await db.arenaMember.update({ where: { id: member.id }, data: { editPermissions: member.editPermissions } });
 }

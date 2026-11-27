@@ -34,7 +34,8 @@ test("teachers directory keeps only professors and opens creation in a floating 
   assert.match(workspace, /href={`\/professores\/\$\{teacher\.id\}`}/);
   assert.match(workspace, /name="playerId" required/);
   assert.match(workspace, /Selecione um cliente/);
-  assert.match(page, /prisma\.player\.findMany/);
+  assert.match(page, /getAcademyPageData/);
+  assert.match(readFileSync(resolve(process.cwd(), "src/lib/backend/services/academy-pages.ts"), "utf8"), /tx\.player\.findMany/);
   assert.match(page, /TeacherManagementWorkspace teachers=\{teachers\} clients=\{clients\}/);
   assert.doesNotMatch(workspace, /Alunos ativos/);
   assert.match(actions, /assignTeacherPlanStudentAction/);

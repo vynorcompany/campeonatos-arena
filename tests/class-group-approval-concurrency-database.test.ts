@@ -4,7 +4,7 @@ import { arenaDatabaseForTest } from "./helpers/arena-database";
 import { registerLessonCheckin } from "../src/lib/checkin/lesson";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import test from "node:test";
 import vm from "node:vm";
 import { PrismaClient } from "@prisma/client";

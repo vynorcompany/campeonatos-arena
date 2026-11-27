@@ -1,6 +1,6 @@
 
 import { LessonPaymentFields } from "@/components/finance/lesson-payment-fields";
-import { arenaDatabase } from "@/lib/arena-database";
+import { getAcademyPageData } from "@/lib/academy/page-data";
 import { viewStyles } from "./page.utilities";
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
 import { SectionCard } from "@/components/section-card";
@@ -24,28 +24,7 @@ function formatDate(value: Date | null) {
 
 export default async function RegisterLessonPage() {
   const auth = await requireModuleView("lessons");
-  const prisma = arenaDatabase(auth.arenaId);
-  const [students, teachers, lessons] = await Promise.all([
-    prisma.student.findMany({
-      where: { arenaId: auth.arenaId, active: true },
-      orderBy: { name: "asc" }
-    }),
-    prisma.teacher.findMany({
-      where: { arenaId: auth.arenaId, active: true },
-      orderBy: { name: "asc" }
-    }),
-    prisma.lesson.findMany({
-      where: { arenaId: auth.arenaId },
-      include: {
-        teacher: true,
-        attendances: { include: { student: true }, orderBy: { student: { name: "asc" } } }
-      },
-      orderBy: [{ scheduledAt: "desc" }, { createdAt: "desc" }],
-      take: 16
-    })
-  ]);
-
-  const bankAccounts = await prisma.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+  const { studentOptions: students, teacherOptions: teachers, lessons, bankAccounts } = await getAcademyPageData(auth.arenaId, 'register');
 
   return (
     <div className={viewStyles.stack_md}>

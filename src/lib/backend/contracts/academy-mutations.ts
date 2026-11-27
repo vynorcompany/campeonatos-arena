@@ -1,5 +1,16 @@
 import { z } from "zod";
 export const academyMutationFields = {
+  "check-in-portal-lesson": ["arenaSlug", "lessonId"],
+  "request-portal-lesson-makeup": ["arenaSlug", "lessonId"],
+  "request-class-group": ["arenaSlug", "classGroupId", "message"],
+  "approve-class-group-request": ["dueDay", "planId", "requestId", "startedAt"],
+  "move-class-group-student": ["arenaSlug", "destinationClassGroupId", "studentId"],
+  "update-teacher-portal-class-group-capacity": ["arenaSlug", "capacity", "classGroupId", "scheduleId"],
+  "adjust-teacher-student-balance": ["arenaSlug", "classesDelta", "reason", "studentId"],
+  "notify-teacher-student": ["arenaSlug", "message", "studentId"],
+  "register-class-group-makeup": ["arenaSlug", "destinationClassGroupId", "scheduledFor", "sourceClassGroupId", "studentId"],
+  "schedule-teacher-makeup": ["arenaSlug", "attendanceIds", "slot"],
+
   "save-lesson-plan-expiry": ["planId", "creditExpiryCycle", "creditExpiryDays"],
   "save-lesson-makeup-policy": ["lessonMakeupEnabled", "lessonMakeupLeadHours", "lessonMakeupValidityDays", "lessonMakeupMonthEnd", "lessonMakeupPolicy", "lessonCreditNoticeDays"],
   "request-lesson-credit-reschedule": ["arenaSlug", "batchId", "message"],
@@ -31,6 +42,17 @@ export const academyMutationFields = {
 } as const;
 export type AcademyMutationOperation = keyof typeof academyMutationFields;
 export const academyMutationModules = {
+  "check-in-portal-lesson": "portal",
+  "request-portal-lesson-makeup": "portal",
+  "request-class-group": "portal",
+  "approve-class-group-request": "lessons",
+  "move-class-group-student": "portal",
+  "update-teacher-portal-class-group-capacity": "portal",
+  "adjust-teacher-student-balance": "portal",
+  "notify-teacher-student": "portal",
+  "register-class-group-makeup": "portal",
+  "schedule-teacher-makeup": "portal",
+
   "save-lesson-plan-expiry": "teachers",
   "save-lesson-makeup-policy": "teachers",
   "request-lesson-credit-reschedule": "portal",
@@ -65,10 +87,12 @@ export function academyMutationInputSchema(operation: AcademyMutationOperation) 
   return z.object({ fields: z.record(z.string(), z.array(z.string().max(16384)).min(1).max(2000)) }).strict().superRefine((value, ctx) => {
     for (const [key, values] of Object.entries(value.fields)) {
       if (!(academyMutationFields[operation] as readonly string[]).includes(key)) ctx.addIssue({ code: 'custom', message: 'Unexpected field', path: ['fields', key] });
-      if (!['planIds', 'weekdays', 'startTimes', 'capacities', 'studentIds', 'absentStudentIds'].includes(key) && values.length !== 1) ctx.addIssue({ code: 'custom', message: 'Repeated scalar field', path: ['fields', key] });
+      if (!['planIds', 'weekdays', 'startTimes', 'capacities', 'studentIds', 'absentStudentIds', 'attendanceIds'].includes(key) && values.length !== 1) ctx.addIssue({ code: 'custom', message: 'Repeated scalar field', path: ['fields', key] });
     }
   });
 }
 
-export const portalAcademyOperations: readonly AcademyMutationOperation[] = ['request-lesson-credit-reschedule', 'resolve-teacher-lesson-credit-request'];
+export const portalAcademyOperations: readonly AcademyMutationOperation[] = ["check-in-portal-lesson", "request-portal-lesson-makeup", "request-class-group", "move-class-group-student", "update-teacher-portal-class-group-capacity", "adjust-teacher-student-balance", "notify-teacher-student", "register-class-group-makeup", "schedule-teacher-makeup", 'request-lesson-credit-reschedule', 'resolve-teacher-lesson-credit-request'];
 export const lessonCreditSettingsOperations: readonly AcademyMutationOperation[] = ['save-lesson-plan-expiry', 'save-lesson-makeup-policy', 'request-lesson-credit-reschedule', 'resolve-lesson-credit-request', 'resolve-teacher-lesson-credit-request'];
+
+export const classGroupOperations: readonly AcademyMutationOperation[] = ["check-in-portal-lesson", "request-portal-lesson-makeup", "request-class-group", "approve-class-group-request", "move-class-group-student", "update-teacher-portal-class-group-capacity", "adjust-teacher-student-balance", "notify-teacher-student", "register-class-group-makeup", "schedule-teacher-makeup"];

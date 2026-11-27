@@ -1,3 +1,4 @@
+import * as groupsPortal from '@/lib/backend/services/class-groups';
 import * as credits from '@/lib/backend/services/lesson-credit-settings';
 import 'server-only';
 import { ZodError } from 'zod';
@@ -9,6 +10,17 @@ import * as groups from '@/lib/backend/services/academy-groups';
 import * as plans from '@/lib/backend/services/academy-plans';
 import * as lessons from '@/lib/backend/services/academy-lessons';
 const handlers = {
+  'check-in-portal-lesson': groupsPortal.checkInPortalLessonAction,
+  'request-portal-lesson-makeup': groupsPortal.requestPortalLessonMakeupAction,
+  'request-class-group': groupsPortal.requestClassGroupAction,
+  'approve-class-group-request': groupsPortal.approveClassGroupRequestAction,
+  'move-class-group-student': groupsPortal.moveClassGroupStudentAction,
+  'update-teacher-portal-class-group-capacity': groupsPortal.updateTeacherPortalClassGroupCapacityAction,
+  'adjust-teacher-student-balance': groupsPortal.adjustTeacherStudentBalanceAction,
+  'notify-teacher-student': groupsPortal.notifyTeacherStudentAction,
+  'register-class-group-makeup': groupsPortal.registerClassGroupMakeupAction,
+  'schedule-teacher-makeup': groupsPortal.scheduleTeacherMakeupAction,
+
   'save-lesson-plan-expiry': credits.saveLessonPlanExpiryAction,
   'save-lesson-makeup-policy': credits.saveLessonMakeupPolicyAction,
   'request-lesson-credit-reschedule': credits.requestLessonCreditRescheduleAction,
