@@ -1,3 +1,4 @@
+import { assertAccessSmoke } from './backend-access-smoke.mjs';
 import { assertAssistantSmoke } from './backend-assistant-smoke.mjs';
 import { assertSupportSmoke } from './backend-support-smoke.mjs';
 import { assertAuditRegulationSmoke } from './backend-audit-regulation-smoke.mjs';
@@ -127,12 +128,13 @@ export async function prepareFinanceSmoke(db, databaseUrl, origin, staffId, staf
     await assertBoletoQueueSmoke(db, origin, arena.id, cookie, staffId);
     await assertAdminSettingsSmoke(db, origin, arena.id, cookie, staffId);
     await assertDeviceSessionsSmoke(db, origin, cookie, staffId);
+    const access = await assertAccessSmoke(db, origin, arena.id, cookie, staffId);
     const assistant = await assertAssistantSmoke(db, origin, arena.id, cookie, staffId);
     const support = await assertSupportSmoke(db, origin, arena.id, cookie, staffId);
     const auditRegulation = await assertAuditRegulationSmoke(db, origin, arena.id, cookie, staffId);
     const queueMember = await db.arenaMember.findFirstOrThrow({ where: { arenaId: arena.id, userId: staffId } });
     await db.arenaMember.update({ where: { id: queueMember.id }, data: { editPermissions: [...queueMember.editPermissions, "finance:receivable:view", "arena:settings"] } });
-    return { arenaId: arena.id, cookie, cleanup, teacherId: academy.teacherId, fiscalDocumentId, ...assistant, ...support, ...auditRegulation };
+    return { arenaId: arena.id, cookie, cleanup, teacherId: academy.teacherId, fiscalDocumentId, ...access, ...assistant, ...support, ...auditRegulation };
   } catch (error) { await cleanup(); throw error; }
 }
 

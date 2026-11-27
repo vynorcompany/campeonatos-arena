@@ -16,6 +16,7 @@ test("perfil legado é vinculado de forma idempotente mesmo após criação inte
   ];
   const profiles = new Map<string, string>([["arena-a:Migrado · OWNER 1", "legacy-orphan"]]);
   const prisma = {
+    $executeRaw: async () => 0,
     permissionProfile: {
       createMany: async () => ({ count: 0 }),
       upsert: async ({ where }: { where: { arenaId_name: { arenaId: string; name: string } } }) => {
@@ -38,10 +39,12 @@ test("perfil legado é vinculado de forma idempotente mesmo após criação inte
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports,
     require: (name: string) => {
+      if (name === "server-only") return {};
       if (name === "next/cache") return { revalidatePath() {} };
       if (name === "next/navigation") return { redirect() {} };
       if (name === "@/lib/auth/guards") return { requireRole() {} };
       if (name === "@/lib/prisma") return { prisma };
+      if (name === "@/lib/rls") return {withArenaTransaction: async (_:string,run:(tx:typeof prisma)=>Promise<unknown>) => run(prisma)};
       if (name === "@/lib/permissions") return { defaultArenaPermissionProfiles, defaultPermissionsForRole, normalizePermissionModules };
       return require(name);
     },

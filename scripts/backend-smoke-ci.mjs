@@ -432,6 +432,11 @@ try {
     const response = await fetch(`http://127.0.0.1:3014/professores/${financeFixture.teacherId}?tab=${tab}&inicio=2026-11-01&fim=2026-11-30`, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' });
     assert.equal(response.status, 200, `Teacher profile SSR failed: ${tab}`); const html = await response.text(); assert.ok(html.includes('Professor Academia Contrato')); assert.equal(html.includes('passwordHash'), false); if (tab === 'report') assert.match(html, /name="fim"[^>]*value="2026-11-30"/);
   }
+  const accessMember = await fixtureDb.arenaMember.findFirstOrThrow({where:{arenaId:financeFixture.arenaId,userId:staffFixtureId}});
+  const accessAdminProfile=await fixtureDb.permissionProfile.findFirstOrThrow({where:{arenaId:financeFixture.arenaId,name:'Administrador'}});
+  await fixtureDb.arenaMember.update({where:{id:accessMember.id},data:{role:'ADMIN',permissionProfileId:accessAdminProfile.id,viewPermissions:['arena']}});
+  try { for(const path of ['/usuarios','/arena?section=profiles','/arena/perfis/'+financeFixture.accessProfileId]) {const response=await fetch('http://127.0.0.1:3014'+path,{headers:{cookie:financeFixture.cookie},redirect:'manual'});assert.equal(response.status,200,path);const html=await response.text();assert.equal(html.includes('passwordHash'),false);assert.equal(html.includes('tokenHash'),false);} }
+  finally {await fixtureDb.arenaMember.update({where:{id:accessMember.id},data:{role:accessMember.role,permissionProfileId:accessMember.permissionProfileId,viewPermissions:accessMember.viewPermissions,editPermissions:accessMember.editPermissions}});}
   const assistantMember = await fixtureDb.arenaMember.findFirstOrThrow({where:{arenaId:financeFixture.arenaId,userId:staffFixtureId}});
   await fixtureDb.arenaMember.update({where:{id:assistantMember.id},data:{role:'ADMIN'}});
   try { const response=await fetch('http://127.0.0.1:3014/assistente',{headers:{cookie:financeFixture.cookie},redirect:'manual'}); assert.equal(response.status,200); const html=await response.text(); assert.ok(html.includes('Fatura de R$')); assert.equal(html.includes('FOREIGN_PRIVATE_'),false); assert.equal(html.includes('COLLEAGUE_PRIVATE_'),false); }

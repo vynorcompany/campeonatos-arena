@@ -16,10 +16,9 @@ import { PermissionProfilesManagement } from "@/components/users/permission-prof
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { connectArenaWhatsAppAction, refreshArenaWhatsAppQrAction, resetArenaWhatsAppSessionAction } from "@/lib/actions/agency";
-import { ensureArenaPermissionProfiles } from "@/lib/actions/permission-profile";
+import { getAccessProfiles } from "@/lib/arena-access/data";
 import { requireRole, requireModuleView, requirePermission } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
 import { WhatsAppConnectionStatusWatcher } from "@/components/whatsapp/whatsapp-connection-status-watcher";
 
 type ArenaSection = "data" | "portal" | "courts" | "users" | "profiles" | "integrations";
@@ -150,7 +149,6 @@ function WhatsAppConnectionSection({ arena }: { arena: { id: string; name: strin
 }
 
 async function PermissionProfilesSection({ arenaId }: { arenaId: string }) {
-  await ensureArenaPermissionProfiles(arenaId);
-  const profiles = await prisma.permissionProfile.findMany({ where: { arenaId, active: true }, select: { id: true, name: true, description: true, members: { select: { user: { select: { name: true } } }, orderBy: { user: { name: "asc" } } } }, orderBy: { name: "asc" } });
+  const {profiles} = await getAccessProfiles(arenaId);
   return <PermissionProfilesManagement profiles={profiles} />;
 }
