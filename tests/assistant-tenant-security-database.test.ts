@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { arenaDatabaseForTest } from "./helpers/arena-database";
@@ -32,6 +32,7 @@ test("assistant tenant isolation, financial permission and atomic invoice audit 
     const auth = { arenaId: ids[0], userId: "operator", userName: "Operator QA", arenaRole: "ADMIN", systemRole: "VIEWER", editPermissions: [] as string[] };
     let databaseCalls = 0, failAudit = false;
     const mocks: Record<string, unknown> = {
+      "server-only": {},
       "@/lib/assistant/read-data": { readArenaData }, "next/cache": { revalidatePath() {} }, "@/lib/auth/guards": { requireRole: async () => auth },
       "@/lib/permissions": { canPerformPermission }, "@/lib/assistant/commands": { parseArenaAssistantCommand },
       "@/lib/calendar/arena-wall-clock": { arenaToday },

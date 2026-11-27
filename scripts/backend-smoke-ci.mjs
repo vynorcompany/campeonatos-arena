@@ -432,6 +432,10 @@ try {
     const response = await fetch(`http://127.0.0.1:3014/professores/${financeFixture.teacherId}?tab=${tab}&inicio=2026-11-01&fim=2026-11-30`, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' });
     assert.equal(response.status, 200, `Teacher profile SSR failed: ${tab}`); const html = await response.text(); assert.ok(html.includes('Professor Academia Contrato')); assert.equal(html.includes('passwordHash'), false); if (tab === 'report') assert.match(html, /name="fim"[^>]*value="2026-11-30"/);
   }
+  const assistantMember = await fixtureDb.arenaMember.findFirstOrThrow({where:{arenaId:financeFixture.arenaId,userId:staffFixtureId}});
+  await fixtureDb.arenaMember.update({where:{id:assistantMember.id},data:{role:'ADMIN'}});
+  try { const response=await fetch('http://127.0.0.1:3014/assistente',{headers:{cookie:financeFixture.cookie},redirect:'manual'}); assert.equal(response.status,200); const html=await response.text(); assert.ok(html.includes('Fatura de R$')); assert.equal(html.includes('FOREIGN_PRIVATE_'),false); assert.equal(html.includes('COLLEAGUE_PRIVATE_'),false); }
+  finally { await fixtureDb.arenaMember.update({where:{id:assistantMember.id},data:{role:assistantMember.role}}); }
   const supportSSR = await fetch('http://127.0.0.1:3014/suporte', {headers:{cookie:financeFixture.cookie},redirect:'manual'});
   assert.equal(supportSSR.status,200); const supportHTML = await supportSSR.text(); assert.ok(supportHTML.includes('Resposta pública sintética')); assert.equal(supportHTML.includes('NOTA_INTERNA_PRIVADA_'),false);
   const supportUser = await fixtureDb.user.findUniqueOrThrow({where:{id:staffFixtureId},select:{systemRole:true}});
