@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
+import { createServer } from 'node:net';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { runtimeEnvironment } from './runtime-server.mjs';
@@ -13,6 +14,12 @@ if ((process.env.GITHUB_ACTIONS !== 'true' && process.env.ARENA_VISUAL_LOCAL !==
 }
 const token = process.env.ARENA_GOAL_TEST_SESSION_TOKEN || '';
 assert.match(token, /^[a-f0-9]{40}$/i);
+// Refuse to exercise a stale or unrelated server already occupying the test ports.
+for (const port of [3012, 3014]) {
+  const probe = createServer();
+  await new Promise((resolve, reject) => { probe.once('error', reject); probe.listen(port, '127.0.0.1', resolve); });
+  await new Promise((resolve, reject) => probe.close(error => error ? reject(error) : resolve()));
+}
 const target = readBackendBuild(resolve('.'));
 const paths = JSON.parse(readFileSync(join(target, '.next/server/app-paths-manifest.json'), 'utf8'));
 assert.ok(Object.keys(paths).length > 20);
@@ -26,6 +33,8 @@ let output = '';
 child.stdout.on('data', value => { output = (output + value).slice(-4000); });
 child.stderr.on('data', value => { output = (output + value).slice(-4000); });
 const exited = new Promise(resolve => child.once('exit', resolve));
+let frontend;
+let frontendExited;
 const origin = 'http://127.0.0.1:3012';
 try {
   let ready = false;
@@ -74,9 +83,39 @@ try {
   assert.equal(response.status, 200, 'Backend did not preserve authenticated API access');
   assert.ok(response.headers.get('content-type')?.includes('application/json'));
   await response.json();
-  console.log('Independent backend: health, API-only boundary, restricted credentials, authenticated read and anonymous rejection passed.');
+  // Exercise the existing SSR frontend against a different backend process, using
+  // the same restricted-role derivation as deployment, not administrative test credentials.
+  frontend = spawn(process.execPath, [resolve('.next/standalone/server.js')], {
+    env: { ...environment, PORT: '3014', VX4_BACKEND_ORIGIN: origin }, stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  frontendExited = new Promise(resolve => frontend.once('exit', resolve));
+  frontend.stdout.on('data', value => { output = (output + value).slice(-4000); });
+  frontend.stderr.on('data', value => { output = (output + value).slice(-4000); });
+  let frontendReady = false;
+  for (let attempt = 0; attempt < 60; attempt++) {
+    try { if ((await fetch('http://127.0.0.1:3014/api/health')).ok) { frontendReady = true; break; } } catch {}
+    if (frontend.exitCode !== null) break;
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  assert.ok(frontendReady, 'SSR frontend did not become healthy');
+  const login = await fetch('http://127.0.0.1:3014/portal');
+  assert.equal(login.status, 200);
+  assert.ok((await login.text()).includes('Entre no VX4'));
+  const athletePage = await fetch('http://127.0.0.1:3014/portal', { headers: { cookie: `arena_player_session=${athleteToken}` } });
+  assert.equal(athletePage.status, 200);
+  const athleteHtml = await athletePage.text();
+  assert.ok(athleteHtml.includes('Atleta GOAL A'));
+  assert.ok(athleteHtml.includes('Arena Teste GOAL'));
+  assert.equal(athleteHtml.includes('Arena Beta GOAL'), false);
+  console.log('Independent backend and SSR frontend: authentication, session contracts, arena isolation, restricted credentials and API-only boundary passed.');
 } catch (error) { console.error(output); throw error; }
 finally {
+  if (frontend) {
+    frontend.kill('SIGTERM');
+    const timeout = setTimeout(() => frontend.kill('SIGKILL'), 5000);
+    await frontendExited;
+    clearTimeout(timeout);
+  }
   child.kill('SIGTERM');
   const timeout = setTimeout(() => child.kill('SIGKILL'), 5000);
   await exited;
