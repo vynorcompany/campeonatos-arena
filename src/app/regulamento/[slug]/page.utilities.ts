@@ -2,12 +2,12 @@ import { sharedUtilities } from "@/components/ui/shared.utilities";
 /** Tailwind utilities scoped to this component. Semantic markers support state and DOM queries. */
 export const viewStyles = {
   "regulation_public_shell": [
-    "regulation-public-shell", "tw:grid", "tw:grid-cols-[240px_minmax(0,_1fr)]", "tw:gap-y-[16px]",
+    "regulation-public-shell", "tw:grid", "tw:min-w-0", "tw:[&>*]:min-w-0", "tw:viewport-760:grid-cols-[minmax(0,_1fr)]", "tw:viewport-760:items-start", "tw:grid-cols-[240px_minmax(0,_1fr)]", "tw:gap-y-[16px]",
     "tw:gap-x-[16px]", "tw:min-h-[100vh]", "tw:pt-[4px]", "tw:pr-[4px]",
     "tw:pb-[4px]", "tw:pl-[4px]",
   ].join(" "),
   "public_reg_aside_reveal_up": [
-    "public-reg-aside", "reveal-up", "tw:flex", "tw:flex-col",
+    "public-reg-aside", "reveal-up", "tw:flex", "tw:min-w-0", "tw:[overflow-wrap:anywhere]", "tw:flex-col",
     "tw:gap-y-[16px]", "tw:gap-x-[16px]", "tw:pt-[20px]", "tw:pr-[20px]",
     "tw:pb-[20px]", "tw:pl-[20px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
     "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]",
@@ -38,7 +38,7 @@ export const viewStyles = {
     "tw:uppercase", "tw:font-[700]",
   ].join(" "),
   "public_reg_steps": [
-    "public-reg-steps", "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:grid",
+    "public-reg-steps", "tw:viewport-760:grid-cols-[repeat(2,_minmax(0,_1fr))]", "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:grid",
   ].join(" "),
   "public_reg_step_public_reg_step_done": [
     "public-reg-step", "public-reg-step-done", "tw:opacity-[1]", "tw:grid-cols-[28px_minmax(0,_1fr)]",
@@ -65,7 +65,7 @@ export const viewStyles = {
     "tw:[&_small]:text-[0.76rem]",
   ].join(" "),
   "public_reg_status_card": [
-    "public-reg-status-card", "tw:grid", "tw:grid-cols-[auto_minmax(0,_1fr)]", "tw:gap-y-[8px]",
+    "public-reg-status-card", "tw:grid", "tw:viewport-760:mt-0", "tw:grid-cols-[auto_minmax(0,_1fr)]", "tw:gap-y-[8px]",
     "tw:gap-x-[8px]", "tw:items-center", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
     "tw:border-t-[color:rgba(28,_140,_94,_0.22)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:rgba(28,_140,_94,_0.22)]",
     "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:rgba(28,_140,_94,_0.22)]", "tw:border-l-[length:1px]",
@@ -82,12 +82,12 @@ export const viewStyles = {
     "tw:text-[color:var(--success)]", "tw:font-[800]",
   ].join(" "),
   "regulation_public_main_reveal_up": [
-    "regulation-public-main", "reveal-up", "tw:[animation-delay:120ms]", "tw:grid",
+    "regulation-public-main", "reveal-up", "tw:min-w-0", "tw:[&>*]:min-w-0", "tw:[overflow-wrap:anywhere]", "tw:viewport-760:content-start", "tw:[animation-delay:120ms]", "tw:grid",
     "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:pt-[10px]", "tw:pr-[4px]",
     "tw:pb-[4px]", "tw:pl-[4px]", "tw:[&_.regulation-public-content]:mt-[8px]", "tw:[animation:revealUp_380ms_var(--ease-standard)_both]",
   ].join(" "),
   "regulation_public_hero": [
-    "regulation-public-hero", "tw:flex", "tw:justify-between", "tw:items-start",
+    "regulation-public-hero", "tw:flex", "tw:min-w-0", "tw:[&>*]:min-w-0", "tw:viewport-760:flex-col", "tw:justify-between", "tw:items-start",
     "tw:gap-y-[12px]", "tw:gap-x-[12px]", "tw:pt-[6px]", "tw:pr-[0]",
     "tw:pb-[2px]", "tw:pl-[0]", "tw:[&_h1]:mt-[0]", "tw:[&_h1]:mr-[0]",
     "tw:[&_h1]:mb-[0]", "tw:[&_h1]:ml-[0]", "tw:[&_h1]:text-[clamp(1.6rem,_3vw,_2.4rem)]", "tw:[&_h1]:leading-[1]",
@@ -99,7 +99,7 @@ export const viewStyles = {
   "eyebrow": sharedUtilities.eyebrow,
   "muted": sharedUtilities.muted,
   "public_reg_hero_badge": [
-    "public-reg-hero-badge", "tw:grid", "tw:grid-cols-[auto_minmax(0,_1fr)]", "tw:gap-y-[8px]",
+    "public-reg-hero-badge", "tw:grid", "tw:max-w-full", "tw:viewport-760:whitespace-normal", "tw:grid-cols-[auto_minmax(0,_1fr)]", "tw:gap-y-[8px]",
     "tw:gap-x-[8px]", "tw:items-center", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",
     "tw:border-t-[color:rgba(28,_140,_94,_0.22)]", "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:rgba(28,_140,_94,_0.22)]",
     "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]", "tw:border-b-[color:rgba(28,_140,_94,_0.22)]", "tw:border-l-[length:1px]",
@@ -113,7 +113,7 @@ export const viewStyles = {
     "tw:[&_small]:text-[color:var(--muted)]", "tw:[&_small]:text-[0.78rem]",
   ].join(" "),
   "regulation_public_content": [
-    "regulation-public-content", "tw:grid", "tw:gap-y-[0]", "tw:gap-x-[0]",
+    "regulation-public-content", "tw:grid", "tw:min-w-0", "tw:gap-y-[0]", "tw:gap-x-[0]",
     "tw:pt-[14px]", "tw:pr-[18px]", "tw:pb-[14px]", "tw:pl-[18px]",
     "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:#dce5f1]", "tw:border-r-[length:1px]",
     "tw:[border-right-style:solid]", "tw:border-r-[color:#dce5f1]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
@@ -131,7 +131,7 @@ export const viewStyles = {
     "tw:text-[color:var(--brand)]", "tw:text-[1.2rem]", "tw:[box-shadow:inset_0_0_0_1px_rgba(30,_94,_168,_0.1)]",
   ].join(" "),
   "regulation_public_list": [
-    "regulation-public-list", "tw:[list-style:none]", "tw:pt-[0]", "tw:pr-[0]",
+    "regulation-public-list", "tw:min-w-0", "tw:[&_li]:min-w-0", "tw:[&_li]:[overflow-wrap:anywhere]", "tw:[list-style:none]", "tw:pt-[0]", "tw:pr-[0]",
     "tw:pb-[0]", "tw:pl-[0]", "tw:mt-[0]", "tw:mr-[0]",
     "tw:mb-[0]", "tw:ml-[0]", "tw:grid", "tw:[counter-reset:regulation-line]",
     "tw:[&_li]:grid", "tw:[&_li]:grid-cols-[42px_minmax(0,_1fr)]", "tw:[&_li]:gap-y-[12px]", "tw:[&_li]:gap-x-[12px]",

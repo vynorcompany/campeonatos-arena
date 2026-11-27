@@ -8,9 +8,9 @@ export const viewStyles = {
   ].join(" "),
   "eyebrow": sharedUtilities.eyebrow,
   "muted": sharedUtilities.muted,
-  "two_column_grid": sharedUtilities.twoColumnGrid,
+  "two_column_grid": ["two-column-grid", "tw:grid", "tw:min-w-0", "tw:[&>*]:min-w-0", "tw:gap-[18px]", "tw:grid-cols-[minmax(0,_1.35fr)_minmax(320px,_0.95fr)]", "tw:viewport-1120:grid-cols-[minmax(0,_1fr)]"].join(" "),
   "regulation_link_panel": [
-    "regulation-link-panel", "tw:grid", "tw:gap-y-[8px]", "tw:gap-x-[8px]",
+    "regulation-link-panel", "tw:grid", "tw:min-w-0", "tw:gap-y-[8px]", "tw:gap-x-[8px]",
     "tw:mb-[14px]", "tw:pt-[16px]", "tw:pr-[16px]", "tw:pb-[16px]",
     "tw:pl-[16px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]",
     "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]",
@@ -27,10 +27,10 @@ export const viewStyles = {
     "tw:[word-break:break-all]",
   ].join(" "),
   "regulation_history": [
-    "regulation-history", "tw:grid", "tw:gap-y-[14px]", "tw:gap-x-[14px]",
+    "regulation-history", "tw:grid", "tw:min-w-0", "tw:gap-y-[14px]", "tw:gap-x-[14px]",
   ].join(" "),
   "regulation_history_item": [
-    "regulation-history-item", "tw:grid", "tw:gap-y-[12px]", "tw:gap-x-[12px]",
+    "regulation-history-item", "tw:grid", "tw:min-w-0", "tw:[overflow-wrap:anywhere]", "tw:gap-y-[12px]", "tw:gap-x-[12px]",
     "tw:pt-[16px]", "tw:pr-[16px]", "tw:pb-[16px]", "tw:pl-[16px]",
     "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]", "tw:border-r-[length:1px]",
     "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]", "tw:[border-bottom-style:solid]",
@@ -38,7 +38,7 @@ export const viewStyles = {
     "tw:rounded-[var(--radius-md)]", "tw:bg-[color:var(--panel-muted)]", "tw:[background-image:none]", "tw:[&_strong]:text-[1rem]",
   ].join(" "),
   "regulation_history_content": [
-    "regulation-history-content", "tw:mt-[0]", "tw:mr-[0]", "tw:mb-[0]",
+    "regulation-history-content", "tw:min-w-0", "tw:[overflow-wrap:anywhere]", "tw:mt-[0]", "tw:mr-[0]", "tw:mb-[0]",
     "tw:ml-[0]", "tw:whitespace-pre-wrap", "tw:leading-[1.55]", "tw:text-[color:var(--text)]",
   ].join(" "),
 } as const;

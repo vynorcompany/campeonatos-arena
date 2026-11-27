@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import test from "node:test";
 import { canPerformPermission, canViewModule } from "../src/lib/permissions";
 

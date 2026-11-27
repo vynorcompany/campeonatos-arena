@@ -1,0 +1,5 @@
+import 'server-only';
+import { revalidatePath } from 'next/cache';
+import { remoteRegulationMutation } from '@/lib/backend/regulation-client';
+import type { RegulationActionState } from '@/lib/backend/contracts/regulation';
+export async function runRegulationMutation(operation:'create'|'accept',form:FormData):Promise<RegulationActionState>{const origin=process.env.VX4_BACKEND_ORIGIN;let result:RegulationActionState;if(origin)result=await remoteRegulationMutation(origin,operation,form).catch(()=>({error:'Não foi possível confirmar a operação. Confira antes de tentar novamente.',success:null}));else{const core=await import('@/lib/backend/services/regulation-actions');result=operation==='create'?await core.createRegulationDocumentAction({error:null,success:null},form):await core.acceptRegulationDocumentAction({error:null,success:null},form);}if(!result.error&&result.success){revalidatePath('/arena/regulamento');revalidatePath('/arena');if(result.publicSlug)revalidatePath(`/regulamento/${result.publicSlug}`);}return operation==='accept'?{error:result.error,success:result.success}:result;}
