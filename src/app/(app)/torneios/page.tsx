@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import { SectionCard } from "@/components/section-card";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { canPerformPermission, canViewModule } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
+import { getTournamentDirectory } from "@/lib/tournaments/directory";
 import { viewStyles } from "../jogos/page.utilities";
 
 type GamesPageProps = { searchParams?: Promise<{ tournamentId?: string; status?: string }> };
@@ -28,22 +28,11 @@ export default async function GamesPage(props: GamesPageProps) {
   const canReadMatches = canViewModule("matches", auth.arenaRole, auth.systemRole, auth.viewPermissions);
   if (!canViewTournaments && !canReadMatches) notFound();
 
-  const activeTournaments = await prisma.tournament.findMany({
-    where: { arenaId: auth.arenaId, registrationPhase: searchParams?.status === "finished" ? "FINISHED" : { not: "FINISHED" } },
-    orderBy: { updatedAt: "desc" },
-    include: { categories: { where: { active: true }, orderBy: { level: "asc" }, select: { id: true, name: true, competition: { select: { status: true } } } } }
+  const { activeTournaments, selectedTournamentId, matches } = await getTournamentDirectory({
+    ...(searchParams?.status === "finished" ? { status: "finished" as const } : {}),
+    ...(searchParams?.tournamentId ? { tournamentId: searchParams.tournamentId } : {}),
   });
-  const selectedTournament = activeTournaments.find((event) => event.id === searchParams?.tournamentId);
-  const matches = selectedTournament && !canManageTournaments && !canRecordResults ? await prisma.categoryMatch.findMany({
-    where: { competition: { category: { tournamentId: selectedTournament.id, active: true, tournament: { arenaId: auth.arenaId } } } },
-    select: {
-      id: true, label: true, scheduledDate: true, scheduledTime: true, courtName: true,
-      homeScore: true, awayScore: true, homeSet1: true, awaySet1: true, homeSet2: true, awaySet2: true, homeSet3: true, awaySet3: true,
-      competition: { select: { category: { select: { name: true } } } },
-      homePair: { select: { name: true } }, awayPair: { select: { name: true } }
-    },
-    orderBy: [{ scheduledDate: "asc" }, { scheduledTime: "asc" }, { roundOrder: "asc" }]
-  }) : [];
+  const selectedTournament = activeTournaments.find(event => event.id === selectedTournamentId);
 
   return <div className={viewStyles.stack_md}>
     <WorkspaceHeading eyebrow="COMPETIÇÕES · EM ANDAMENTO" title="Torneios">{canManageTournaments ? <Link href="/torneios/novo" className={ui.primary}>Novo evento</Link> : null}</WorkspaceHeading>
