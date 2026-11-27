@@ -1,30 +1,31 @@
+import { FinanceOperationError } from "@/lib/finance/action-error";
 import type { Prisma } from "@prisma/client";
 
 /** Resolve the canonical payee inside the arena transaction; never trust a submitted name. */
 export async function resolvePayablePayee(tx: Prisma.TransactionClient, arenaId: string, form: FormData, fallbackName: string) {
   const kind = String(form.get("payeeKind") ?? "SUPPLIER");
   const id = String(form.get("payeeId") ?? form.get("supplierId") ?? "").trim();
-  if (id.length > 160) throw new Error("Favorecido inválido.");
+  if (id.length > 160) throw new FinanceOperationError("Favorecido inválido.");
   const empty = { playerId: null as string | null, supplierId: null as string | null, payeeEmployeeId: null as string | null, payeeTeacherId: null as string | null };
   if (kind === "CLIENT") {
     const client = id ? await tx.player.findFirst({ where: { arenaId, id, active: true }, select: { id: true, name: true } }) : null;
-    if (!client) throw new Error("Selecione um cliente ativo desta arena.");
+    if (!client) throw new FinanceOperationError("Selecione um cliente ativo desta arena.");
     return { ...empty, playerId: client.id, counterpartyName: client.name };
   }
   if (kind === "EMPLOYEE") {
     const member = id ? await tx.arenaMember.findFirst({ where: { arenaId, userId: id }, select: { user: { select: { id: true, name: true } } } }) : null;
-    if (!member) throw new Error("Selecione um funcionário cadastrado nesta arena.");
+    if (!member) throw new FinanceOperationError("Selecione um funcionário cadastrado nesta arena.");
     return { ...empty, payeeEmployeeId: member.user.id, counterpartyName: member.user.name };
   }
   if (kind === "TEACHER") {
     const teacher = id ? await tx.teacher.findFirst({ where: { arenaId, id, active: true }, select: { id: true, name: true } }) : null;
-    if (!teacher) throw new Error("Selecione um professor ativo desta arena.");
+    if (!teacher) throw new FinanceOperationError("Selecione um professor ativo desta arena.");
     return { ...empty, payeeTeacherId: teacher.id, counterpartyName: teacher.name };
   }
-  if (kind !== "SUPPLIER") throw new Error("Tipo de favorecido inválido.");
+  if (kind !== "SUPPLIER") throw new FinanceOperationError("Tipo de favorecido inválido.");
   if (id) {
     const supplier = await tx.supplier.findFirst({ where: { arenaId, id }, select: { id: true, name: true } });
-    if (!supplier) throw new Error("Selecione um fornecedor desta arena.");
+    if (!supplier) throw new FinanceOperationError("Selecione um fornecedor desta arena.");
     return { ...empty, supplierId: supplier.id, counterpartyName: supplier.name };
   }
   // Preserve older forms and historical entries that only supplied the name.

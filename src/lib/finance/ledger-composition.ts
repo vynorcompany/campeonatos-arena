@@ -1,3 +1,4 @@
+import { FinanceOperationError } from "@/lib/finance/action-error";
 export type LedgerComposition = {
   originalCents: number; interestCents: number; discountCents: number;
   adjustedCents: number; creationKnown: boolean;
@@ -51,11 +52,11 @@ export function creationComposition(adjustment: { principal: number; interestCen
 // The editor changes the original amount; adjustments at creation remain intact.
 // Read their authoritative values from the locked entry, never hidden form fields.
 export function revisedLedgerOriginal(entry: Entry, originalCents: number) {
-  if (!Number.isSafeInteger(originalCents) || originalCents < 0 || originalCents > 2_000_000_000) throw new Error("Informe um valor original válido.");
+  if (!Number.isSafeInteger(originalCents) || originalCents < 0 || originalCents > 2_000_000_000) throw new FinanceOperationError("Informe um valor original válido.");
   if (!hasStoredCreationComposition(entry)) return { amountCents: originalCents };
-  if (originalCents < entry.creationDiscountCents!) throw new Error("O valor original não pode ser menor que o desconto da criação.");
+  if (originalCents < entry.creationDiscountCents!) throw new FinanceOperationError("O valor original não pode ser menor que o desconto da criação.");
   const amountCents = originalCents + entry.creationInterestCents! - entry.creationDiscountCents!;
-  if (amountCents > 2_000_000_000) throw new Error("O valor ajustado ultrapassa o limite permitido.");
+  if (amountCents > 2_000_000_000) throw new FinanceOperationError("O valor ajustado ultrapassa o limite permitido.");
   return { amountCents, originalAmountCents: originalCents };
 }
 

@@ -36,6 +36,34 @@ export async function prepareFinanceSmoke(db, databaseUrl, origin, staffId, staf
     const payable = await (await read('payable')).json(); assert.equal(payable.ledger.entries[0].id, expense.id); assert.equal(payable.ledger.totalCents, 20000); assert.equal(payable.ledger.entries[0].balance.outstandingCents, 0); assert.equal(payable.ledger.entries[0].paidAt, '2026-11-16');
     const onlyOpen = await (await read('payable', '&status=OPEN')).json(); assert.equal(onlyOpen.ledger.total, 0);
     await db.arenaMember.updateMany({ where: { arenaId: arena.id, userId: staffId }, data: { viewPermissions: ['finance:receivable:view', 'finance:payable:view'] } });
+    const write = async (operation, fields, requestOrigin = 'http://127.0.0.1:3014') => fetch(`${origin}/api/management/finance/actions/${operation}`, { method: 'POST', headers: { cookie, origin: requestOrigin, 'content-type': 'application/json' }, body: JSON.stringify({ fields: Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, Array.isArray(value) ? value : [value]])) }) });
+    const createFields = { type: 'REVENUE', category: 'Teste', description: 'Mutação financeira contrato', amount: '100,00', interest: '5,00', discount: '2,00', discountMode: 'AMOUNT', status: 'PENDING', clientId: client.id, bankAccountId: bank.id, dueDate: '2026-11-30' };
+    assert.equal((await write('create', createFields)).status, 403, 'View must not grant financial writes');
+    await db.arenaMember.updateMany({ where: { arenaId: arena.id, userId: staffId }, data: { editPermissions: ['finance:receivable:create', 'finance:receivable:edit', 'finance:receivable:settle'] } });
+    assert.equal((await write('create', createFields, 'https://foreign.invalid')).status, 403);
+    assert.equal((await write('create', { ...createFields, arenaId: arena.id })).status, 400);
+    const created = await write('create', createFields); assert.equal(created.status, 200, await created.text());
+    const written = await db.financialEntry.findFirstOrThrow({ where: { arenaId: arena.id, description: createFields.description } });
+    assert.equal(written.amountCents, 10300); assert.equal(written.originalAmountCents, 10000); assert.equal(written.creationInterestCents, 500); assert.equal(written.creationDiscountCents, 200);
+    assert.equal((await write('create', { ...createFields, type: 'EXPENSE' })).status, 403, 'Receivable create cannot create an expense');
+    const settleFields = { entryId: written.id, expectedUpdatedAt: written.updatedAt.toISOString(), amount: '103,00', interest: '0', discount: '0', discountMode: 'AMOUNT', paymentMethod: 'PIX', bankAccountId: bank.id, paidAt: '2026-11-26' };
+    const settled = await Promise.all([write('settle', settleFields), write('settle', settleFields)]);
+    assert.ok(settled.some(response => response.status === 200));
+    assert.equal(await db.financialSettlement.count({ where: { financialEntryId: written.id } }), 1, 'Concurrent retries must never duplicate settlement');
+    const after = await db.financialEntry.findUniqueOrThrow({ where: { id: written.id } }); assert.equal(after.status, 'PAID');
+    assert.equal((await write('delete', { entryId: written.id })).status, 403, 'Financial deletion requires explicit authority');
+    const editable = await db.financialEntry.create({ data: { arenaId: arena.id, type: 'REVENUE', category: 'Teste', description: 'Editar contrato', amountCents: 1000, originalAmountCents: 1000 } });
+    const updateFields = { entryId: editable.id, expectedUpdatedAt: editable.updatedAt.toISOString(), category: 'Teste', description: 'Editado contrato', amount: '12,00', bankAccountId: bank.id };
+    const updated = await write('update', updateFields); assert.equal(updated.status, 200, await updated.text());
+    assert.equal((await db.financialEntry.findUniqueOrThrow({ where: { id: editable.id } })).amountCents, 1200);
+    const stale = await write('update', updateFields); assert.equal(stale.status, 200); assert.ok((await stale.json()).error, 'Stale update must be refused');
+    const voided = await write('void', { entryId: editable.id, reason: 'Validação descartável' }); assert.equal(voided.status, 200, await voided.text());
+    assert.equal((await db.financialEntry.findUniqueOrThrow({ where: { id: editable.id } })).status, 'VOIDED');
+    const recurrence = await write('recurrence', { type: 'REVENUE', counterpartyName: client.name, clientId: client.id, category: 'Teste', description: 'Recorrência contrato', amount: '10,00', frequency: 'MONTHLY', startsAt: '2026-11-01', endsAt: '2027-01-01', bankAccountId: bank.id });
+    assert.equal(recurrence.status, 200, await recurrence.text());
+    assert.equal(await db.financialRecurrence.count({ where: { arenaId: arena.id, description: 'Recorrência contrato' } }), 1);
+
+    await db.arenaMember.updateMany({ where: { arenaId: arena.id, userId: staffId }, data: { editPermissions: [] } });
     return { arenaId: arena.id, cookie, cleanup };
   } catch (error) { await cleanup(); throw error; }
 }

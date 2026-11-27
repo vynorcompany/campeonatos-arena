@@ -1,3 +1,4 @@
+import { FinanceOperationError } from "@/lib/finance/action-error";
 import type { ArenaTransaction } from "@/lib/rls";
 
 type FinancialEntryRelations = {
@@ -16,18 +17,18 @@ export async function assertFinancialEntryRelationsBelongToArena(
   relations: FinancialEntryRelations,
 ) {
   if (relations.supplierId && !await tx.supplier.findFirst({ where: { id: relations.supplierId, arenaId }, select: { id: true } })) {
-    throw new Error("Fornecedor não encontrado nesta arena.");
+    throw new FinanceOperationError("Fornecedor não encontrado nesta arena.");
   }
   if (relations.bankAccountId && !await tx.bankAccount.findFirst({ where: { id: relations.bankAccountId, arenaId }, select: { id: true } })) {
-    throw new Error("Conta bancária não encontrada nesta arena.");
+    throw new FinanceOperationError("Conta bancária não encontrada nesta arena.");
   }
   if (relations.planId && !await tx.plan.findFirst({ where: { id: relations.planId, arenaId }, select: { id: true } })) {
-    throw new Error("Plano não encontrado nesta arena.");
+    throw new FinanceOperationError("Plano não encontrado nesta arena.");
   }
   if (relations.productId && !await tx.product.findFirst({ where: { id: relations.productId, arenaId }, select: { id: true } })) {
-    throw new Error("Produto não encontrado nesta arena.");
+    throw new FinanceOperationError("Produto não encontrado nesta arena.");
   }
   if (relations.playerId && !await tx.player.findFirst({ where: { id: relations.playerId, arenaId }, select: { id: true } })) {
-    throw new Error("Cliente não encontrado nesta arena.");
+    throw new FinanceOperationError("Cliente não encontrado nesta arena.");
   }
 }

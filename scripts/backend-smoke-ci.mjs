@@ -51,12 +51,13 @@ let frontendExited;
 const origin = 'http://127.0.0.1:3012';
 try {
   let ready = false;
+  let lastHealth = 'no response';
   for (let attempt = 0; attempt < 60; attempt++) {
-    try { if ((await fetch(origin + '/api/health')).ok) { ready = true; break; } } catch {}
+    try { const response = await fetch(origin + '/api/health', { signal: AbortSignal.timeout(3000) }); lastHealth = `HTTP ${response.status}`; if (response.ok) { ready = true; break; } } catch (error) { lastHealth = error.name; }
     if (child.exitCode !== null) break;
     await new Promise(resolve => setTimeout(resolve, 500));
   }
-  assert.ok(ready, 'Backend did not become healthy');
+  assert.ok(ready, `Backend did not become healthy (${lastHealth}; exit=${child.exitCode})`);
   for (const path of ['/', '/portal', '/login', '/painel', '/_next/static/private.js']) {
     const response = await fetch(origin + path, { redirect: 'manual' });
     assert.equal(response.status, 404, path);

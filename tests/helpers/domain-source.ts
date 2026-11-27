@@ -18,6 +18,7 @@ const domains = new Set([
 // Characterization follows the business implementation; facade transport has
 // separate contract/HTTP tests and must never be mistaken for domain execution.
 const backendDomains = new Map([
+  [path.resolve('src/lib/actions/finance/ledger.ts'), path.resolve('src/lib/backend/services/financial-actions.ts')],
   [path.resolve('src/lib/actions/tournament/players.ts'), path.resolve('src/lib/backend/services/players.ts')],
   [path.resolve('src/lib/actions/client-management.ts'), path.resolve('src/lib/backend/services/client-management.ts')],
 ]);
@@ -32,7 +33,7 @@ export function domainSource(filename: string): string {
     const text = readOriginal(file, "utf8");
     const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
     const local = (name: string) => name.startsWith("@/") ? path.resolve("src", name.slice(2)) + ".ts" : path.resolve(path.dirname(file), name) + ".ts";
-    const internal = (name: string) => (name.startsWith("@/") || name.startsWith(".")) && (local(name).startsWith(directory + path.sep) || local(name) === path.resolve("src/lib/backend/client-operation-error.ts"));
+    const internal = (name: string) => (name.startsWith("@/") || name.startsWith(".")) && (local(name).startsWith(directory + path.sep) || ["src/lib/backend/client-operation-error.ts", "src/lib/finance/action-error.ts"].some(file => local(name) === path.resolve(file)));
     for (const statement of source.statements) {
       if ((ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)) && statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier) && internal(statement.moduleSpecifier.text)) visit(local(statement.moduleSpecifier.text));
     }

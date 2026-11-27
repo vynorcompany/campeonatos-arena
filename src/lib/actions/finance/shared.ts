@@ -1,3 +1,4 @@
+import { FinanceOperationError } from "@/lib/finance/action-error";
 import "server-only";
 import { requireArenaAccess } from "@/lib/auth/session";
 import { canPerformPermission } from "@/lib/permissions";
@@ -6,7 +7,7 @@ import { financialEntryPermission, type FinancialEntryOperation } from "@/lib/fi
 export function assertFinancialEntryPermission(auth: Awaited<ReturnType<typeof requireArenaAccess>>, type: string, operation: FinancialEntryOperation) {
   const key = financialEntryPermission(type, operation);
   if (!canPerformPermission(key, auth.arenaRole, auth.systemRole, auth.editPermissions)) {
-    throw new Error("Sem permissão para executar esta ação financeira.");
+    throw new FinanceOperationError("Sem permissão para executar esta ação financeira.", 403);
   }
 }
 
