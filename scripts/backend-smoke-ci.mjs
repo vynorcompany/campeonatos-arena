@@ -1,3 +1,4 @@
+import { assertTvSmoke } from "./lib/backend-tv-smoke.mjs";
 import { assertComandaSmoke } from "./lib/backend-comanda-smoke.mjs";
 import { assertAgendaOperationsSmoke } from "./lib/backend-agenda-operations-smoke.mjs";
 import { assertPublicCourtBookingSmoke } from "./lib/backend-public-court-booking-smoke.mjs";
@@ -255,7 +256,8 @@ try {
   const dashboardForgedArena = await fetch(origin + '/api/management/dashboard?arenaId=' + otherArenaId, { headers: { cookie: staffCookie } });
   assert.equal(dashboardForgedArena.status, 400);
   const deniedModule = await fetch(origin + '/api/manual-upcoming-matches', { headers: { cookie: staffCookie }, redirect: 'manual' });
-  assert.equal(deniedModule.status, 404, 'Read-only context must not grant an unassigned module');
+  assert.equal(deniedModule.status, 403, 'Read-only context must not grant an unassigned TV module');
+  assert.deepEqual(await deniedModule.json(), { error: 'Sem permissão para visualizar a TV.' });
   for (const requestOrigin of [undefined, 'https://untrusted.invalid']) {
     const deniedManagement = await fetch(origin + '/api/management/auth/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...(requestOrigin ? { origin: requestOrigin } : {}) }, body: '{}',
@@ -413,6 +415,7 @@ try {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   assert.ok(frontendReady, 'SSR frontend did not become healthy');
+  await assertTvSmoke(fixtureDb, origin, "http://127.0.0.1:3014", staffFixtureId, financeFixture.cookie);
   await assertComandaSmoke(fixtureDb, origin, staffFixtureId, financeFixture.cookie);
   await assertAgendaOperationsSmoke(fixtureDb, origin, staffFixtureId, financeFixture.cookie);
   await assertPublicCourtBookingSmoke(fixtureDb, origin);

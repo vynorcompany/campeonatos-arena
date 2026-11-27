@@ -6,19 +6,13 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { TvMatchSourceFields } from "@/components/tv-match-source-fields";
 import { upsertTvPresentationSettingsAction } from "@/lib/actions/upcoming-match";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
-import { getManualUpcomingMatchesPayload, getTvPresentationPayload } from "@/lib/services/tv-presentation";
+import { getTvWorkspace } from "@/lib/tv/query";
 
 function checked(value: boolean) { return value ? { defaultChecked: true } : {}; }
 
 export default async function TvPresentationSettingsPage() {
   const auth = await requireModuleView("tv");
-  const [payload, tournaments, leagueCycles, manualMatches] = await Promise.all([
-    getTvPresentationPayload(auth.arenaId),
-    prisma.tournament.findMany({ where: { arenaId: auth.arenaId, status: { not: "FINISHED" } }, orderBy: [{ createdAt: "desc" }], select: { id: true, name: true, status: true } }),
-    prisma.leagueCycle.findMany({ where: { status: "OPEN", competition: { category: { tournament: { arenaId: auth.arenaId } } } }, orderBy: [{ updatedAt: "desc" }], select: { id: true, prizeDescription: true, competition: { select: { category: { select: { name: true } } } } } }),
-    getManualUpcomingMatchesPayload(auth.arenaId)
-  ]);
+  const {payload,tournaments,leagueCycles,manualMatches}=await getTvWorkspace(auth.arenaId,"settings");
 
   return <div className={viewStyles.workspace_page_tv_settings_page}>
     <WorkspaceHeading eyebrow="TELA DA TV · APRESENTAÇÃO" title="Apresentação da TV"><Link href="/proximos-jogos/tv" className={viewStyles.button_button_primary} target="_blank" rel="noreferrer">Abrir TV ↗</Link></WorkspaceHeading>
