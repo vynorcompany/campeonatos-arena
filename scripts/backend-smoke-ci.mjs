@@ -5,6 +5,7 @@ import { createServer } from 'node:net';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { runtimeEnvironment } from './runtime-server.mjs';
+import { prepareFinanceSmoke, assertFinanceSSR } from './lib/backend-finance-smoke.mjs';
 import { readBackendBuild } from './lib/backend-build.mjs';
 
 const url = new URL(process.env.DATABASE_URL || 'http://invalid');
@@ -27,6 +28,7 @@ const staffFixtureEmail = notificationFixturePrefix + '@example.test';
 let staffFixtureId;
 let clientFixtureArenaId;
 let loyaltyFixtureArenaId;
+let financeFixture;
 const clientFixtureTag = randomUUID();
 const target = readBackendBuild(resolve('.'));
 const paths = JSON.parse(readFileSync(join(target, '.next/server/app-paths-manifest.json'), 'utf8'));
@@ -198,6 +200,8 @@ try {
   await fixtureDb.arena.deleteMany({ where: { id: loyaltyFixtureArenaId, slug: 'loyalty-' + clientFixtureTag } });
   loyaltyFixtureArenaId = undefined;
   await fixtureDb.arenaMember.updateMany({ where: { userId: staffFixtureId }, data: { permissionProfileId: originalMembership.permissionProfileId, editPermissions: originalMembership.editPermissions } });
+  assert.equal((await fetch(origin + '/api/management/finance/ledger/receivable', { headers: { cookie: staffCookie } })).status, 404);
+  financeFixture = await prepareFinanceSmoke(fixtureDb, process.env.DATABASE_URL, origin, staffFixtureId, staffToken, clientFixtureTag);
   const shellResponse = await fetch(origin + '/api/management/shell', { headers: { cookie: staffCookie } });
   assert.equal(shellResponse.status, 200);
   assert.equal(shellResponse.headers.get('cache-control'), 'private, no-store');
@@ -399,6 +403,7 @@ try {
   const clientHtml = await clientPage.text();
   assert.ok(clientHtml.includes('Atleta GOAL A'));
   assert.equal(clientHtml.includes('Atleta Exclusivo Outra Arena GOAL'), false);
+  await assertFinanceSSR('http://127.0.0.1:3014', financeFixture.cookie);
   console.log('Independent backend and SSR frontend: authentication, session contracts, arena isolation, restricted credentials and API-only boundary passed.');
 } catch (error) { console.error(output); throw error; }
 finally {
@@ -413,6 +418,7 @@ finally {
   await exited;
   clearTimeout(timeout);
   await fixtureDb.playerNotification.deleteMany({ where: { id: { startsWith: notificationFixturePrefix } } });
+  if (financeFixture) await financeFixture.cleanup();
   if (loyaltyFixtureArenaId) await fixtureDb.arena.deleteMany({ where: { id: loyaltyFixtureArenaId, slug: 'loyalty-' + clientFixtureTag } });
   if (clientFixtureArenaId) {
     const fixturePlayers = await fixtureDb.player.findMany({ where: { arenaId: clientFixtureArenaId, name: { contains: clientFixtureTag, mode: 'insensitive' } }, select: { id: true } });
