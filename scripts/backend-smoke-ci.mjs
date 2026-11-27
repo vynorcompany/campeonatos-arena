@@ -1,3 +1,4 @@
+import { assertPortalClientSmoke } from "./lib/backend-portal-client-smoke.mjs";
 import { assertOptionsLookupsSmoke } from "./lib/backend-options-lookups-smoke.mjs";
 import { assertCheckinSmoke } from "./lib/backend-checkin-smoke.mjs";
 import { assertFixedPlanSmoke } from "./lib/backend-fixed-plan-smoke.mjs";
@@ -433,6 +434,7 @@ try {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   assert.ok(frontendReady, 'SSR frontend did not become healthy');
+  await assertPortalClientSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
   await assertOptionsLookupsSmoke(fixtureDb, origin, "http://127.0.0.1:3014", staffFixtureId, financeFixture.cookie);
   await assertCheckinSmoke(fixtureDb, origin, "http://127.0.0.1:3014", staffFixtureId, financeFixture.cookie);
   await assertFixedPlanSmoke(fixtureDb, origin, "http://127.0.0.1:3014", staffFixtureId, financeFixture.cookie);

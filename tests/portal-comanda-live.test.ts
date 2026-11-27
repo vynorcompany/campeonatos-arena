@@ -8,10 +8,10 @@ const require = createRequire(import.meta.url);
 function route() {
   const calls: unknown[][] = [];
   const mod = { exports: {} as { GET: (request: Request) => Promise<Response> } };
-  const source = ts.transpileModule(fs.readFileSync("src/app/api/portal/comandas/route.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const source = ts.transpileModule(fs.readFileSync("src/lib/backend/services/portal-comandas-live.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   vm.runInNewContext(source, { exports: mod.exports, module: mod, URL, Response, require: (name: string) => {
-    if (name === "@/lib/auth/player-session") return { getPublicPlayerAuth: async (slug: string) => slug === "minha-arena" ? { playerId: "meu-atleta" } : null };
-    if (name === "@/lib/services/public-client-home") return { getPublicClientComandas: async (...args: unknown[]) => { calls.push(args); return { disabled: false, comandas: [{ id: "minha-comanda" }], products: [{ id: "catalogo-nao-deve-viajar" }] }; } };
+    if (name === "@/lib/backend/services/player-session") return { getPublicPlayerAuth: async (slug: string) => slug === "minha-arena" ? { playerId: "meu-atleta" } : null };
+    if (name === "@/lib/backend/services/public-client-home") return { getPublicClientComandas: async (...args: unknown[]) => { calls.push(args); return { disabled: false, comandas: [{ id: "minha-comanda" }], products: [{ id: "catalogo-nao-deve-viajar" }] }; } };
     return require(name);
   } });
   return { GET: mod.exports.GET, calls };

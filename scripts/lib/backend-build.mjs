@@ -23,6 +23,9 @@ export function prepareBackendBuild(root) {
   if (existsSync(join(root, 'src/app/api/management/tv/pulse/route.ts'))) {
     writeFileSync(join(target, 'src/app/api/manual-upcoming-matches/route.ts'), 'export { dynamic, GET } from "@/app/api/management/tv/pulse/route";\n');
   }
+  if (existsSync(join(root, 'src/lib/backend/services/portal-comandas-live.ts'))) {
+    writeFileSync(join(target, 'src/app/api/portal/comandas/route.ts'), 'export { dynamic, GET } from "@/lib/backend/services/portal-comandas-live";\n');
+  }
   const tsconfig = JSON.parse(readFileSync(join(root, 'tsconfig.json'), 'utf8'));
   // Bind shared authorization policies to local backend session implementations.
   // The web target keeps its HTTP facades; API guards must never call those facades.
