@@ -259,6 +259,8 @@ test("legacy tournament screens only offer individual rankings", async () => {
     ),
   ]);
 
-  assert.match(newTournamentPage, /type:\s*"INDIVIDUAL"/);
+  assert.match(newTournamentPage, /getTournamentCreateOptions/);
+  const createContext = await readFile(path.join(workspaceRoot, "src/lib/backend/services/tournament-create-context.ts"), "utf8");
+  assert.match(createContext, /type:\s*"INDIVIDUAL"/);
   assert.match(tournamentDetailPage, /type:\s*"INDIVIDUAL"/);
 });

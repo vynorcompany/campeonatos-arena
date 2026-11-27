@@ -170,6 +170,10 @@ test("ranking configuration executes advisory locks and keeps General controls a
     actions.indexOf("async function ensureRankingBelongsToArena"),
   );
 
+  const eventService = readFileSync(path.join(workspaceRoot, "src/lib/services/tournament/shared.ts"), "utf8");
+  const eventLock = eventService.slice(eventService.indexOf("async function lockIndividualRanking"), eventService.indexOf("function getGroupLabelByOrder"));
+  assert.match(eventLock, /\$executeRaw/);
+  assert.doesNotMatch(eventLock, /\$queryRaw/);
   assert.match(lockRankingProfile, /\$executeRaw/);
   assert.doesNotMatch(lockRankingProfile, /\$queryRaw/);
   assert.match(ensureGeneralRankingAvailable, /\$executeRaw/);

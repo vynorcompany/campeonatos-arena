@@ -1,3 +1,4 @@
+import { assertTournamentEventsSmoke } from "./lib/backend-tournament-events-smoke.mjs";
 import { assertManagementUtilitiesSmoke } from "./lib/backend-management-utilities-smoke.mjs";
 import { assertAgencyBillingSmoke } from "./lib/backend-agency-billing-smoke.mjs";
 import { assertAgencyPagesSmoke } from "./lib/backend-agency-pages-smoke.mjs";
@@ -430,8 +431,10 @@ try {
   assert.equal((await revoked.json()).athleteIdentity, null);
   // Exercise the existing SSR frontend against a different backend process, using
   // the same restricted-role derivation as deployment, not administrative test credentials.
+  const frontendEnvironment = runtimeEnvironment({ ...environment, PORT: '3014', VX4_BACKEND_ORIGIN: origin });
+  assert.equal(frontendEnvironment.__NEXT_PRIVATE_ORIGIN, 'http://127.0.0.1:3014');
   frontend = spawn(process.execPath, [resolve('.next/standalone/server.js')], {
-    env: { ...environment, PORT: '3014', VX4_BACKEND_ORIGIN: origin }, stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...frontendEnvironment, HOSTNAME: '127.0.0.1' }, stdio: ['ignore', 'pipe', 'pipe'],
   });
   frontendExited = new Promise(resolve => frontend.once('exit', resolve));
   frontend.stdout.on('data', value => { output = (output + value).slice(-4000); });
@@ -443,6 +446,7 @@ try {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   assert.ok(frontendReady, 'SSR frontend did not become healthy');
+  await assertTournamentEventsSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
   await assertManagementUtilitiesSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
   await assertAgencyBillingSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
   await assertAgencyPagesSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
