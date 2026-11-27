@@ -1,3 +1,5 @@
+import { startEvolutionFixture } from './lib/backend-evolution-fixture.mjs';
+import { assertAgencySmoke } from './lib/backend-agency-smoke.mjs';
 import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
@@ -37,10 +39,12 @@ const paths = JSON.parse(readFileSync(join(target, '.next/server/app-paths-manif
 assert.ok(Object.keys(paths).length > 20);
 assert.ok(Object.keys(paths).every(path => path.startsWith('/api/') || path === '/_not-found/page'), 'Backend contains a frontend route');
 url.username = 'arena_runtime'; url.password = 'fixture';
+const providerFixture = await startEvolutionFixture();
 const environment = runtimeEnvironment({ ...process.env, APP_DATABASE_URL: url.toString(), PORT: '3012' });
 environment.VX4_FRONTEND_ORIGINS = JSON.stringify(['http://127.0.0.1:3014']);
 environment.RAILWAY_VOLUME_MOUNT_PATH = mkdtempSync(join(tmpdir(), 'vx4-backend-uploads-'));
 for (const key of ['R2_ENDPOINT','R2_BUCKET','R2_ACCESS_KEY_ID','R2_SECRET_ACCESS_KEY','R2_PUBLIC_BASE_URL']) environment[key] = '';
+environment.EVOLUTION_API_URL = providerFixture.origin; environment.EVOLUTION_API_KEY = 'synthetic-evolution-api-key'; environment.APP_URL = 'http://127.0.0.1:3014';
 environment.HOSTNAME = '127.0.0.1'; environment.NODE_ENV = 'production';
 // Disposable fixture only: no production connector credentials are used.
 environment.PAYMENT_CONNECTIONS_ENCRYPTION_KEY = 'synthetic-backend-contract-key-not-for-production';
@@ -209,6 +213,7 @@ try {
   await fixtureDb.arenaMember.updateMany({ where: { userId: staffFixtureId }, data: { permissionProfileId: originalMembership.permissionProfileId, editPermissions: originalMembership.editPermissions } });
   assert.equal((await fetch(origin + '/api/management/finance/ledger/receivable', { headers: { cookie: staffCookie } })).status, 404);
   financeFixture = await prepareFinanceSmoke(fixtureDb, process.env.DATABASE_URL, origin, staffFixtureId, staffToken, clientFixtureTag);
+  await assertAgencySmoke(fixtureDb, origin, staffFixtureId, financeFixture.cookie, providerFixture);
   const shellResponse = await fetch(origin + '/api/management/shell', { headers: { cookie: staffCookie } });
   assert.equal(shellResponse.status, 200);
   assert.equal(shellResponse.headers.get('cache-control'), 'private, no-store');
@@ -448,7 +453,10 @@ try {
   assert.equal(supportSSR.status,200); const supportHTML = await supportSSR.text(); assert.ok(supportHTML.includes('Resposta pública sintética')); assert.equal(supportHTML.includes('NOTA_INTERNA_PRIVADA_'),false);
   const supportUser = await fixtureDb.user.findUniqueOrThrow({where:{id:staffFixtureId},select:{systemRole:true}});
   await fixtureDb.user.update({where:{id:staffFixtureId},data:{systemRole:'MANAGER'}});
-  try { const response = await fetch('http://127.0.0.1:3014/agencia/suporte',{headers:{cookie:financeFixture.cookie},redirect:'manual'}); assert.equal(response.status,200); const html = await response.text(); assert.ok(html.includes('NOTA_INTERNA_PRIVADA_')); assert.equal(html.includes('passwordHash'),false); }
+  try { const response = await fetch('http://127.0.0.1:3014/agencia/suporte',{headers:{cookie:financeFixture.cookie},redirect:'manual'}); assert.equal(response.status,200); const html = await response.text(); assert.ok(html.includes('NOTA_INTERNA_PRIVADA_')); assert.equal(html.includes('passwordHash'),false);
+    const agencyUsers=await fetch('http://127.0.0.1:3014/agencia/arenas/usuarios',{headers:{cookie:financeFixture.cookie},redirect:'manual'});assert.equal(agencyUsers.status,200);const usersHTML=await agencyUsers.text();assert.equal(usersHTML.includes('passwordHash'),false);assert.equal(usersHTML.includes('name="systemRole"'),false,'Manager cannot edit global roles');
+    const agencyArenas=await fetch('http://127.0.0.1:3014/agencia/arenas',{headers:{cookie:financeFixture.cookie},redirect:'manual'});assert.equal(agencyArenas.status,200);const arenasHTML=await agencyArenas.text();assert.equal(arenasHTML.includes('encryptedToken'),false);assert.equal(arenasHTML.includes('checkinToken'),false);
+  }
   finally { await fixtureDb.user.update({where:{id:staffFixtureId},data:{systemRole:supportUser.systemRole}}); }
   const auditMember = await fixtureDb.arenaMember.findFirstOrThrow({ where: { arenaId: financeFixture.arenaId, userId: staffFixtureId } });
   await fixtureDb.arenaMember.update({ where: { id: auditMember.id }, data: { role: 'ADMIN' } });
@@ -467,6 +475,7 @@ finally {
   const timeout = setTimeout(() => child.kill('SIGKILL'), 5000);
   await exited;
   clearTimeout(timeout);
+  await providerFixture.close();
   await fixtureDb.playerNotification.deleteMany({ where: { id: { startsWith: notificationFixturePrefix } } });
   if (financeFixture) await financeFixture.cleanup();
   if (loyaltyFixtureArenaId) await fixtureDb.arena.deleteMany({ where: { id: loyaltyFixtureArenaId, slug: 'loyalty-' + clientFixtureTag } });

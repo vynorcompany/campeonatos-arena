@@ -22,7 +22,7 @@ export async function openWhatsAppPlayerConversationAction(form: FormData): Prom
   let accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);
   if (!accountJid) {
     try {
-      const { refreshArenaWhatsAppConnectionStatusAction } = await import("@/lib/actions/agency");
+      const { refreshArenaWhatsAppConnectionStatusAction } = await import("@/lib/backend/services/agency-actions");
       const connectionForm = new FormData(); connectionForm.set("arenaId", auth.arenaId);
       const status = await refreshArenaWhatsAppConnectionStatusAction(connectionForm);
       if (status.connected) accountJid = await getActiveWhatsAppAccountJid(auth.arenaId);

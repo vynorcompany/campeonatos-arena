@@ -1,0 +1,6 @@
+import "server-only";
+import {headers} from "next/headers";
+import {managementCookieHeader} from "@/lib/backend/management-context-client";
+import {backendOrigin} from "@/lib/backend/http-client";
+import {agencyFields,agencyInputSchema,agencyOutcomeSchema,type AgencyOperation} from "@/lib/backend/contracts/agency-mutations";
+export async function remoteAgencyMutation(origin:string,operation:AgencyOperation,form:FormData){const input:Record<string,string>={};for(const key of agencyFields[operation]){const values=form.getAll(key);if(values.length>1||values.some(value=>typeof value!=='string'))throw Error('Campo inválido.');if(values.length)input[key]=values[0] as string;}agencyInputSchema(operation).parse(input);const cookie=await managementCookieHeader();const requestOrigin=(await headers()).get('origin');const response=await fetch(new URL(`/api/management/agency/actions/${operation}`,backendOrigin(origin)),{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json',...(cookie?{cookie}:{}),...(requestOrigin?{origin:requestOrigin}:{})},body:JSON.stringify(input),cache:'no-store',redirect:'error',signal:AbortSignal.timeout(90000)});const result=agencyOutcomeSchema.parse(await response.json());return response.ok?result:{error:result.error??'Não foi possível confirmar a alteração.'};}
