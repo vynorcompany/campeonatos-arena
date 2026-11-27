@@ -2,6 +2,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import assert from 'node:assert/strict';
 export async function assertAcademySmoke(db, origin, arenaId, cookie, staffId, planId) {
   const post = (operation, fields, path = 'management', originHeader = 'http://127.0.0.1:3014', requestCookie = cookie) => fetch(`${origin}/api/${path}/academy/actions/${operation}`, { method: 'POST', headers: { cookie: requestCookie, origin: originHeader, 'content-type': 'application/json' }, body: JSON.stringify({ fields: Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, Array.isArray(value) ? value : [value]])) }) });
+  const billingPost = (operation, fields, originHeader = 'http://127.0.0.1:3014') => fetch(`${origin}/api/management/academy/teacher-billing/${operation}`, { method: 'POST', headers: { cookie, origin: originHeader, 'content-type': 'application/json' }, body: JSON.stringify({ fields }) });
+  assert.equal((await billingPost('schedule', { teacherId: 'missing', planId, amount: '150,00', effectiveDate: '2027-03-01' })).status, 403);
   const studentFields = { name: 'Aluno Academia Contrato', playerId: '', phone: '', email: '', remainingClasses: '2', notes: '' };
   assert.equal((await post('create-student', studentFields)).status, 403, 'Financial permission cannot create academy students');
   const member = await db.arenaMember.findFirstOrThrow({ where: { arenaId, userId: staffId } });
@@ -114,6 +116,27 @@ export async function assertAcademySmoke(db, origin, arenaId, cookie, staffId, p
   const period = await (await detailRead(teacher.id, '?inicio=2026-11-01&fim=2026-11-30')).json(); assert.equal(period.reportStart, new Date('2026-11-01T00:00:00').toISOString()); assert.equal(period.reportEnd, new Date('2026-11-30T23:59:59').toISOString());
   const foreignTeacher = await db.teacher.create({ data: { arenaId: foreignStudent.arenaId, name: 'Professor outra arena sintético' } });
   try { assert.equal(await (await detailRead(foreignTeacher.id)).json(), null, 'A teacher ID from another arena must reveal no data'); } finally { await db.teacher.delete({ where: { id: foreignTeacher.id } }); }
+  assert.equal((await billingPost('schedule', { teacherId: teacher.id, planId, amount: '150,00', effectiveDate: '2027-03-01', arenaId: 'forged' })).status, 400);
+  assert.equal((await billingPost('schedule', { teacherId: teacher.id, planId, amount: '150,00', effectiveDate: '2027-03-01' }, 'https://foreign.invalid')).status, 403);
+  const scheduleFields = { teacherId: teacher.id, planId, amount: '155,00', effectiveDate: '2027-03-01' };
+  const scheduled = await billingPost('schedule', scheduleFields); assert.equal(scheduled.status, 200); assert.deepEqual(await scheduled.json(), {});
+  const newChange = await db.planPriceChange.findFirstOrThrow({ where: { teacherPlanId: assignedPlan.id, effectiveDate: new Date('2027-03-01T00:00:00Z') } }); assert.equal(newChange.amountCents, 15500); assert.equal(newChange.createdByUserId, staffId);
+  assert.ok((await (await billingPost('schedule', scheduleFields)).json()).error, 'Duplicate schedule must remain a visible business error');
+  assert.deepEqual(await (await billingPost('cancel', { changeId: newChange.id })).json(), {}); assert.equal((await db.planPriceChange.findUniqueOrThrow({ where: { id: newChange.id } })).status, 'CANCELLED');
+  assert.ok((await (await billingPost('cancel', { changeId: newChange.id })).json()).error);
+  const targetPlan = await db.plan.findFirstOrThrow({ where: { arenaId, name: 'Plano Professor Academia' } });
+  const subscription = await db.studentSubscription.findFirstOrThrow({ where: { arenaId, studentId: student.id, planId, status: 'ACTIVE' } });
+  const transferFields = { teacherId: teacher.id, subscriptionId: subscription.id, targetPlanId: targetPlan.id, newDueDate: new Date(Date.now() + 25 * 86400000).toISOString().slice(0, 10) };
+  const preview = await billingPost('preview', transferFields); assert.equal(preview.status, 200); const quote = (await preview.json()).quote; assert.match(quote.token, /^[a-f0-9]{64}$/); assert.equal(quote.studentName, student.name); assert.equal(quote.newPlanName, targetPlan.name);
+  assert.equal(JSON.stringify(quote).includes('recurrenceId'), false); assert.equal(JSON.stringify(quote).includes('onlinePaymentId'), false);
+  const entriesBefore = await db.financialEntry.count({ where: { arenaId } });
+  await db.studentSubscription.update({ where: { id: subscription.id }, data: { monthlyPriceCents: subscription.monthlyPriceCents + 100 } });
+  const stale = await billingPost('transfer', { ...transferFields, quoteToken: quote.token }); assert.equal(stale.status, 200); assert.match((await stale.json()).error, /dados mudaram/); assert.equal(await db.financialEntry.count({ where: { arenaId } }), entriesBefore);
+  const nextQuote = (await (await billingPost('preview', transferFields)).json()).quote;
+  const balanceBeforeTransfer = (await db.student.findUniqueOrThrow({ where: { id: student.id } })).remainingClasses;
+  const transferred = await billingPost('transfer', { ...transferFields, quoteToken: nextQuote.token }); assert.equal(transferred.status, 200); assert.deepEqual(await transferred.json(), {});
+  assert.equal((await db.studentSubscription.findUniqueOrThrow({ where: { id: subscription.id } })).planId, targetPlan.id); assert.equal((await db.student.findUniqueOrThrow({ where: { id: student.id } })).remainingClasses, balanceBeforeTransfer);
+  const afterTransferCount = await db.financialEntry.count({ where: { arenaId } }); assert.ok((await (await billingPost('transfer', { ...transferFields, quoteToken: nextQuote.token })).json()).error); assert.equal(await db.financialEntry.count({ where: { arenaId } }), afterTransferCount);
   await db.arenaMember.update({ where: { id: member.id }, data: { editPermissions: [] } });
   const readOnly = await (await detailRead()).json(); assert.equal(readOnly.canRegisterEnrollmentPayment, false); assert.deepEqual(readOnly.enrollmentBankAccounts, []);
   await db.arenaMember.update({ where: { id: member.id }, data: { editPermissions: member.editPermissions } });
