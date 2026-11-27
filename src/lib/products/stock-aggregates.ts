@@ -1,3 +1,4 @@
+import { ProductOperationError } from "@/lib/backend/product-operation-error";
 import { Prisma } from "@prisma/client";
 
 
@@ -12,18 +13,18 @@ export async function saveStockAggregates(tx: Prisma.TransactionClient, arenaId:
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`stock-recipe:${arenaId}`}, 0))`;
   const products = await tx.product.findMany({ where: { arenaId, isService: false }, select: { id: true, active: true, stockAggregates: true, stockChoices: true } });
   const parent = products.find(product => product.id === productId);
-  if (!parent) throw new Error("Produto não encontrado.");
+  if (!parent) throw new ProductOperationError("Produto não encontrado.");
   const ids = [...rows.map(row => row.productId), ...(groups ?? readStockChoices(parent.stockChoices)).flatMap(group => group.options.map(row => row.productId))];
-  if (ids.some(id => id === productId)) throw new Error("O produto não pode ser agregado de si mesmo.");
-  if (ids.length && products.some(product => compositionIds(product).includes(productId))) throw new Error("Este produto já é agregado de outro. Use produtos simples na composição.");
-  if (ids.some(id => !products.some(product => product.id === id && product.active && compositionIds(product).length === 0))) throw new Error("Selecione produtos ativos sem agregados, desta arena.");
+  if (ids.some(id => id === productId)) throw new ProductOperationError("O produto não pode ser agregado de si mesmo.");
+  if (ids.length && products.some(product => compositionIds(product).includes(productId))) throw new ProductOperationError("Este produto já é agregado de outro. Use produtos simples na composição.");
+  if (ids.some(id => !products.some(product => product.id === id && product.active && compositionIds(product).length === 0))) throw new ProductOperationError("Selecione produtos ativos sem agregados, desta arena.");
   await tx.product.update({ where: { id: productId }, data: { stockAggregates: rows, ...(groups ? { stockChoices: groups } : {}) } });
 }
 
 type StockDemandItem = { productId: string; quantity: number; stockRecipe?: unknown };
 const recipeFor = (product: { stockAggregates?: unknown; stockChoices?: unknown }, item: StockDemandItem) => {
  if (item.stockRecipe != null) return readResolvedStockRecipe(item.stockRecipe);
- if (readStockChoices(product.stockChoices).length) throw new Error("Escolha a composição do produto antes de lançar.");
+ if (readStockChoices(product.stockChoices).length) throw new ProductOperationError("Escolha a composição do produto antes de lançar.");
  return readStockAggregates(product.stockAggregates);
 };
 
@@ -31,13 +32,13 @@ const recipeFor = (product: { stockAggregates?: unknown; stockChoices?: unknown 
 export function stockDemand(products: { id: string; isService?: boolean; stockAggregates?: unknown; stockChoices?: unknown }[], items: StockDemandItem[]) {
   const demand = new Map<string, number>();
   for (const item of items) {
-    if (!Number.isSafeInteger(item.quantity) || item.quantity < 1) throw new Error("Quantidade inválida.");
+    if (!Number.isSafeInteger(item.quantity) || item.quantity < 1) throw new ProductOperationError("Quantidade inválida.");
     const product = products.find(product => product.id === item.productId);
-    if (!product) throw new Error("Produto indisponível.");
+    if (!product) throw new ProductOperationError("Produto indisponível.");
     if (product.isService) continue;
     for (const row of [{ productId: product.id, quantity: 1 }, ...recipeFor(product, item)]) {
       const quantity = (demand.get(row.productId) ?? 0) + row.quantity * item.quantity;
-      if (!Number.isSafeInteger(quantity) || quantity > 2147483647) throw new Error("Quantidade de estoque acima do limite.");
+      if (!Number.isSafeInteger(quantity) || quantity > 2147483647) throw new ProductOperationError("Quantidade de estoque acima do limite.");
       demand.set(row.productId, quantity);
     }
   }
@@ -50,10 +51,10 @@ export async function consumeProductStock(tx: Prisma.TransactionClient, arenaId:
   if (saleId) {
     await tx.$queryRaw`SELECT id FROM "Sale" WHERE id = ${saleId} AND "arenaId" = ${arenaId} FOR UPDATE`;
     const sale = await tx.sale.findFirst({ where: { id: saleId, arenaId }, select: { stockConsumption: true, items: { select: { productId: true, quantity: true } } } });
-    if (!sale) throw new Error("Venda não encontrada nesta arena.");
+    if (!sale) throw new ProductOperationError("Venda não encontrada nesta arena.");
     const persistedItems = summarize(sale.items);
     // Direct POS inserts its sale items before invoking this function too.
-    if (JSON.stringify(persistedItems) !== JSON.stringify(saleItems)) throw new Error("A composição deve corresponder aos itens da venda.");
+    if (JSON.stringify(persistedItems) !== JSON.stringify(saleItems)) throw new ProductOperationError("A composição deve corresponder aos itens da venda.");
     if (sale.stockConsumption !== null) return;
   }
   const products = await tx.product.findMany({ where: { arenaId, id: { in: items.map(item => item.productId) } }, select: { id: true, name: true, isService: true, stockAggregates: true, stockChoices: true } });
@@ -67,9 +68,9 @@ export async function consumeProductStock(tx: Prisma.TransactionClient, arenaId:
     const aggregateIds = new Set(items.flatMap(item => recipeFor(products.find(product => product.id === item.productId)!, item).map(row => row.productId)));
     for (const [productId, quantity] of demand) {
       const product = available.find(product => product.id === productId);
-      if (!product) throw new Error("Produto agregado não encontrado nesta arena.");
+      if (!product) throw new ProductOperationError("Produto agregado não encontrado nesta arena.");
       // Keep existing negative-stock policy for normal products. Ingredients require availability.
-      if (aggregateIds.has(productId) && (!product.active || product.stockQuantity < quantity)) throw new Error(`Estoque insuficiente do agregado ${product.name}.`);
+      if (aggregateIds.has(productId) && (!product.active || product.stockQuantity < quantity)) throw new ProductOperationError(`Estoque insuficiente do agregado ${product.name}.`);
       await tx.product.update({ where: { id: productId }, data: { stockQuantity: { decrement: quantity } } });
       const movement = await tx.stockMovement.create({ data: { arenaId, productId, type: "OUT", quantity, reason: aggregateIds.has(productId) ? `${reason} · agregado` : reason } });
       const sources = items.flatMap(item => {
@@ -90,7 +91,7 @@ export async function assertAggregateAvailability(tx: Prisma.TransactionClient, 
   const aggregateIds = [...new Set(items.flatMap(item => recipeFor(products.find(product => product.id === item.productId)!, item).map(row => row.productId)))];
   if (!aggregateIds.length) return;
   const available = await tx.product.findMany({ where: { arenaId, active: true, isService: false, id: { in: aggregateIds } }, select: { id: true, stockQuantity: true } });
-  if (aggregateIds.some(id => !available.some(product => product.id === id && product.stockQuantity >= demand.get(id)!))) throw new Error("Um produto agregado está indisponível na quantidade solicitada.");
+  if (aggregateIds.some(id => !available.some(product => product.id === id && product.stockQuantity >= demand.get(id)!))) throw new ProductOperationError("Um produto agregado está indisponível na quantidade solicitada.");
 }
 
 export async function catalogAggregateAvailability<T extends { id: string; stockQuantity: number; stockAggregates?: unknown; stockChoices?: unknown }>(tx: Prisma.TransactionClient, arenaId: string, products: T[]) {

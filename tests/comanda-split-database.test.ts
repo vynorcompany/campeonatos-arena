@@ -3,7 +3,7 @@ import * as composition from "../src/lib/products/composition";
 import { consumeProductStock } from "../src/lib/products/stock-aggregates";
 import * as operationalPolicy from "../src/lib/comandas/operational-policy";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import { randomUUID } from "node:crypto";
 import vm from "node:vm";
 import test from "node:test";

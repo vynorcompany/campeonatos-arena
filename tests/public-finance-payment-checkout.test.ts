@@ -1,6 +1,7 @@
+import{PortalAccountOperationError}from"../src/lib/backend/portal-account-error";
 import { portalCheckoutPolicy } from "../src/lib/payments/portal-checkout-policy";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import { createRequire } from "node:module";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
@@ -58,7 +59,7 @@ function paymentFlow(initialPending: { playerId: string; checkoutUrl: string; am
   };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, {
     exports, FormData, URL, Date, Set,
-    require: (name: string) => { if (!(name in mocks)) throw new Error(`Unexpected import: ${name}`); return mocks[name]; },
+    require: (name: string) => { if(name==="@/lib/backend/portal-account-error")return{PortalAccountOperationError}; if (!(name in mocks)) throw new Error(`Unexpected import: ${name}`); return mocks[name]; },
   });
   const form = new FormData();
   form.set("arenaSlug", "arena-a"); form.append("entryId", "entry-a");
@@ -140,7 +141,7 @@ test("atleta da arena A não inicia checkout de lançamento da arena B", { skip:
     };
     vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, {
       exports, FormData, URL, Date, Set,
-      require: (name: string) => { if (!(name in mocks)) throw new Error(`Unexpected import: ${name}`); return mocks[name]; },
+      require: (name: string) => { if(name==="@/lib/backend/portal-account-error")return{PortalAccountOperationError}; if (!(name in mocks)) throw new Error(`Unexpected import: ${name}`); return mocks[name]; },
     });
     const form = new FormData(); form.set("arenaSlug", "arena-teste-goal"); form.append("entryId", entryId);
     await assert.rejects(exports.startPublicFinancialEntryPaymentAction(form), /lançamentos não estão disponíveis/);
@@ -186,7 +187,7 @@ test("duas ações concorrentes criam somente um checkout no PostgreSQL", { skip
     };
     vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, {
       exports, FormData, URL, Date, Set,
-      require: (name: string) => { if (!(name in mocks)) throw new Error(`Unexpected import: ${name}`); return mocks[name]; },
+      require: (name: string) => { if(name==="@/lib/backend/portal-account-error")return{PortalAccountOperationError}; if (!(name in mocks)) throw new Error(`Unexpected import: ${name}`); return mocks[name]; },
     });
     const form = new FormData(); form.set("arenaSlug", "arena-teste-goal"); form.append("entryId", entryId);
     const first = exports.startPublicFinancialEntryPaymentAction(form).then((value) => ({ ok: true as const, value }), (error: unknown) => ({ ok: false as const, error }));

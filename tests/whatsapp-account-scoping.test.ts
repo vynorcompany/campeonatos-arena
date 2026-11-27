@@ -14,7 +14,7 @@ test("WhatsApp owner JID is canonical across device and provider suffixes", () =
 
 test("inbox, media and webhook bind conversations to the connected WhatsApp owner", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
-  const inbox = readFileSync(resolve(process.cwd(), "src/app/(app)/whatsapp/page.tsx"), "utf8");
+  const inbox = readFileSync(resolve(process.cwd(), "src/lib/backend/services/whatsapp-workspace.ts"), "utf8");
   const webhook = readFileSync(resolve(process.cwd(), "src/app/api/integrations/evolution/webhook/route.ts"), "utf8");
   const media = readFileSync(resolve(process.cwd(), "src/app/api/whatsapp/media/[messageId]/route.ts"), "utf8");
   assert.match(schema, /@@unique\(\[arenaId, accountJid, remoteJid\]\)/);

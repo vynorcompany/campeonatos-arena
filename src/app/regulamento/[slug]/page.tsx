@@ -1,7 +1,7 @@
 import { viewStyles } from "./page.utilities";
 import { notFound } from "next/navigation";
 import { RegulationPublicAcceptanceForm } from "@/components/forms/regulation-public-acceptance-form";
-import { prisma } from "@/lib/prisma";
+import { getPublicRegulation } from "@/lib/regulation/data";
 
 function splitRegulationLines(content: string) {
   return content
@@ -12,21 +12,9 @@ function splitRegulationLines(content: string) {
 
 export default async function PublicRegulationPage(props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
-  const regulation = await prisma.regulationDocument.findUnique({
-    where: {
-      publicSlug: params.slug
-    },
-    include: {
-      arena: {
-        select: {
-          name: true,
-          logoUrl: true
-        }
-      }
-    }
-  });
+  const regulation = await getPublicRegulation(params.slug);
 
-  if (!regulation || !regulation.active) {
+  if (!regulation) {
     notFound();
   }
 

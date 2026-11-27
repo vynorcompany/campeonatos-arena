@@ -15,17 +15,95 @@ const domains = new Set([
   "src/lib/services/tournament.ts", "src/lib/services/category-competition.ts",
 ]);
 
+// Characterization follows the business implementation; facade transport has
+// separate contract/HTTP tests and must never be mistaken for domain execution.
+const backendDomains = new Map([
+  [path.resolve("src/lib/actions/tournament/registrations.ts"), path.resolve("src/lib/backend/services/tournament-registrations-actions.ts")],
+  [path.resolve('src/lib/actions/tournament/draw.ts'), path.resolve('src/lib/backend/services/tournament-draw-actions.ts')],
+  [path.resolve('src/lib/actions/tournament/matches.ts'), path.resolve('src/lib/backend/services/tournament-matches-actions.ts')],
+  [path.resolve("src/lib/actions/tournament/events.ts"), path.resolve("src/lib/backend/services/tournament-events-actions.ts")],
+  [path.resolve("src/lib/actions/public-registration.ts"), path.resolve("src/lib/backend/services/public-registration.ts")],
+  [path.resolve("src/lib/actions/public-event-results.ts"), path.resolve("src/lib/backend/services/public-event-results.ts")],
+  [path.resolve("src/lib/actions/dependents.ts"), path.resolve("src/lib/backend/services/dependents.ts")],
+
+  [path.resolve("src/lib/actions/league-challenges.ts"), path.resolve("src/lib/backend/services/league-challenges.ts")],
+  [path.resolve("src/lib/actions/league-medical-substitutions.ts"), path.resolve("src/lib/backend/services/league-medical-substitutions.ts")],
+
+  [path.resolve("src/lib/services/public-league-portal.ts"), path.resolve("src/lib/backend/services/public-league-portal.ts")],
+  [path.resolve("src/lib/actions/public-super12.ts"), path.resolve("src/lib/backend/services/public-super12-actions.ts")],
+  [path.resolve("src/lib/services/public-standings.ts"), path.resolve("src/lib/backend/services/public-standings.ts")],
+  [path.resolve("src/lib/services/public-doubles-radar.ts"), path.resolve("src/lib/backend/services/public-doubles-radar.ts")],
+  [path.resolve("src/lib/services/public-super12.ts"), path.resolve("src/lib/backend/services/public-super12.ts")],
+  [path.resolve("src/lib/services/public-client-home.ts"), path.resolve("src/lib/backend/services/public-client-home.ts")],
+  [path.resolve("src/lib/actions/public-player-profile.ts"), path.resolve("src/lib/backend/services/public-player-profile.ts")],
+  [path.resolve("src/lib/actions/privacy.ts"), path.resolve("src/lib/backend/services/privacy.ts")],
+  [path.resolve("src/lib/actions/public-finance-payment.ts"), path.resolve("src/lib/backend/services/public-finance-payment.ts")],
+
+  [path.resolve("src/lib/actions/smart-lookup.ts"), path.resolve("src/lib/backend/services/smart-lookup.ts")],
+  [path.resolve("src/lib/actions/client-registration-defaults.ts"), path.resolve("src/lib/backend/services/client-registration-defaults.ts")],
+  [path.resolve("src/lib/actions/financial-operations-settings.ts"), path.resolve("src/lib/backend/services/financial-operations-settings.ts")],
+  [path.resolve("src/lib/actions/portal-payment-settings.ts"), path.resolve("src/lib/backend/services/portal-payment-settings.ts")],
+  [path.resolve("src/lib/actions/comanda-whatsapp-settings.ts"), path.resolve("src/lib/backend/services/comanda-whatsapp-settings.ts")],
+
+  [path.resolve("src/lib/actions/checkin.ts"), path.resolve("src/lib/backend/services/checkin-actions.ts")],
+  [path.resolve("src/lib/actions/fixed-court-plans.ts"), path.resolve("src/lib/backend/services/fixed-court-plan-actions.ts")],
+  [path.resolve("src/lib/actions/upcoming-match.ts"), path.resolve("src/lib/backend/services/upcoming-actions.ts")],
+  [path.resolve("src/lib/services/tv-presentation.ts"), path.resolve("src/lib/backend/services/tv-presentation.ts")],
+  [path.resolve("src/lib/actions/comanda.ts"), path.resolve("src/lib/backend/services/comanda-actions.ts")],
+  [path.resolve("src/lib/actions/agenda-operations.ts"), path.resolve("src/lib/backend/services/agenda-operations-actions.ts")],
+  [path.resolve("src/lib/actions/calendar/publicBookings.ts"), path.resolve("src/lib/backend/services/public-court-booking-actions.ts")],
+  [path.resolve("src/lib/actions/calendar/bookings.ts"), path.resolve("src/lib/backend/services/court-booking-actions.ts")],
+  [path.resolve("src/lib/actions/calendar/events.ts"), path.resolve("src/lib/backend/services/calendar-events-actions.ts")],
+  [path.resolve("src/lib/actions/calendar/clients.ts"), path.resolve("src/lib/backend/services/calendar-clients-actions.ts")],
+  [path.resolve("src/lib/actions/calendar/settings.ts"), path.resolve("src/lib/backend/services/court-settings-actions.ts")],
+  [path.resolve("src/lib/actions/agency.ts"), path.resolve("src/lib/backend/services/agency-actions.ts")],
+  [path.resolve('src/lib/actions/arena.ts'), path.resolve('src/lib/backend/services/arena-profile-actions.ts')],
+  [path.resolve('src/lib/actions/client-portal.ts'), path.resolve('src/lib/backend/services/portal-editor-actions.ts')],
+  [path.resolve('src/lib/actions/agent-api-keys.ts'), path.resolve('src/lib/backend/services/agent-key-actions.ts')],
+  [path.resolve('src/lib/actions/permission-profile.ts'), path.resolve('src/lib/backend/services/permission-profiles.ts')],
+  [path.resolve('src/lib/actions/arena-assistant.ts'), path.resolve('src/lib/backend/services/assistant-actions.ts')],
+  [path.resolve('src/lib/actions/support.ts'), path.resolve('src/lib/backend/services/support-actions.ts')],
+  [path.resolve('src/lib/actions/regulation.ts'), path.resolve('src/lib/backend/services/regulation-actions.ts')],
+  [path.resolve('src/lib/actions/printer-settings.ts'), path.resolve('src/lib/backend/services/printer-settings-actions.ts')],
+  [path.resolve('src/lib/actions/cancellation-policy.ts'), path.resolve('src/lib/backend/services/cancellation-policy-actions.ts')],
+  [path.resolve('src/lib/actions/privacy-management.ts'), path.resolve('src/lib/backend/services/privacy-management-actions.ts')],
+  [path.resolve('src/lib/actions/devices.ts'), path.resolve('src/lib/backend/services/devices-actions.ts')],
+
+  [path.resolve('src/lib/actions/boleto-queue.ts'), path.resolve('src/lib/backend/services/boleto-queue-actions.ts')],
+  [path.resolve('src/lib/actions/fiscal.ts'), path.resolve('src/lib/backend/services/nfe-import.ts')],
+  [path.resolve('src/lib/actions/cash-register.ts'), path.resolve('src/lib/backend/services/cash-register.ts')],
+  [path.resolve('src/lib/actions/pos.ts'), path.resolve('src/lib/backend/services/products-pos.ts')],
+  [path.resolve('src/lib/actions/product-fiscal.ts'), path.resolve('src/lib/backend/services/products-fiscal.ts')],
+  [path.resolve('src/lib/actions/services.ts'), path.resolve('src/lib/backend/services/products-services.ts')],
+  [path.resolve('src/lib/actions/standard-service-prices.ts'), path.resolve('src/lib/backend/services/products-standard-service-prices.ts')],
+  [path.resolve('src/lib/actions/class-groups.ts'), path.resolve('src/lib/backend/services/class-groups.ts')],
+  [path.resolve('src/lib/actions/lesson-credit-settings.ts'), path.resolve('src/lib/backend/services/lesson-credit-settings.ts')],
+  [path.resolve('src/lib/actions/academy/students.ts'), path.resolve('src/lib/backend/services/academy-students.ts')],
+  [path.resolve('src/lib/actions/academy/teachers.ts'), path.resolve('src/lib/backend/services/academy-teachers.ts')],
+  [path.resolve('src/lib/actions/academy/groups.ts'), path.resolve('src/lib/backend/services/academy-groups.ts')],
+  [path.resolve('src/lib/actions/academy/plans.ts'), path.resolve('src/lib/backend/services/academy-plans.ts')],
+  [path.resolve('src/lib/actions/academy/lessons.ts'), path.resolve('src/lib/backend/services/academy-lessons.ts')],
+
+  [path.resolve('src/lib/actions/finance/subscriptions.ts'), path.resolve('src/lib/backend/services/financial-subscriptions-actions.ts')],
+  [path.resolve('src/lib/actions/finance/payroll.ts'), path.resolve('src/lib/backend/services/financial-payroll-actions.ts')],
+
+  [path.resolve('src/lib/actions/finance/settings.ts'), path.resolve('src/lib/backend/services/financial-settings-actions.ts')],
+  [path.resolve('src/lib/actions/finance/ledger.ts'), path.resolve('src/lib/backend/services/financial-actions.ts')],
+  [path.resolve('src/lib/actions/tournament/players.ts'), path.resolve('src/lib/backend/services/players.ts')],
+  [path.resolve('src/lib/actions/client-management.ts'), path.resolve('src/lib/backend/services/client-management.ts')],
+]);
 export function domainSource(filename: string): string {
   const root = path.resolve(filename), directory = root.replace(/\.ts$/, "");
   const visited = new Set<string>(), bodies: string[] = [], imports = new Map<string, { default?: string; namespace?: string; named: Map<string, string> }>();
   const externalExports: string[] = [];
   function visit(file: string) {
+    file = backendDomains.get(file) ?? file;
     if (visited.has(file)) return;
     visited.add(file);
     const text = readOriginal(file, "utf8");
     const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
     const local = (name: string) => name.startsWith("@/") ? path.resolve("src", name.slice(2)) + ".ts" : path.resolve(path.dirname(file), name) + ".ts";
-    const internal = (name: string) => (name.startsWith("@/") || name.startsWith(".")) && local(name).startsWith(directory + path.sep);
+    const internal = (name: string) => (name.startsWith("@/") || name.startsWith(".")) && (local(name).startsWith(directory + path.sep) || ["src/lib/backend/services/public-registration-errors.ts", "src/lib/backend/services/league-operation-errors.ts", "src/lib/backend/upcoming-operation-error.ts", "src/lib/backend/comanda-operation-error.ts", "src/lib/backend/product-operation-error.ts", "src/lib/backend/client-operation-error.ts", "src/lib/backend/academy-operation-error.ts", "src/lib/finance/action-error.ts"].some(file => local(name) === path.resolve(file)));
     for (const statement of source.statements) {
       if ((ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)) && statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier) && internal(statement.moduleSpecifier.text)) visit(local(statement.moduleSpecifier.text));
     }
@@ -67,6 +145,7 @@ function modularPath(file: unknown): string | null {
   const value = file instanceof URL ? fileURLToPath(file) : typeof file === "string" ? file : null;
   if (!value) return null;
   const relative = path.relative(process.cwd(), path.resolve(value)).replaceAll(path.sep, "/");
+  if (backendDomains.has(path.resolve(value))) return value;
   if (!domains.has(relative)) return null;
   // Keeps the helper useful before and after the extraction, without following arbitrary modules.
   return /Public entry point/.test(readOriginal(value, "utf8")) ? value : null;

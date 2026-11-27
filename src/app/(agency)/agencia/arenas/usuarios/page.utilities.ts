@@ -32,7 +32,7 @@ export const viewStyles = {
     "tw:[&_select]:border-t-[color:var(--line)]", "tw:[&_select]:border-r-[length:1px]", "tw:[&_select]:[border-right-style:solid]", "tw:[&_select]:border-r-[color:var(--line)]",
     "tw:[&_select]:border-b-[length:1px]", "tw:[&_select]:[border-bottom-style:solid]", "tw:[&_select]:border-b-[color:var(--line)]", "tw:[&_select]:border-l-[length:1px]",
     "tw:[&_select]:[border-left-style:solid]", "tw:[&_select]:border-l-[color:var(--line)]", "tw:[&_select]:rounded-[var(--radius-md)]", "tw:[&_select]:bg-[color:var(--panel)]",
-    "tw:[&_select]:[background-image:none]", "tw:[&_select]:text-[color:var(--text)]", "tw:[display:inline-grid]", "tw:grid-cols-[minmax(150px,_1fr)_auto]",
+    "tw:[&_select]:[background-image:none]", "tw:[&_select]:text-[color:var(--text)]", "tw:[display:inline-grid]", "tw:grid-cols-[minmax(190px,_1fr)_auto]",
     "tw:gap-y-[8px]", "tw:gap-x-[8px]", "tw:items-center",
     "tw:viewport-720:grid-cols-[minmax(0,1fr)]", "tw:viewport-720:[&_button]:justify-self-start",
   ].join(" "),

@@ -31,8 +31,9 @@ test("mesclagem transfere débitos e baixas sem perder dados e impede vínculos 
       const settlement = await tx.financialSettlement.create({ data: { arenaId: arena.id, financialEntryId: debt.id, amountCents: 300, paymentMethod: "PIX", notes: "Baixa preservada" } });
       const original = await tx.financialEntry.create({ data: { arenaId: arena.id, playerId: primary.id, type: "REVENUE", category: "Teste", description: "Conta do principal", amountCents: 500 } });
       const exports: Record<string, any> = {};
-      const source = readFileSync(new URL("../src/lib/actions/client-management.ts", import.meta.url), "utf8");
+      const source = readFileSync(new URL("../src/lib/backend/services/client-management.ts", import.meta.url), "utf8");
       const mocks: Record<string, unknown> = {
+        "server-only": {},
         "next/cache": { revalidatePath() {} },
         "@/lib/auth/guards": { requirePermission: async () => ({ arenaId: arena.id }) },
         "@/lib/phone": { normalizeBrazilianPhone: (value: string) => value },

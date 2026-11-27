@@ -5,24 +5,12 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { deleteAgencyArenaAction, updateAgencyArenaAction, updateAgencyArenaStatusAction } from "@/lib/actions/agency";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
-import { agencyDatabase as prisma } from "@/lib/auth/database";
+import { getAgencyArenas } from "@/lib/agency/data";
 import { agencyStatusLabel } from "@/lib/agency/status-label";
 
 export default async function AgencyArenasPage() {
   await requireAgencyPageAccess();
-  const arenas = await prisma.arena.findMany({
-    include: {
-      _count: {
-        select: {
-          members: true,
-          players: true,
-          students: true,
-          supportTickets: true
-        }
-      }
-    },
-    orderBy: [{ accountStatus: "asc" }, { name: "asc" }]
-  });
+  const {arenas} = await getAgencyArenas();
 
   return (
     <div className={viewStyles.stack_md}>

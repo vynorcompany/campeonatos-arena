@@ -1,10 +1,11 @@
+import { FinanceOperationError } from "@/lib/finance/action-error";
 import type { Prisma } from "@prisma/client";
 import { installmentCompositions } from "./ledger-composition";
 import { customizedCardInstallments } from "./card-installments";
 export async function createCardInstallmentEntries(tx:Prisma.TransactionClient, data:Prisma.FinancialEntryUncheckedCreateInput, count:number, requestId:string, custom?:unknown) {
- if(!/^[a-f\d-]{36}$/i.test(requestId))throw new Error("Reabra o lançamento e tente novamente.");
- if(data.status==="PAID")throw new Error("O parcelamento gera lançamentos em aberto. Registre cada pagamento no seu vencimento.");
- const start=data.dueDate instanceof Date?data.dueDate:null;if(!start)throw new Error("Informe o vencimento da primeira parcela.");
+ if(!/^[a-f\d-]{36}$/i.test(requestId))throw new FinanceOperationError("Reabra o lançamento e tente novamente.");
+ if(data.status==="PAID")throw new FinanceOperationError("O parcelamento gera lançamentos em aberto. Registre cada pagamento no seu vencimento.");
+ const start=data.dueDate instanceof Date?data.dueDate:null;if(!start)throw new FinanceOperationError("Informe o vencimento da primeira parcela.");
  const rows=customizedCardInstallments(data.amountCents,count,start,custom),reference=`card-installments:${requestId}`;
  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${data.arenaId}:${reference}`},0))`;
  const existing=await tx.financialEntry.findFirst({where:{arenaId:data.arenaId,externalReference:`${reference}:1`}});if(existing)return existing;

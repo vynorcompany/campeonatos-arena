@@ -90,7 +90,7 @@ test("receivable plan selectors separate the same standard plan by professor", (
   const page = readFileSync(
     resolve(
       process.cwd(),
-      "src/app/(app)/financeiro/contas-a-receber/page.tsx",
+      "src/lib/backend/services/finance-ledger.ts",
     ),
     "utf8",
   );
@@ -110,7 +110,7 @@ test("receivable plan selectors separate the same standard plan by professor", (
 });
 
 test("selecting a plan fills the entry value with its configured price", () => {
-  const receivables = readFileSync(resolve(process.cwd(), "src/app/(app)/financeiro/contas-a-receber/page.tsx"), "utf8");
+  const receivables = readFileSync(resolve(process.cwd(), "src/lib/backend/services/finance-ledger.ts"), "utf8");
   const ledger = readFileSync(resolve(process.cwd(), "src/components/finance/accounts-ledger.tsx"), "utf8");
   const ledgerParts = readFileSync(resolve(process.cwd(), "src/components/finance/accounts-ledger-parts.tsx"), "utf8");
 

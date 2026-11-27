@@ -10,14 +10,14 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8"
 test("athlete portal exposes logout in arena and global headers", () => {
   const arena = readPortalSources();
   const global = read("src/app/portal/page.tsx");
-  const actions = read("src/lib/actions/player-auth.ts");
+  const actions = read("src/lib/backend/services/player-auth.ts");
 
   assert.match(arena, /action=\{logoutAthletePortalAction\}/);
   assert.match(arena, /name="arenaSlug" value=\{arena\.slug\}/);
   assert.match(global, /action=\{logoutAthletePortalAction\}/);
   assert.match(actions, /export async function logoutAthletePortalAction/);
   assert.match(actions, /await destroyPublicPlayerSession\(\)/);
-  assert.match(actions, /redirect\(arenaSlug\.success \? `\/classificacao\/\$\{encodeURIComponent\(arenaSlug\.data\)\}` : "\/portal"\)/);
+  assert.match(actions, /redirectTo: arenaSlug\.success \? `\/classificacao\/\$\{encodeURIComponent\(arenaSlug\.data\)\}` : "\/portal"/);
 });
 
 test("portal title is an accessible vector wordmark", () => {

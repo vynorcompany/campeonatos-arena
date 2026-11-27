@@ -1,0 +1,7 @@
+import "server-only";
+import {revalidatePath} from "next/cache";
+import {refreshCalendarRoutes} from "@/lib/calendar/revalidation";
+import {arenaBookingPath} from "@/lib/arena-booking-path";
+import {remoteCourtSettingsMutation} from "@/lib/backend/court-settings-client";
+import {courtSettingsFields,courtSettingsInputSchema,type CourtSettingsOperation} from "@/lib/backend/contracts/court-settings";
+export async function runCourtSettingsMutation(operation:CourtSettingsOperation,form:FormData){const origin=process.env.VX4_BACKEND_ORIGIN;const result=origin?await remoteCourtSettingsMutation(origin,operation,form).catch(()=>({error:'Não foi possível confirmar a alteração. Confira os dados antes de tentar novamente.'})):await(async()=>{const fields:Record<string,string[]>={};for(const key of courtSettingsFields[operation]){const values=form.getAll(key);if(values.some(value=>typeof value!=='string'))throw Error('Campo inválido.');if(values.length)fields[key]=values as string[];}return(await import('@/lib/backend/services/court-settings-mutations')).executeCourtSettingsMutation(operation,courtSettingsInputSchema(operation).parse({fields}).fields);})();if(!result.error){refreshCalendarRoutes();revalidatePath('/arena');if('cacheSlugs'in result)for(const slug of result.cacheSlugs??[]){revalidatePath(`/reservar/${encodeURIComponent(slug)}`);revalidatePath(`/classificacao/${encodeURIComponent(slug)}`);revalidatePath(arenaBookingPath(slug));}}return{error:result.error,...('success'in result?{success:result.success}:{})};}

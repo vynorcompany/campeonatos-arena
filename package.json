@@ -6,9 +6,11 @@
     "node": ">=20.9.0"
   },
   "scripts": {
-    "test": "node --import tsx --test",
+    "test": "node --import tsx --test --test-concurrency=2",
     "dev": "next dev",
     "build": "prisma generate && next build && node scripts/prepare-standalone.mjs",
+    "build:backend": "node scripts/build-backend.mjs",
+    "start:backend": "node scripts/runtime-backend.mjs",
     "start": "node scripts/start-server.mjs",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",

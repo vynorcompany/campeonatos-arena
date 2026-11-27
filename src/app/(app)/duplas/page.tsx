@@ -120,8 +120,8 @@ export default async function PairsPage(props: PairsPageProps) {
 
                     return (
                       <tr key={pair.id}>
-                        <td>#{index + 1}</td>
-                        <td>
+                        <td data-label="Número">#{index + 1}</td>
+                        <td data-label="Dupla">
                           <PlayerPhotoStack players={pair.players} />
                           <form action={updateTournamentPairAction} className={viewStyles.inline_pair_edit}>
                             <input type="hidden" name="pairId" value={pair.id} />
@@ -151,15 +151,15 @@ export default async function PairsPage(props: PairsPageProps) {
                             <SubmitButton label="Salvar" pendingLabel="Salvando..." className={viewStyles.button} />
                           </form>
                         </td>
-                        <td>
+                        <td data-label="Pontuação total">
                           <form action={updateTournamentPairPointsAction} className={viewStyles.inline_form}>
                             <input type="hidden" name="pairId" value={pair.id} />
                             <input name="totalPoints" type="number" min="0" defaultValue={pair.totalPoints} aria-label={`Pontuação da dupla ${pair.name}`} />
                             <SubmitButton label="Salvar" pendingLabel="..." className={viewStyles.button} />
                           </form>
                         </td>
-                        <td>{pair.group?.name ?? "A definir"}</td>
-                        <td>
+                        <td data-label="Grupo">{pair.group?.name ?? "A definir"}</td>
+                        <td data-label="Ações">
                           <SafeActionForm
                             action={deleteTournamentPairAction}
                             confirmKeyword="EXCLUIR"

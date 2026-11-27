@@ -10,7 +10,9 @@ test("CSV mantém CNPJ separado do CPF e não duplica uma empresa pelo documento
  const writes:Array<Record<string,unknown>>=[];
  const tx={player:{findMany:async()=>[{phone:"42999990001",cpf:"",cnpj:"12.345.678/0001-90"}],create:async({data}:{data:Record<string,unknown>})=>{writes.push(data);return data;}}};
  const output:{importClientsAction?:(data:FormData)=>Promise<{imported:number}>}={};const require=createRequire(import.meta.url);
- vm.runInNewContext(ts.transpileModule(readFileSync("src/lib/actions/client-management.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports:output,File,require:(name:string)=>{
+ vm.runInNewContext(ts.transpileModule(readFileSync("src/lib/backend/services/client-management.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports:output,File,require:(name:string)=>{
+  if(name==="server-only")return{};
+  if(name==="@/lib/backend/client-operation-error")return{ClientOperationError:class extends Error{}};
   if(name==="@/lib/clients/name-search")return nameSearch;
   if(name==="@/lib/auth/guards")return{requirePermission:async(permission:string)=>{assert.equal(permission,"players:import");return{arenaId:"arena-qa"};}};
   if(name==="@/lib/phone")return{normalizeBrazilianPhone};if(name==="next/cache")return{revalidatePath(){}};

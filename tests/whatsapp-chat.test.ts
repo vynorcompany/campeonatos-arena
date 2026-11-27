@@ -50,7 +50,7 @@ test("foto indisponível do WhatsApp retorna às iniciais sem exibir imagem queb
 });
 
 test("outbound WhatsApp deliveries share one idempotent persistence service", () => {
-  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/whatsapp-chat.ts"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/backend/services/whatsapp-chat-actions.ts"), "utf8");
   const service = readFileSync(resolve(process.cwd(), "src/lib/services/whatsapp-conversation.ts"), "utf8");
 
   assert.match(actions, /persistOutboundWhatsAppMessage/);
@@ -67,7 +67,8 @@ test("financial settings expose coupon and supplier maintenance", () => {
   assert.match(settings, /SupplierDialog/);
   assert.match(supplierDialog, /updateSupplierAction/);
   assert.match(supplierDialog, /<Modal /);
-  assert.match(settings, /Cartão de débito/);
+  assert.match(readFileSync(resolve(process.cwd(), "src/lib/backend/services/financial-settings.ts"), "utf8"), /Cartão de débito/);
+  assert.match(settings, /getFinancialSettingsPage/);
   assert.match(actions, /deleteCouponAction/);
   assert.match(actions, /deleteSupplierAction/);
 });

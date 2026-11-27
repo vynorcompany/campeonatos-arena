@@ -1,13 +1,13 @@
 import { SettingsDialogButton } from "@/components/ui/settings-dialog-button";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
-import { arenaDatabase } from "@/lib/arena-database";
+import { getAgentKeys } from "@/lib/arena-configuration/data";
 import { agentScopes, type AgentScope } from "@/lib/agents/scopes";
 import { AgentApiKeyForm } from "@/components/forms/agent-api-key-form";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { revokeAgentApiKeyAction } from "@/lib/actions/agent-api-keys";
 export async function AgentIntegrations({ arenaId }: { arenaId: string }) {
-  const keys = await arenaDatabase(arenaId).agentApiKey.findMany({ where: { arenaId }, orderBy: { createdAt: "desc" }, select: { id: true, name: true, prefix: true, scopes: true, expiresAt: true, revokedAt: true, lastUsedAt: true }, take: 100 });
+  const {keys} = await getAgentKeys(arenaId);
   return <section className="tw:grid tw:min-w-0 tw:gap-5 tw:rounded-xl tw:border tw:border-[#dce7f2] tw:bg-white tw:p-5">
     <header className={ui.toolbar}><h2>Agentes conectados</h2><SettingsDialogButton label="Nova chave de agente"><AgentApiKeyForm /></SettingsDialogButton></header>
     <details className="tw:rounded-lg tw:border tw:border-[#dce7f2] tw:p-3"><summary className="tw:cursor-pointer tw:text-sm tw:font-semibold">Como conectar o agente</summary><div className="tw:mt-3 tw:grid tw:gap-2 tw:break-words tw:text-sm"><p>Configure o cabeçalho <code>Authorization: Bearer SUA_CHAVE</code>. Os recursos ficam em <code>/api/agents/</code>: <code>agents</code>, <code>reservations</code>, <code>finance</code>, <code>reports</code>, <code>clients</code> e <code>teachers</code>.</p><p>Consultas usam GET, com até 100 itens por página. Continue com o parâmetro offset retornado em nextOffset. Agenda, financeiro e relatórios aceitam from/to em ISO, com período de até 31 dias.</p><p>Para criar um lançamento, envie POST em <code>/api/agents/finance</code> com JSON contendo description, category, type (REVENUE ou EXPENSE) e amountCents (inteiro positivo). dueDate, playerId e bankAccountId são opcionais. Envie também Idempotency-Key única por lançamento, com 8 a 80 letras, números, hífen ou sublinhado; reutilize-a somente para repetir a mesma solicitação.</p></div></details>

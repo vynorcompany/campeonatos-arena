@@ -47,8 +47,8 @@ test("history counts a double WO as concluded even without a winning pair", () =
 });
 
 test("league history loads the live match fields required to count a double WO", () => {
-  const page = readFileSync(new URL("../src/app/(app)/torneios/[tournamentId]/categorias/[categoryId]/page.tsx", import.meta.url), "utf8");
-  const selectedMatchFields = page.match(/leagueCycles: \{[^\n]+matches: \{ select: \{([^}]+)\}/)?.[1] ?? "";
+  const page = readFileSync(new URL("../src/lib/backend/services/tournament-category-workspace.ts", import.meta.url), "utf8");
+  const selectedMatchFields = page.match(/leagueCycles: \{[^\n]+matches: \{[^\n]+select: \{([^}]+)\}/)?.[1] ?? "";
   assert.match(selectedMatchFields, /manualStatus: true/);
   assert.match(selectedMatchFields, /woReason: true/);
 });

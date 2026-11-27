@@ -1,0 +1,6 @@
+import "server-only";
+import {managementCookieHeader} from "@/lib/backend/management-context-client";
+import {readBackendContract} from "@/lib/backend/http-client";
+import {configurationDataSchema,agentKeysDataSchema,type ConfigurationSection} from "@/lib/backend/contracts/arena-configuration";
+export async function getArenaConfiguration(arenaId:string,section:ConfigurationSection){const origin=process.env.VX4_BACKEND_ORIGIN;return origin?readBackendContract(origin,`/api/management/arena/configuration?section=${section}`,configurationDataSchema,{cookie:(await managementCookieHeader())??''},{timeoutMs:60000}):(await import('@/lib/backend/services/arena-configuration-data')).resolveArenaConfiguration(arenaId,section);}
+export async function getAgentKeys(arenaId:string){const origin=process.env.VX4_BACKEND_ORIGIN;const data=origin?await readBackendContract(origin,'/api/management/arena/agent-keys',agentKeysDataSchema,{cookie:(await managementCookieHeader())??''},{timeoutMs:60000}):await(await import('@/lib/backend/services/arena-configuration-data')).resolveAgentKeys(arenaId);return{keys:data.keys.map(row=>({...row,expiresAt:new Date(row.expiresAt),revokedAt:row.revokedAt?new Date(row.revokedAt):null,lastUsedAt:row.lastUsedAt?new Date(row.lastUsedAt):null}))};}

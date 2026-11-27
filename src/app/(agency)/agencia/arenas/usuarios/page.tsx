@@ -4,25 +4,11 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { updateUserSystemRoleAction } from "@/lib/actions/agency";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
-import { agencyDatabase as prisma } from "@/lib/auth/database";
+import { getAgencyUsers } from "@/lib/agency/data";
 
 export default async function AgencyArenaUsersPage() {
   const auth = await requireAgencyPageAccess();
-  const users = await prisma.user.findMany({
-    include: {
-      memberships: {
-        include: {
-          arena: true
-        },
-        orderBy: {
-          createdAt: "desc"
-        }
-      }
-    },
-    orderBy: {
-      createdAt: "desc"
-    }
-  });
+  const {users} = await getAgencyUsers();
 
   return (
     <div className={viewStyles.stack_md}>
@@ -53,7 +39,7 @@ export default async function AgencyArenaUsersPage() {
                 </td>
                 <td>
                   <span className={viewStyles.mobile_label}>Nível de agência</span>
-                  <SafeActionForm action={updateUserSystemRoleAction} className={viewStyles.agency_user_role_form} successMessage="Usuário atualizado.">
+                  {auth.systemRole === "SUPER_ADMIN" ? <SafeActionForm action={updateUserSystemRoleAction} className={viewStyles.agency_user_role_form} successMessage="Usuário atualizado.">
                     <input type="hidden" name="userId" value={user.id} />
                     <select name="systemRole" defaultValue={user.systemRole}>
                       <option value="SUPER_ADMIN">Super admin</option>
@@ -62,7 +48,7 @@ export default async function AgencyArenaUsersPage() {
                       <option value="VIEWER">Usuário comum</option>
                     </select>
                     <SubmitButton label={user.id === auth.userId ? "Você" : "Salvar"} pendingLabel="..." className={viewStyles.button} />
-                  </SafeActionForm>
+                  </SafeActionForm> : <span>{user.systemRole === "SUPER_ADMIN" ? "Super admin" : user.systemRole === "ADMIN" ? "Agência admin" : user.systemRole === "MANAGER" ? "CS/manager" : "Usuário comum"}</span>}
                 </td>
                 <td>
                   <span className={viewStyles.mobile_label}>Arenas vinculadas</span>

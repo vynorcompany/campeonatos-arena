@@ -2,16 +2,11 @@ import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
-import { agencyDatabase as prisma } from "@/lib/auth/database";
+import { getAgencyTicketHistory } from "@/lib/agency/pages";
 
 export default async function AgencySupportHistoryPage() {
   await requireAgencyPageAccess();
-  const tickets = await prisma.supportTicket.findMany({
-    where: { status: { in: ["RESOLVED", "CLOSED"] } },
-    include: { arena: true, requester: true, assignee: true },
-    orderBy: { updatedAt: "desc" },
-    take: 80
-  });
+  const { tickets } = await getAgencyTicketHistory();
 
   return (
     <div className={viewStyles.stack_md}>

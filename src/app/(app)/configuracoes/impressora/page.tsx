@@ -2,13 +2,13 @@ import { operationalWorkspace as ui } from "@/components/ui/operational-workspac
 import { UsbPrinters } from "@/components/settings/usb-printers";
 import Link from "next/link";
 import { requirePermission } from "@/lib/auth/guards";
-import { arenaDatabase } from "@/lib/arena-database";
+import { getPrinterSettings } from "@/lib/settings/data";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { savePrinterSettingsAction } from "@/lib/actions/printer-settings";
 export default async function PrinterSettingsPage() {
   const auth = await requirePermission("arena:settings");
-  const settings = await arenaDatabase(auth.arenaId).arenaOperationalSettings.findUnique({ where: { arenaId: auth.arenaId }, select: { printerPaper: true, printerCopies: true } });
+  const { settings } = await getPrinterSettings(auth.arenaId);
   return <section className={`${ui.page} tw:w-full`}>
     <div className="tw:flex tw:flex-wrap tw:justify-end tw:gap-2">
       <Link href="/imprimir/teste" target="_blank" rel="noopener noreferrer" className={ui.secondary}>Abrir página de teste ↗</Link>

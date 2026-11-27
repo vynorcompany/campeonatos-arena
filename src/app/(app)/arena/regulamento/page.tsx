@@ -3,7 +3,7 @@ import { RegulationDocumentForm } from "@/components/forms/regulation-document-f
 import { SectionCard } from "@/components/section-card";
 import { requirePermission } from "@/lib/auth/guards";
 import { env } from "@/lib/env";
-import { prisma } from "@/lib/prisma";
+import { getRegulationHistory } from "@/lib/regulation/data";
 
 function formatDateTime(value: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -19,28 +19,7 @@ function buildPublicRegulationUrl(slug: string) {
 
 export default async function RegulationPage() {
   const auth = await requirePermission("arena:settings");
-  const documents = await prisma.regulationDocument.findMany({
-    where: {
-      arenaId: auth.arenaId
-    },
-    orderBy: {
-      createdAt: "desc"
-    },
-    take: 10,
-    include: {
-      createdBy: {
-        select: {
-          name: true,
-          email: true
-        }
-      },
-      _count: {
-        select: {
-          acceptances: true
-        }
-      }
-    }
-  });
+  const { documents } = await getRegulationHistory(auth.arenaId);
 
   const latestDocument = documents[0];
   const latestPublicUrl = latestDocument ? buildPublicRegulationUrl(latestDocument.publicSlug) : "";

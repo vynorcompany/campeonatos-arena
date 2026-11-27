@@ -1,3 +1,4 @@
+import { FinanceOperationError } from "@/lib/finance/action-error";
 import { assertRecordVersion, recordVersion } from "../record-version";
 import type { ArenaTransaction } from "@/lib/rls";
 import { calculateEmployeePayroll, employeePayrollAmounts, type EmployeePayrollInput } from "./employee-payroll";
@@ -6,9 +7,9 @@ import { getFinancialEntryBalance } from "./ledger";
 export async function saveEmployeePayroll(tx: ArenaTransaction, arenaId: string, input: EmployeePayrollInput, authorize?: (state: { exists: boolean; hasFinancialEntry: boolean; paid: boolean }) => void, expectedVersion?: string) {
   const values = employeePayrollAmounts(input);
   const totals = calculateEmployeePayroll(values);
-  if (!Number.isSafeInteger(totals.totalCents) || totals.totalCents <= 0 || totals.totalCents > 2_000_000_000 || [totals.overtimeCents, totals.nightCents, totals.nightOvertimeCents, totals.grossCents].some(value => !Number.isSafeInteger(value) || value < 0 || value > 2_000_000_000)) throw new Error("O total líquido deve ser positivo e os valores devem estar dentro do limite.");
+  if (!Number.isSafeInteger(totals.totalCents) || totals.totalCents <= 0 || totals.totalCents > 2_000_000_000 || [totals.overtimeCents, totals.nightCents, totals.nightOvertimeCents, totals.grossCents].some(value => !Number.isSafeInteger(value) || value < 0 || value > 2_000_000_000)) throw new FinanceOperationError("O total líquido deve ser positivo e os valores devem estar dentro do limite.");
   const member = await tx.arenaMember.findFirst({ where: { arenaId, userId: input.userId }, select: { user: { select: { id: true, name: true } } } });
-  if (!member) throw new Error("Funcionário não encontrado nesta arena.");
+  if (!member) throw new FinanceOperationError("Funcionário não encontrado nesta arena.");
   const key = `${arenaId}:${input.userId}:${input.referenceMonth}`;
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
   const existing = await tx.employeePayrollEntry.findUnique({
@@ -16,16 +17,16 @@ export async function saveEmployeePayroll(tx: ArenaTransaction, arenaId: string,
     include: { financialEntry: { include: { settlements: true } } },
   });
   const linked = existing?.financialEntry;
-  if (linked && (linked.arenaId !== arenaId || linked.type !== "EXPENSE" || linked.source !== "EMPLOYEE_PAYROLL")) throw new Error("Lançamento da folha inválido.");
+  if (linked && (linked.arenaId !== arenaId || linked.type !== "EXPENSE" || linked.source !== "EMPLOYEE_PAYROLL")) throw new FinanceOperationError("Lançamento da folha inválido.");
   // Lock the financial row too: payments in Contas a Pagar must not race a payroll update.
   if (linked) await tx.$queryRaw`SELECT id FROM "FinancialEntry" WHERE id = ${linked.id} AND "arenaId" = ${arenaId} FOR UPDATE`;
   const entry = linked ? await tx.financialEntry.findUnique({ where: { id: linked.id }, include: { settlements: true } }) : null;
   authorize?.({ exists: Boolean(existing), hasFinancialEntry: Boolean(entry), paid: entry?.status === "PAID" });
   if (expectedVersion !== undefined) assertRecordVersion(existing ? `${recordVersion(existing.updatedAt)}|${recordVersion(entry?.updatedAt)}` : "NEW", expectedVersion);
-  if (entry?.status === "VOIDED") throw new Error("Esta folha tem um lançamento cancelado. Revise-o em Contas a Pagar.");
-  if (entry && (entry.settlements.length || entry.status === "PAID") && entry.amountCents !== totals.totalCents) throw new Error("Uma folha com pagamentos registrados não pode ter o total alterado.");
-  if (entry?.status === "PAID" && input.status !== "PAID") throw new Error("Esta folha já foi paga. Revise o pagamento em Contas a Pagar.");
-  if (entry?.status === "PAID" && entry.paidAt?.toISOString().slice(0, 10) !== input.paidAt) throw new Error("A data de um pagamento registrado deve ser revisada em Contas a Pagar.");
+  if (entry?.status === "VOIDED") throw new FinanceOperationError("Esta folha tem um lançamento cancelado. Revise-o em Contas a Pagar.");
+  if (entry && (entry.settlements.length || entry.status === "PAID") && entry.amountCents !== totals.totalCents) throw new FinanceOperationError("Uma folha com pagamentos registrados não pode ter o total alterado.");
+  if (entry?.status === "PAID" && input.status !== "PAID") throw new FinanceOperationError("Esta folha já foi paga. Revise o pagamento em Contas a Pagar.");
+  if (entry?.status === "PAID" && entry.paidAt?.toISOString().slice(0, 10) !== input.paidAt) throw new FinanceOperationError("A data de um pagamento registrado deve ser revisada em Contas a Pagar.");
   const paidAt = input.status === "PAID" ? new Date(input.paidAt + "T12:00:00Z") : null;
   const notes = input.notes;
   const data = {

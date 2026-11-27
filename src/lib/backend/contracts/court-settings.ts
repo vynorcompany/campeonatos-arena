@@ -1,0 +1,12 @@
+import {z} from "zod";
+export const courtSettingsFields={
+ online:['layout','leadTimeMinutes','overdueBlockDays','whatsappMessage','requiresConfirmation','showReserved','paymentOnlineEnabled','onlineBookingEnabled','whatsappConfirmationEnabled','overdueBlockEnabled'],
+ 'booking-type':['name'],'rule-create':['courtId','weekday','startTime','endTime','price','available'],
+ 'rule-update':['ruleId','startTime','endTime','price','available'],'rule-delete':['ruleId'],'rule-copy':['ruleId','targetWeekday'],
+ schedule:['startTime','endTime','slotMinutes'],'court-create':['name'],'court-update':['courtId','color','onlineSlotMinutes','onlineDurationMinutes'],
+ 'court-move':['courtId','direction'],'court-copy':['sourceCourtId','targetCourtId']
+} as const;
+export type CourtSettingsOperation=keyof typeof courtSettingsFields;
+export function courtSettingsInputSchema(operation:CourtSettingsOperation){return z.object({fields:z.record(z.string(),z.array(z.string().max(4096)).min(1).max(100))}).strict().superRefine((value,ctx)=>{for(const[key,values]of Object.entries(value.fields)){if(!(courtSettingsFields[operation] as readonly string[]).includes(key))ctx.addIssue({code:'custom',message:'Campo inesperado',path:['fields',key]});if(values.length>1&&key!=='onlineDurationMinutes'&&key!=='targetCourtId')ctx.addIssue({code:'custom',message:'Campo repetido',path:['fields',key]});}});}
+export const courtSettingsOutcomeSchema=z.object({error:z.string().nullable(),success:z.boolean().optional(),cacheSlugs:z.array(z.string().max(200)).max(1).optional()}).strict();
+export const courtConfigurationSchema=z.object({arena:z.object({slug:z.string(),onlineBookingLayout:z.string(),onlineBookingRequiresConfirmation:z.boolean(),onlineBookingShowReserved:z.boolean(),onlineBookingPaymentEnabled:z.boolean(),onlineBookingEnabled:z.boolean(),onlineBookingLeadTimeMinutes:z.number().int(),onlineBookingOverdueBlockDays:z.number().int().nullable(),onlineBookingWhatsappMessage:z.string(),onlineBookingWhatsappConfirmationEnabled:z.boolean()}).strict(),courts:z.array(z.object({id:z.string(),name:z.string(),active:z.boolean(),displayOrder:z.number().int(),color:z.string(),onlineSlotMinutes:z.number().int(),onlineDurationMinutes:z.array(z.number().int()),weeklyRules:z.array(z.object({id:z.string(),weekday:z.number().int(),startsAtMinute:z.number().int(),endsAtMinute:z.number().int(),priceCents:z.number().int(),available:z.boolean()}).strict())}).strict())}).strict();

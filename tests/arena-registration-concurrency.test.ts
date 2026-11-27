@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 
-const source = readFileSync(new URL("../src/lib/auth/actions.ts", import.meta.url), "utf8");
+const source = readFileSync(new URL("../src/lib/backend/services/management-auth.ts", import.meta.url), "utf8");
 
 function registration(overrides: { conflicts?: Array<{ code: string; meta: { target: string[] } }>; trial?: boolean; occupied?: string[] } = {}) {
   const conflicts = [...(overrides.conflicts ?? [])];
@@ -34,7 +34,7 @@ function registration(overrides: { conflicts?: Array<{ code: string; meta: { tar
     bcryptjs: { hash: async () => "hash" },
     "next/navigation": { redirect: (path: string) => { throw new Error(`redirect:${path}`); } },
     "@/lib/prisma": { prisma },
-    "@/lib/auth/session": { createSession: async (id: string) => { sessions.push(id); } },
+    "@/lib/backend/services/management-session": { createSession: async (id: string) => { sessions.push(id); } },
     "@/lib/env": { env: {} },
     "@/lib/auth/login-attempts": { activeLoginLock: async () => null, recordFailedLogin: async () => null, clearLoginFailures: async () => {} },
     "@/lib/validators/auth": { registerArenaSchema: { safeParse: (data: unknown) => ({ success: true, data }) } },
@@ -52,14 +52,14 @@ function registration(overrides: { conflicts?: Array<{ code: string; meta: { tar
 
 test("cadastro tenta outro slug se uma arena concorrente obtiver o primeiro", async () => {
   const flow = registration({ conflicts: [{ code: "P2002", meta: { target: ["slug"] } }] });
-  await assert.rejects(flow.action(), /redirect:\/painel/);
+  assert.equal((await flow.action()).redirectTo, "/painel");
   assert.deepEqual(flow.slugs, ["arena-prova-2"]);
   assert.deepEqual(flow.sessions, ["owner-goal"]);
 });
 
 test("cadastro usa sufixo 2 quando slug já existe", async () => {
   const flow = registration({ occupied: ["arena-prova"] });
-  await assert.rejects(flow.action(), /redirect:\/painel/);
+  assert.equal((await flow.action()).redirectTo, "/painel");
   assert.deepEqual(flow.slugs, ["arena-prova-2"]);
 });
 

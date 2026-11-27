@@ -1,26 +1,15 @@
 import { ManualUpcomingMatchesTv } from "@/components/manual-upcoming-matches-tv";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
-import { getTvPresentationPayload } from "@/lib/services/tv-presentation";
+import { getTvWorkspace } from "@/lib/tv/query";
 
 export default async function UpcomingMatchesTvPage() {
   const auth = await requireModuleView("tv");
-  const [arena, payload] = await Promise.all([
-    prisma.arena.findUnique({
-      where: {
-        id: auth.arenaId
-      },
-      select: {
-        logoUrl: true
-      }
-    }),
-    getTvPresentationPayload(auth.arenaId)
-  ]);
+  const {payload,arenaLogoUrl}=await getTvWorkspace(auth.arenaId,"presentation");
 
   return (
     <ManualUpcomingMatchesTv
       arenaName={auth.arenaName ?? "Arena Padel"}
-      arenaLogoUrl={arena?.logoUrl ?? "/arena-profile.jpg"}
+      arenaLogoUrl={arenaLogoUrl}
       matches={payload.matches}
       settings={payload.settings}
       sponsors={payload.sponsors}

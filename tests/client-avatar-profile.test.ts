@@ -17,7 +17,7 @@ test("cliente recorta avatar antes de salvar e visualiza a prévia circular", ()
 });
 
 test("modal de Cliente recebe e mostra a mesma foto de perfil", () => {
-  const page = readFileSync(resolve(process.cwd(), "src/app/(app)/jogadores/page.tsx"), "utf8");
+  const page = readFileSync(resolve(process.cwd(), "src/lib/backend/services/client-directory.ts"), "utf8");
   const workspace = readFileSync(resolve(process.cwd(), "src/components/players/client-management-workspace.tsx"), "utf8");
 
   assert.match(page, /photoUrl: player\.photoUrl/);

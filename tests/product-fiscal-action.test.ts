@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import vm from "node:vm";
 import ts from "typescript";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import { ZodError } from "zod";
 import { ProductFiscalValidationError } from "../src/lib/fiscal/product-profile";
 test("fiscal action: autorização precede consulta e erros esperados chegam legíveis ao formulário", async () => {
@@ -89,7 +89,7 @@ test("fiscal action: autorização precede consulta e erros esperados chegam leg
   assert.match(result, /Não foi possível salvar/);
   failure = null;
   await action(form);
-  assert.deepEqual(refreshed, ["/pdv/product-a", "/pdv/estoque"]);
+  assert.deepEqual(refreshed, []); // Cache invalidation is exercised on the frontend facade contract.
   form.set("fiscalProfile", "invalid-json");
   assert.match(JSON.stringify(await action(form)), /Revise/);
   assert.equal(calls, 3);

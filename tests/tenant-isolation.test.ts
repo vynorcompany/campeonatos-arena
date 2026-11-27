@@ -11,7 +11,7 @@ import ts from "typescript";
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
 test("tenant context can only select an arena the user belongs to", () => {
-  const session = read("src/lib/auth/session.ts");
+  const session = read("src/lib/backend/services/management-session.ts");
   const schema = read("prisma/schema.prisma");
 
   assert.match(session, /memberships\.find\(\(membership\) => membership\.arenaId === selectedArenaId\)/);
@@ -19,7 +19,7 @@ test("tenant context can only select an arena the user belongs to", () => {
 });
 
 test("troca de arena rejeita IDs alheios antes de gravar o cookie", async () => {
-  const source = read("src/lib/auth/actions.ts");
+  const source = read("src/lib/backend/services/management-auth.ts");
   const selected: string[] = [];
   const exports: Record<string, (form: FormData) => Promise<void>> = {};
   const redirect = (path: string): never => { throw new Error(`redirect:${path}`); };
@@ -28,7 +28,7 @@ test("troca de arena rejeita IDs alheios antes de gravar o cookie", async () => 
     FormData,
     require: withDatabaseModuleMocks((name: string) => {
       if (name === "next/navigation") return { redirect };
-      if (name === "@/lib/auth/session") return {
+      if (name === "@/lib/backend/services/management-session") return {
         getAuthContext: async () => ({ memberships: [{ arenaId: "arena-a" }] }),
         setArenaContextCookie: async (arenaId: string) => { selected.push(arenaId); },
       };
@@ -43,12 +43,12 @@ test("troca de arena rejeita IDs alheios antes de gravar o cookie", async () => 
   assert.deepEqual(selected, []);
 
   form.set("arenaId", "arena-a");
-  await assert.rejects(exports.setActiveArenaAction(form), /redirect:\/painel/);
+  assert.equal((await exports.setActiveArenaAction(form) as any).redirectTo, "/painel");
   assert.deepEqual(selected, ["arena-a"]);
 });
 
 test("cookie de arena inválido não altera o contexto para outra subconta", async () => {
-  const source = read("src/lib/auth/session.ts");
+  const source = read("src/lib/backend/services/management-session.ts");
   let selectedArenaId = "arena-b";
   const exports: Record<string, () => Promise<{ arenaId: string; arenaName: string }>> = {};
   const membership = (arenaId: string, name: string) => ({
@@ -78,7 +78,7 @@ test("cookie de arena inválido não altera o contexto para outra subconta", asy
 });
 
 test("requisições simultâneas descartam sessão expirada sem erro concorrente", async () => {
-  const source = read("src/lib/auth/session.ts");
+  const source = read("src/lib/backend/services/management-session.ts");
   const session = { id: "expired-session", expiresAt: new Date(Date.now() - 60_000), user: { memberships: [] } };
   let cleanups = 0;
   const exports: Record<string, () => Promise<unknown>> = {};
@@ -154,7 +154,7 @@ test("category competition serializable operations set tenant context before acc
 });
 
 test("athlete portal notification queries enforce the player's arena", () => {
-  const notifications = read("src/lib/services/public-player-notifications.ts");
+  const notifications = read("src/lib/backend/services/portal-notifications.ts");
   const radar = read("src/lib/services/public-doubles-radar.ts");
   const league = read("src/lib/services/public-league-portal.ts");
   const linkedPlayers = read("src/lib/services/public-player-link.ts");

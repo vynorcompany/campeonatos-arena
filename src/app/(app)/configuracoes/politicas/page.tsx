@@ -1,18 +1,14 @@
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import Link from "next/link";
 import { requirePermission } from "@/lib/auth/guards";
-import { arenaDatabase } from "@/lib/arena-database";
+import { getPolicySettings } from "@/lib/settings/data";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { saveCancellationPolicyAction } from "@/lib/actions/cancellation-policy";
 
 export default async function ArenaPoliciesPage() {
   const auth = await requirePermission("arena:settings");
-  const db = arenaDatabase(auth.arenaId);
-  const [arena, settings] = await Promise.all([
-    db.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, select: { slug: true } }),
-    db.arenaOperationalSettings.findUnique({ where: { arenaId: auth.arenaId } }),
-  ]);
+  const { arena, settings } = await getPolicySettings(auth.arenaId);
   return <section className={`${ui.page} tw:max-w-4xl`}>
     <SafeActionForm action={saveCancellationPolicyAction} successMessage="Política salva." className={`${ui.panel} tw:grid tw:gap-4`}>
       <label className="tw:grid tw:gap-2 tw:text-xs tw:font-semibold">Condições de cancelamento e reembolso<textarea name="cancellationPolicy" rows={14} maxLength={12000} defaultValue={settings?.cancellationPolicy ?? ""} className="tw:w-full tw:min-w-0 tw:resize-y tw:rounded-lg tw:border tw:border-[var(--line)] tw:bg-[var(--panel)] tw:p-3 tw:text-xs tw:font-normal tw:leading-relaxed tw:text-[var(--text)]"/><small className="tw:font-normal tw:text-[var(--muted)]">Até 12.000 caracteres.</small></label>

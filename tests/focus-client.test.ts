@@ -1,3 +1,4 @@
+import * as documentUrls from "../src/lib/fiscal/focus-document-url";
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
@@ -5,7 +6,7 @@ import ts from "typescript";
 import { readFileSync } from "node:fs";
 function client(fetcher:typeof fetch) {
  const exports:Record<string,any>={};
- vm.runInNewContext(ts.transpileModule(readFileSync("src/lib/fiscal/focus-client.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,Buffer,URL,Error,AbortSignal,fetch:fetcher,require:()=>({})});return exports;
+ vm.runInNewContext(ts.transpileModule(readFileSync("src/lib/fiscal/focus-client.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,Buffer,URL,Error,AbortSignal,fetch:fetcher,require:(name:string)=>name==="./focus-document-url"?documentUrls:{}});return exports;
 }
 test("Focus HTTP: fixed official origins, separate environments, Basic token, no redirects or leaked body",async()=>{
  const calls:{url:string;options:any}[]=[];

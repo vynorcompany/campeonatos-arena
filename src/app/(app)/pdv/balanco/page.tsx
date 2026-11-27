@@ -1,6 +1,6 @@
 
 import { WorkspaceHeading } from "@/components/ui/workspace-heading";
-import { arenaDatabase } from "@/lib/arena-database";
+import { getStockWorkspaceData } from "@/lib/products/stock-workspace-data";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
@@ -10,7 +10,6 @@ import { operationalWorkspace as ui } from "@/components/ui/operational-workspac
 import { requireModuleView } from "@/lib/auth/guards";
 import { canEditModule } from "@/lib/permissions";
 import { createStockBalanceAction } from "@/lib/actions/pos";
-import { loadVisibleProductNames, visibleProductName } from "@/lib/products/visible-product-names";
 
 function signed(value: number) {
   return `${value > 0 ? "+" : ""}${value}`;
@@ -21,21 +20,7 @@ export default async function StockBalancePage({ searchParams }: { searchParams?
   const creating = query?.novo === "1";
   const auth = await requireModuleView("stock");
   const canEdit = canEditModule("stock", auth.arenaRole, auth.systemRole, auth.editPermissions);
-  const prisma = arenaDatabase(auth.arenaId);
-  const [products, movements] = await Promise.all([
-    creating && canEdit ? prisma.product.findMany({
-      where: { arenaId: auth.arenaId, active: true, isService: false },
-      select: { id: true, name: true, sku: true, stockQuantity: true, minStock: true },
-      orderBy: { name: "asc" }
-    }) : Promise.resolve([]),
-    query?.historico === "1" ? prisma.stockMovement.findMany({
-      where: { arenaId: auth.arenaId, type: "ADJUST", reason: { startsWith: "Balanço " } },
-      orderBy: { createdAt: "desc" },
-      take: 40
-    }) : Promise.resolve([])
-  ]);
-  const balances = !creating ? await prisma.auditEvent.findMany({ where: { arenaId: auth.arenaId, action: "STOCK_BALANCE_COMPLETED" }, select: { id: true, details: true, createdAt: true, actorName: true }, orderBy: { createdAt: "desc" }, take: 100 }) : [];
-  const productNames = await loadVisibleProductNames(prisma, auth.arenaId, movements.map((movement) => movement.productId));
+  const { products, movements, balances } = await getStockWorkspaceData(auth.arenaId, 'balance', { creating: creating ? '1' : '0', history: query?.historico === '1' ? '1' : '0' }, canEdit);
 
   return (
     <div className={viewStyles.stack_md_workspace_page_stock_balance_page}>
@@ -65,14 +50,14 @@ export default async function StockBalancePage({ searchParams }: { searchParams?
         </SafeActionForm>
       </section> : null}
 
-      {!creating ? <div className={ui.list}><div className={`${ui.head} tw:grid-cols-[minmax(0,1fr)_170px_170px]`}><span>Balanço</span><span>Data</span><span>Responsável</span></div>{balances.map(balance => { const details = balance.details as { title?: string }; return <Link key={balance.id} href={`/pdv/balanco/${balance.id}`} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_170px_170px] tw:text-[#15385f] tw:no-underline tw:hover:bg-[#1e5ea8] tw:hover:text-white tw:focus-visible:outline-2 tw:focus-visible:outline-[#1e5ea8] tw:viewport-760:grid-cols-1`}><strong>{details.title || "Balanço de estoque"}</strong><time>{balance.createdAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</time><span>{balance.actorName}</span></Link>; })}{!balances.length ? <p className={ui.empty}>Nenhum balanço concluído.</p> : null}</div> : null}
+      {!creating ? <div className={ui.list}><div className={`${ui.head} tw:grid-cols-[minmax(0,1fr)_170px_170px]`}><span>Balanço</span><span>Data</span><span>Responsável</span></div>{balances.map(balance => { return <Link key={balance.id} href={`/pdv/balanco/${balance.id}`} className={`${ui.row} tw:grid-cols-[minmax(0,1fr)_170px_170px] tw:text-[#15385f] tw:no-underline tw:hover:bg-[#1e5ea8] tw:hover:text-white tw:focus-visible:outline-2 tw:focus-visible:outline-[#1e5ea8] tw:viewport-760:grid-cols-1`}><strong>{balance.title}</strong><time>{balance.createdAt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</time><span>{balance.actorName}</span></Link>; })}{!balances.length ? <p className={ui.empty}>Nenhum balanço concluído.</p> : null}</div> : null}
       {query?.historico === "1" ? <section className={ui.page}><h2 className="tw:m-0 tw:text-sm tw:font-semibold">Ajustes anteriores</h2>
         {movements.length ? <div className={viewStyles.stock_balance_report}>
           <>{movements.map((movement) => {
             const match = movement.reason.match(/sistema: (\d+) \| contado: (\d+) \| diferença: ([+-]?\d+)/);
             const difference = match ? Number(match[3]) : 0;
             return <article key={movement.id} className={cx(difference === 0 ? "" : difference < 0 ? "is-loss" : "is-surplus")}>
-              <div><strong>{visibleProductName(productNames, movement.productId)}</strong><span>{movement.createdAt.toLocaleString("pt-BR")}</span><small>{movement.reason}</small></div>
+              <div><strong>{movement.productName}</strong><span>{movement.createdAt.toLocaleString("pt-BR")}</span><small>{movement.reason}</small></div>
               <b>{signed(difference)}</b>
             </article>;
           })}</>

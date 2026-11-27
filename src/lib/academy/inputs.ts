@@ -1,3 +1,4 @@
+import { AcademyOperationError } from "@/lib/backend/academy-operation-error";
 export function getFormValues(formData: FormData, name: string) {
   return formData.getAll(name).map(String).filter(Boolean);
 }
@@ -22,7 +23,7 @@ export function getClassGroupName(
       first.startTime.localeCompare(second.startTime),
   )[0];
 
-  if (!firstSchedule) throw new Error("Informe ao menos um horário da turma.");
+  if (!firstSchedule) throw new AcademyOperationError("Informe ao menos um horário da turma.");
   return `${classGroupWeekdayAbbreviations[firstSchedule.weekday]} ${firstSchedule.startTime}`;
 }
 
@@ -41,7 +42,7 @@ export function parseMoneyToCents(value: string) {
   const amount = Number(normalized);
 
   if (!Number.isFinite(amount) || amount < 0) {
-    throw new Error("Valor inválido.");
+    throw new AcademyOperationError("Valor inválido.");
   }
 
   return Math.round(amount * 100);

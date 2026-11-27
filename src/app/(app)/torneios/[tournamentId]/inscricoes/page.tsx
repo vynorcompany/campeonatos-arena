@@ -8,11 +8,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { RegistrationEditForm, RegistrationPaymentFields } from "@/components/tournaments/registration-edit-form";
 import { requireModuleView } from "@/lib/auth/guards";
-import { arenaDatabase } from "@/lib/arena-database";
+import { getTournamentEventRegistrations } from "@/lib/tournaments/registration-queries";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { ReviewedCheckoutRelease } from "@/components/finance/reviewed-checkout-release";
 import { canPerformPermission } from "@/lib/permissions";
-import { canEditManualTournamentRegistration } from "@/lib/tournaments/registration-deletion";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -23,12 +22,8 @@ export default async function TournamentRegistrationsPage(
   const params = await props.params;
   const auth = await requireModuleView("tournaments");
   if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) redirect(`/jogos?tournamentId=${encodeURIComponent(params.tournamentId)}`);
-  const tournament = await arenaDatabase(auth.arenaId).tournament.findFirst({
-    where: { id: params.tournamentId, arenaId: auth.arenaId },
-    include: { categories: { orderBy: { level: "asc" }, select: { id: true, name: true, registrationType: true, competition: { select: { format: true } } } }, publicRegistrations: { orderBy: { createdAt: "asc" }, include: { category: { select: { id: true, name: true, registrationType: true, competition: { select: { format: true } } } } } } },
-  });
+  const { tournament, bankAccounts } = await getTournamentEventRegistrations(params.tournamentId);
   if (!tournament) notFound();
-  const bankAccounts = await arenaDatabase(auth.arenaId).bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
   const q = (searchParams?.q ?? "").trim().toLowerCase();
   const registrations = tournament.publicRegistrations.filter((item) => {
     if (q && !`${item.leadName} ${item.partnerName} ${item.thirdName}`.toLowerCase().includes(q)) return false;
@@ -58,7 +53,7 @@ export default async function TournamentRegistrationsPage(
           const confirmed = registration.status === "CONFIRMED";
           const canReceiveOnsite = registration.paymentProvider === "PAY_ON_SITE" && confirmed && registration.paymentStatus === "PENDING" && canPerformPermission("finance:receivable:settle", auth.arenaRole, auth.systemRole, auth.editPermissions);
           return <TournamentRegistrationRow key={registration.id} name={[registration.leadName, registration.partnerName, registration.thirdName].filter(Boolean).join(" / ")} category={registration.category.name} amount={money.format(registration.amountCents / 100)} canceled={canceled} pending={registration.paymentStatus === "PENDING" || underReview} situation={canceled ? "Cancelada" : confirmed ? "Confirmada" : "Pendente"} payment={underReview ? "Em análise" : registration.paymentStatus === "REFUNDED" ? "Estornado" : registration.paymentStatus === "PAID" ? "Pago" : canceled ? "Cancelado" : registration.paymentProvider === "PAY_ON_SITE" ? "Pagamento no local" : "Pagamento pendente"} actions={canReceiveOnsite ? <ReceiveOnsiteRegistrationButton registrationId={registration.id} accounts={bankAccounts}/> : null}>
-            {underReview ? <ReviewedCheckoutRelease kind="registration" recordId={registration.id} paymentId={registration.mercadoPagoPaymentId} clientName={`${registration.leadName} / ${registration.partnerName}`} canResolve={canResolveReview} /> : canceled ? <p className={viewStyles.muted}>Pagamento estornado ou cancelado. É possível fazer uma nova inscrição.</p> : registration.paymentProvider === "PAY_ON_SITE" || !canEditManualTournamentRegistration(registration) ? <p className={viewStyles.muted}>{confirmed ? "Inscrição confirmada: correções devem preservar seus vínculos com o evento." : "Inscrição com cobrança online: confira o pagamento antes de alterar os dados."}</p> :
+            {underReview ? <ReviewedCheckoutRelease kind="registration" recordId={registration.id} paymentId={registration.mercadoPagoPaymentId} clientName={`${registration.leadName} / ${registration.partnerName}`} canResolve={canResolveReview} /> : canceled ? <p className={viewStyles.muted}>Pagamento estornado ou cancelado. É possível fazer uma nova inscrição.</p> : registration.paymentProvider === "PAY_ON_SITE" || !registration.canEdit ? <p className={viewStyles.muted}>{confirmed ? "Inscrição confirmada: correções devem preservar seus vínculos com o evento." : "Inscrição com cobrança online: confira o pagamento antes de alterar os dados."}</p> :
               <RegistrationEditForm className={viewStyles.tournament_registration_edit}>
                 <input type="hidden" name="registrationId" value={registration.id} /><input type="hidden" name="registrationType" value={registration.category.registrationType}/><input type="hidden" name="tournamentId" value={tournament.id} />
                 <label>Categoria<SmartEntitySelect label="Categoria" name="categoryId" defaultValue={registration.categoryId}>{tournament.categories.filter(category => category.registrationType === registration.category.registrationType && (category.competition?.format === "TRIO") === (registration.category.competition?.format === "TRIO")).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SmartEntitySelect></label>

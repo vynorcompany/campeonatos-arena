@@ -9,6 +9,7 @@ import test from "node:test";
 test("public booking highlights the consecutive slots for the authenticated client", () => {
   const form = readFileSync(resolve(process.cwd(), "src/components/public-court-booking-form.tsx"), "utf8");
   const page = readFileSync(resolve(process.cwd(), "src/components/public-booking-view.tsx"), "utf8");
+  const availability = readFileSync(resolve(process.cwd(), "src/lib/backend/services/public-booking-view.ts"), "utf8");
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
 
   assert.match(form, /slotMinutes/);
@@ -17,10 +18,10 @@ test("public booking highlights the consecutive slots for the authenticated clie
   assert.match(form, /Valor total/);
   assert.match(form, /selectedTotalCents/);
   assert.match(form, /slot\?\.durationPrices\[durationMinutes\]/);
-  assert.match(page, /durationPrices = Object\.fromEntries/);
+  assert.match(availability, /durationPrices = Object\.fromEntries/);
   assert.match(form, /public-booking-court-card/);
   assert.doesNotMatch(form, /Quadra<select/);
-  assert.match(page, /getPublicPlayerAuth/);
+  assert.match(availability, /getPublicPlayerAuth/);
   assert.match(page, /PublicClientAuthForm/);
   assert.match(actions, /requirePublicPlayerAuth/);
 });

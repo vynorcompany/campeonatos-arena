@@ -1,3 +1,4 @@
+import { FinanceOperationError } from "@/lib/finance/action-error";
 import { getDiscountedAmountCents, type FinancialDiscountMode } from "./discounts";
 import { parseMoneyToCents } from "./inputs";
 
@@ -5,11 +6,11 @@ export function entryAdjustedAmount(amount: string, discount: string, mode: Fina
   const principal = parseMoneyToCents(amount);
   const interestCents = parseMoneyToCents(interest || "0");
   const discountValue = mode === "PERCENTAGE" ? Number(discount.replace(",", ".")) : parseMoneyToCents(discount || "0");
-  if (!Number.isSafeInteger(principal) || principal < 0 || principal > 2_000_000_000) throw new Error("Informe um valor original válido, limitado a R$ 20.000.000,00.");
-  if (!Number.isFinite(discountValue) || discountValue < 0 || (mode === "PERCENTAGE" && discountValue > 100) || (mode === "AMOUNT" && discountValue > principal)) throw new Error("Informe um desconto válido, limitado ao valor do lançamento.");
-  if (!Number.isSafeInteger(interestCents) || interestCents < 0) throw new Error("Informe juros válidos, maiores ou iguais a zero.");
+  if (!Number.isSafeInteger(principal) || principal < 0 || principal > 2_000_000_000) throw new FinanceOperationError("Informe um valor original válido, limitado a R$ 20.000.000,00.");
+  if (!Number.isFinite(discountValue) || discountValue < 0 || (mode === "PERCENTAGE" && discountValue > 100) || (mode === "AMOUNT" && discountValue > principal)) throw new FinanceOperationError("Informe um desconto válido, limitado ao valor do lançamento.");
+  if (!Number.isSafeInteger(interestCents) || interestCents < 0) throw new FinanceOperationError("Informe juros válidos, maiores ou iguais a zero.");
   const amountCents = getDiscountedAmountCents(principal,discountValue,mode) + interestCents;
-  if (!Number.isSafeInteger(amountCents) || amountCents > 2_000_000_000) throw new Error("O valor total do lançamento ultrapassa o limite permitido.");
+  if (!Number.isSafeInteger(amountCents) || amountCents > 2_000_000_000) throw new FinanceOperationError("O valor total do lançamento ultrapassa o limite permitido.");
   return {amountCents, interestCents, principal, discountCents:principal-getDiscountedAmountCents(principal,discountValue,mode)};
 }
 export function entryAdjustmentNotes(notes:string, adjustment:ReturnType<typeof entryAdjustedAmount>) {

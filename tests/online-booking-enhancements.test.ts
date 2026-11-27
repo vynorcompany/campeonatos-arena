@@ -62,7 +62,7 @@ test("bloqueio por inadimplência é configurável, validado no servidor e avisa
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/calendar.ts"), "utf8");
   const dialog = readFileSync(resolve(process.cwd(), "src/components/online-booking-settings-dialog.tsx"), "utf8");
   const booking = readFileSync(resolve(process.cwd(), "src/components/public-booking-view.tsx"), "utf8");
-  const notifications = readFileSync(resolve(process.cwd(), "src/lib/services/public-player-notifications.ts"), "utf8");
+  const notifications = readFileSync(resolve(process.cwd(), "src/lib/backend/services/portal-notifications.ts"), "utf8");
   assert.match(schema, /onlineBookingOverdueBlockDays\s+Int\?/);
   assert.match(dialog, /overdueBlockEnabled/);
   assert.match(dialog, /Bloquear reservas após/);
@@ -77,7 +77,9 @@ test("agenda interna respeita bloqueio de 15 minutos e serializa a gravação", 
   const staffBooking = actions.split("export async function saveCourtBookingAction")[1]?.split("export async function ")[0] ?? "";
   assert.match(staffBooking, /FOR UPDATE[\s\S]*activeCourtOccurrenceWhere\(\)/);
   assert.match(staffBooking, /assertCourtBookingMayBeEdited\(tx, auth\.arenaId, parsed\.data\.occurrenceId, true, String\(expectedVersion\)\)/);
-  assert.match(agenda, /activeCourtOccurrenceWhere\(\)/);
+  const agendaRead = readFileSync(resolve(process.cwd(), "src/lib/backend/services/agenda-day.ts"), "utf8");
+  assert.match(agendaRead, /activeCourtOccurrenceWhere\(\)/);
+  assert.match(agenda, /getAgendaDay\(auth,/);
   assert.match(agenda, /Aguardando pagamento/);
 });
 

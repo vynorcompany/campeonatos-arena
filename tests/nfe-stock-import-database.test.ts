@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
 import { PrismaClient } from "@prisma/client";
+import { nfeReconciliationSchema } from "../src/lib/backend/contracts/nfe-import";
 import { parseNfeXml } from "../src/lib/fiscal/nfe-xml";
 const url = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const local = /^postgresql:\/\/postgres@127\.0\.0\.1:55433\/arena_goal(?:\?|$)/.test(url);
@@ -25,6 +26,7 @@ test("entrada por NF-e incrementa estoque e movimentos uma única vez e rejeita 
       "next/cache": { revalidatePath() {} },
       "@/lib/auth/guards": { requireModuleEdit: async () => ({ arenaId: arena.id, userId: user.id }) },
       "@/lib/fiscal/nfe-xml": { parseNfeXml },
+      "@/lib/backend/contracts/nfe-import": { nfeReconciliationSchema },
       "@/lib/rls": { withArenaTransaction: (id: string, fn: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${id}, true)`; return fn(tx); }) },
     };
     vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/fiscal.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, File, require: (name: string) => mocks[name] ?? {} });

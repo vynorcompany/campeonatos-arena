@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import { createRequire } from "node:module";
 import path from "node:path";
 import vm from "node:vm";

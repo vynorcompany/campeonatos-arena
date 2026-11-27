@@ -17,9 +17,8 @@ import {
   resetRankingPointsAction,
 } from "@/lib/actions/tournament";
 import { requireModuleView } from "@/lib/auth/guards";
-import { prisma } from "@/lib/prisma";
 import { formatRankingDateInput } from "@/lib/ranking/period";
-import { getRankingProfileLeaderboard } from "@/lib/services/ranking";
+import { getTournamentRankingWorkspace } from "@/lib/tournaments/ranking-workspace";
 
 type RankingDetailPageProps = {
   params: Promise<{ rankingId: string }>;
@@ -61,7 +60,7 @@ function rankingHref(
 function RankingLeaderboard({
   ranking,
 }: {
-  ranking: NonNullable<Awaited<ReturnType<typeof getRankingProfileLeaderboard>>>;
+  ranking: NonNullable<Awaited<ReturnType<typeof getTournamentRankingWorkspace>>["ranking"]>;
 }) {
   const rows = ranking.type === "PAIR"
     ? ranking.pairLeaderboard.map((pair, index) => ({
@@ -138,53 +137,9 @@ export default async function RankingDetailPage(props: RankingDetailPageProps) {
     end: searchParams?.end,
     cycleId: searchParams?.cycleId,
   };
-  const ranking = await getRankingProfileLeaderboard(
-    auth.arenaId,
-    params.rankingId,
-    requestedPeriod,
-  );
+  const { ranking, formatLocked, categoryCompetitions } = await getTournamentRankingWorkspace(params.rankingId, requestedPeriod);
   if (!ranking) notFound();
 
-  const [allCategoryCompetitions, categoryCompetitions] = await Promise.all([
-    prisma.categoryCompetition.findMany({
-      where: {
-        rankingId: ranking.id,
-        category: { tournament: { arenaId: auth.arenaId } },
-      },
-      select: { status: true },
-    }),
-    prisma.categoryCompetition.findMany({
-      where: {
-        rankingId: ranking.id,
-        category: {
-          tournament: {
-            arenaId: auth.arenaId,
-            createdAt: {
-              gte: ranking.period.start,
-              ...(ranking.period.endExclusive
-                ? { lt: ranking.period.endExclusive }
-                : {}),
-            },
-          },
-        },
-      },
-      select: {
-        id: true,
-        status: true,
-        format: true,
-        category: {
-          select: {
-            name: true,
-            tournament: { select: { id: true, name: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
-  const formatLocked = allCategoryCompetitions.some(
-    (competition) => competition.status !== "DRAFT",
-  );
   const periodQuery = ranking.period.query;
   const today = formatRankingDateInput(new Date());
 

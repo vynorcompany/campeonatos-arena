@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
@@ -42,14 +42,13 @@ function score() {
   return data;
 }
 
-test("portal confirms the persisted match and refreshes management results", async () => {
+test("league business confirms the persisted match and notifies the visiting pair", async () => {
   const f = fixture();
   const result = await f.save(score());
   assert.equal(result.success, true);
   assert.equal(result.matchId, "match-a");
   assert.equal(result.homeScore, 2);
   assert.equal(f.writes.length, 1);
-  assert.ok(f.refreshed.includes("/torneios"));
   assert.deepEqual(JSON.parse(JSON.stringify((f.writes[0] as any[])[2].playerIds)), ["athlete-b"]);
 });
 

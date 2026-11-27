@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
@@ -29,12 +29,11 @@ const data = () => {
   Object.entries({ arenaSlug: "arena-a", matchId: "match-a", homeScore: "6", awayScore: "3" }).forEach(([key, value]) => result.set(key, value));
   return result;
 };
-test("event result uses the session arena and linked players, confirms scores and refreshes views", async () => {
+test("event result uses the session arena and linked players, confirms scores", async () => {
   const f = fixture(), form = data(); form.set("arenaId", "foreign"); form.set("playerId", "foreign");
   assert.equal((await f.save(form)).success, true);
   assert.equal(f.writes[0][0], "arena-a");
   assert.deepEqual(JSON.parse(JSON.stringify(f.writes[0][4])), { playerId: "athlete-a", playerIds: ["athlete-a", "legacy-a"] });
-  assert.ok(f.refreshed.includes("/home")); assert.ok(f.refreshed.includes("/torneios"));
 });
 test("blank, negative, decimal, tied and oversized scores cannot reach persistence", async () => {
   for (const score of ["", " ", "-1", "1.5", "100", "3"]) {

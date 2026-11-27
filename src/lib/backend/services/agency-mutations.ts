@@ -1,0 +1,5 @@
+import "server-only";
+import * as actions from "./agency-actions";
+import {agencyOutcomeSchema,type AgencyOperation} from "@/lib/backend/contracts/agency-mutations";
+const operations={"whatsapp-connect":actions.connectArenaWhatsAppAction,"whatsapp-status":actions.refreshArenaWhatsAppConnectionStatusAction,"whatsapp-reset":actions.resetArenaWhatsAppSessionAction,"whatsapp-qr":actions.refreshArenaWhatsAppQrAction,"system-role":actions.updateUserSystemRoleAction,"arena-update":actions.updateAgencyArenaAction,"arena-status":actions.updateAgencyArenaStatusAction,"arena-archive":actions.deleteAgencyArenaAction};
+export async function executeAgencyMutation(operation:AgencyOperation,input:Record<string,string>){const form=new FormData();for(const[key,value]of Object.entries(input))form.set(key,value);const result=await operations[operation](form) as {error?:string;connected?:boolean}|void;return agencyOutcomeSchema.parse({error:result?.error??null,...(result&&'connected'in result?{connected:result.connected}:{})});}

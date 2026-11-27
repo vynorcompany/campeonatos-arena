@@ -1,15 +1,7 @@
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
-import { withArenaTransaction } from "@/lib/rls";
-
-function getMonthRange() {
-  const now = new Date();
-  return {
-    start: new Date(now.getFullYear(), now.getMonth(), 1),
-    end: new Date(now.getFullYear(), now.getMonth() + 1, 1)
-  };
-}
+import { getStockSummary } from "@/lib/products/stock-summary-data";
 
 function formatMoney(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -17,19 +9,7 @@ function formatMoney(cents: number) {
 
 export default async function FinancePdvStockPage() {
   const auth = await requireModuleView("stock");
-  const { start, end } = getMonthRange();
-  const [products, sales, stockMovements] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
-    tx.product.findMany({ where: { arenaId: auth.arenaId }, orderBy: { name: "asc" } }),
-    tx.sale.findMany({ where: { arenaId: auth.arenaId, createdAt: { gte: start, lt: end } } }),
-    tx.stockMovement.findMany({
-      where: { arenaId: auth.arenaId, createdAt: { gte: start, lt: end } },
-      orderBy: { createdAt: "desc" },
-      take: 30
-    })
-  ]));
-  const pdvRevenue = sales.reduce((total, sale) => total + sale.totalCents, 0);
-  const stockValue = products.reduce((total, product) => total + product.stockQuantity * product.priceCents, 0);
-  const productNames = new Map(products.map((product) => [product.id, product.name]));
+  const { pdvRevenueCents: pdvRevenue, stockValueCents: stockValue, productCount, movements: stockMovements } = await getStockSummary(auth.arenaId);
 
   return (
     <div className={viewStyles.stack_md}>
@@ -44,7 +24,7 @@ export default async function FinancePdvStockPage() {
           <span>valor em estoque</span>
         </div>
         <div className={viewStyles.stat_card}>
-          <strong>{products.length}</strong>
+          <strong>{productCount}</strong>
           <span>produtos cadastrados</span>
         </div>
       </div>
@@ -53,7 +33,7 @@ export default async function FinancePdvStockPage() {
         <div className={viewStyles.simple_list}>
           {stockMovements.map((movement) => (
             <div className={viewStyles.simple_item} key={movement.id}>
-              <strong>{productNames.get(movement.productId) ?? "Produto indisponível"}</strong>
+              <strong>{movement.productName}</strong>
               <span>
                 {movement.type} de {movement.quantity} un. - {movement.reason || "Sem motivo"}
               </span>

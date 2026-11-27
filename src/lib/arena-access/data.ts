@@ -1,0 +1,7 @@
+import "server-only";
+import {readBackendContract} from "@/lib/backend/http-client";
+import {managementCookieHeader} from "@/lib/backend/management-context-client";
+import {accessProfilesSchema,accessProfileSchema,accessUsersSchema} from "@/lib/backend/contracts/arena-access";
+export async function getAccessProfiles(arenaId:string) {const origin=process.env.VX4_BACKEND_ORIGIN;return origin?readBackendContract(origin,'/api/management/access/profiles',accessProfilesSchema,{cookie:(await managementCookieHeader())??''},{timeoutMs:60000}):(await import('@/lib/backend/services/arena-access-data')).resolveAccessProfiles(arenaId);}
+export async function getAccessProfile(arenaId:string,id:string) {if(!id||id.length>200)return null;const origin=process.env.VX4_BACKEND_ORIGIN;return origin?readBackendContract(origin,`/api/management/access/profiles/detail/${encodeURIComponent(id)}`,accessProfileSchema,{cookie:(await managementCookieHeader())??''},{timeoutMs:60000}):(await import('@/lib/backend/services/arena-access-data')).resolveAccessProfile(arenaId,id);}
+export async function getAccessUsers(arenaId:string,q:string) {const origin=process.env.VX4_BACKEND_ORIGIN;const data=origin?await readBackendContract(origin,`/api/management/access/users?q=${encodeURIComponent(q)}`,accessUsersSchema,{cookie:(await managementCookieHeader())??''},{timeoutMs:60000}):await(await import('@/lib/backend/services/arena-access-data')).resolveAccessUsers(arenaId,q);return{...data,invites:data.invites.map(row=>({...row,expiresAt:new Date(row.expiresAt)}))};}

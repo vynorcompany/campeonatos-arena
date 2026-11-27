@@ -34,7 +34,8 @@ test("teachers directory keeps only professors and opens creation in a floating 
   assert.match(workspace, /href={`\/professores\/\$\{teacher\.id\}`}/);
   assert.match(workspace, /name="playerId" required/);
   assert.match(workspace, /Selecione um cliente/);
-  assert.match(page, /prisma\.player\.findMany/);
+  assert.match(page, /getAcademyPageData/);
+  assert.match(readFileSync(resolve(process.cwd(), "src/lib/backend/services/academy-pages.ts"), "utf8"), /tx\.player\.findMany/);
   assert.match(page, /TeacherManagementWorkspace teachers=\{teachers\} clients=\{clients\}/);
   assert.doesNotMatch(workspace, /Alunos ativos/);
   assert.match(actions, /assignTeacherPlanStudentAction/);
@@ -502,7 +503,7 @@ test("existing class groups can be edited with their plans and fixed schedules",
   assert.match(panel, /updateTeacherClassGroupAction/);
   assert.match(panel, /<Modal title="Editar turma"/);
   assert.match(panel, /Editar turma/);
-  assert.match(page, /plans: \{ select: \{ planId: true \} \}/);
+  assert.match(readFileSync(resolve(process.cwd(), "src/lib/backend/services/teacher-detail.ts"), "utf8"), /plans: \{ select: \{ planId: true \} \}/);
 });
 
 test("teacher class groups use a compact table-like directory for larger schedules", () => {
@@ -711,7 +712,7 @@ test("teacher workspace uses client photos, vector icons and matching compact me
     readFileSync(resolve(process.cwd(), "src/app/globals.css"), "utf8"),
   ];
 
-  assert.match(page, /player: \{ select: \{ photoUrl: true \} \}/);
+  assert.match(readFileSync(resolve(process.cwd(), "src/lib/backend/services/teacher-detail.ts"), "utf8"), /player: \{ select: \{ photoUrl: true \} \}/);
   assert.match(page, /teacher\.player\?\.photoUrl/);
   assert.match(page, /EventIcon name="users"/);
   assert.match(classPanel, /EventIcon name="users" size=\{14\}/);

@@ -9,10 +9,10 @@ export const viewStyles = {
   "eyebrow": sharedUtilities.eyebrow,
   "muted": sharedUtilities.muted,
   "agency_ticket_list": [
-    "agency-ticket-list", "tw:grid", "tw:gap-y-[12px]", "tw:gap-x-[12px]",
+    "agency-ticket-list", "tw:grid", "tw:min-w-0", "tw:grid-cols-[minmax(0,_1fr)]", "tw:gap-y-[12px]", "tw:gap-x-[12px]",
   ].join(" "),
   "agency_ticket_card": [
-    "agency-ticket-card", "tw:pt-[16px]", "tw:pr-[16px]", "tw:pb-[16px]",
+    "agency-ticket-card", "tw:min-w-0", "tw:grid-cols-[minmax(0,_1fr)]", "tw:[&>*]:min-w-0", "tw:[overflow-wrap:anywhere]", "tw:pt-[16px]", "tw:pr-[16px]", "tw:pb-[16px]",
     "tw:pl-[16px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]", "tw:border-t-[color:var(--line)]",
     "tw:border-r-[length:1px]", "tw:[border-right-style:solid]", "tw:border-r-[color:var(--line)]", "tw:border-b-[length:1px]",
     "tw:[border-bottom-style:solid]", "tw:border-b-[color:var(--line)]", "tw:border-l-[length:1px]", "tw:[border-left-style:solid]",
@@ -22,7 +22,7 @@ export const viewStyles = {
     "tw:[&_h3]:text-[1.05rem]",
   ].join(" "),
   "agency_ticket_head": [
-    "agency-ticket-head", "tw:flex", "tw:items-start", "tw:justify-between",
+    "agency-ticket-head", "tw:flex", "tw:flex-wrap", "tw:[&>div]:min-w-0", "tw:[&>div]:flex-1", "tw:[&>span]:shrink-0", "tw:items-start", "tw:justify-between",
     "tw:gap-y-[14px]", "tw:gap-x-[14px]",
   ].join(" "),
   "ticket_status": sharedUtilities.ticketStatus,
@@ -37,7 +37,7 @@ export const viewStyles = {
   ].join(" "),
   "table_subtext": sharedUtilities.tableSubtext,
   "agency_ticket_controls": [
-    "agency-ticket-controls", "tw:grid", "tw:grid-cols-[minmax(140px,_0.8fr)_minmax(120px,_0.7fr)_minmax(180px,_1fr)_auto]", "tw:viewport-1024:grid-cols-[1fr]",
+    "agency-ticket-controls", "tw:grid", "tw:min-w-0", "tw:[&>*]:min-w-0", "tw:[&_select]:max-w-full", "tw:grid-cols-[minmax(140px,_0.8fr)_minmax(120px,_0.7fr)_minmax(180px,_1fr)_auto]", "tw:viewport-1024:grid-cols-[minmax(0,_1fr)]",
     "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:items-center", "tw:[&_select]:w-[100%]",
     "tw:[&_select]:pt-[12px]", "tw:[&_select]:pr-[14px]", "tw:[&_select]:pb-[12px]", "tw:[&_select]:pl-[14px]",
     "tw:[&_select]:border-t-[length:1px]", "tw:[&_select]:[border-top-style:solid]", "tw:[&_select]:border-t-[color:var(--line)]", "tw:[&_select]:border-r-[length:1px]",
@@ -47,18 +47,18 @@ export const viewStyles = {
   ].join(" "),
   "button": sharedUtilities.button,
   "agency_ticket_message_form": [
-    "agency-ticket-message-form", "tw:[&_textarea]:w-[100%]", "tw:[&_textarea]:pt-[12px]", "tw:[&_textarea]:pr-[14px]",
+    "agency-ticket-message-form", "tw:min-w-0", "tw:[&>*]:min-w-0", "tw:[&_textarea]:min-w-0", "tw:[&_textarea]:max-w-full", "tw:[&_textarea]:w-[100%]", "tw:[&_textarea]:pt-[12px]", "tw:[&_textarea]:pr-[14px]",
     "tw:[&_textarea]:pb-[12px]", "tw:[&_textarea]:pl-[14px]", "tw:[&_textarea]:border-t-[length:1px]", "tw:[&_textarea]:[border-top-style:solid]",
     "tw:[&_textarea]:border-t-[color:var(--line)]", "tw:[&_textarea]:border-r-[length:1px]", "tw:[&_textarea]:[border-right-style:solid]", "tw:[&_textarea]:border-r-[color:var(--line)]",
     "tw:[&_textarea]:border-b-[length:1px]", "tw:[&_textarea]:[border-bottom-style:solid]", "tw:[&_textarea]:border-b-[color:var(--line)]", "tw:[&_textarea]:border-l-[length:1px]",
     "tw:[&_textarea]:[border-left-style:solid]", "tw:[&_textarea]:border-l-[color:var(--line)]", "tw:[&_textarea]:rounded-[var(--radius-md)]", "tw:[&_textarea]:bg-[color:var(--panel)]",
     "tw:[&_textarea]:[background-image:none]", "tw:[&_textarea]:text-[color:var(--text)]", "tw:grid", "tw:grid-cols-[minmax(0,_1fr)_auto_auto]",
-    "tw:viewport-1024:grid-cols-[1fr]", "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:items-center",
+    "tw:viewport-1024:grid-cols-[minmax(0,_1fr)]", "tw:gap-y-[10px]", "tw:gap-x-[10px]", "tw:items-center",
   ].join(" "),
   "check_option": sharedUtilities.checkOption,
   "button_button_secondary": sharedUtilities.buttonButtonSecondary,
   "agency_ticket_messages": [
-    "agency-ticket-messages", "tw:grid", "tw:gap-y-[8px]", "tw:gap-x-[8px]",
+    "agency-ticket-messages", "tw:grid", "tw:min-w-0", "tw:[&>*]:min-w-0", "tw:gap-y-[8px]", "tw:gap-x-[8px]",
     "tw:pt-[12px]", "tw:pr-[12px]", "tw:pb-[12px]", "tw:pl-[12px]",
     "tw:rounded-[var(--radius-md)]", "tw:bg-[color:var(--panel-muted)]", "tw:[background-image:none]", "tw:[&_p]:mt-[0]",
     "tw:[&_p]:mr-[0]", "tw:[&_p]:mb-[0]", "tw:[&_p]:ml-[0]", "tw:[&_p]:text-[color:var(--muted)]",

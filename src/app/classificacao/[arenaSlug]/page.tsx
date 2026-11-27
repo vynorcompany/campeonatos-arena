@@ -9,7 +9,7 @@ import { getPublicSuper12 } from "@/lib/services/public-super12";
 import { getAthletePortalNotifications } from "@/lib/services/public-player-notifications";
 import { PublicStandings } from "@/components/tournaments/public-standings";
 import { getArenaPublicStandings, getPublicArenaShell } from "@/lib/services/public-standings";
-import { prisma } from "@/lib/prisma";
+import {getPortalAlias} from "@/lib/portal/support-query";
 
 export const dynamic = "force-dynamic";
 
@@ -40,8 +40,8 @@ export default async function PublicStandingsPage(
   const searchParams = await props.searchParams;
   const params = await props.params;
   const directBooking = searchParams?.section === "booking-direct";
-  const alias = await prisma.arenaPublicSlug.findUnique({ where: { slug: params.arenaSlug }, include: { arena: { select: { slug: true } } } });
-  if (alias && alias.arena.slug !== params.arenaSlug) redirect(searchParams?.section === "booking" || directBooking ? arenaBookingPath(alias.arena.slug) : `/classificacao/${alias.arena.slug}`);
+  const alias = await getPortalAlias(params.arenaSlug);
+  if (alias && alias !== params.arenaSlug) redirect(searchParams?.section === "booking" || directBooking ? arenaBookingPath(alias) : `/classificacao/${alias}`);
   const section = directBooking ? "booking" : searchParams?.section === "schedule" || searchParams?.section === "home" || searchParams?.section === "announcements" || searchParams?.section === "finance" || searchParams?.section === "comandas" || searchParams?.section === "leagues" || searchParams?.section === "booking" || searchParams?.section === "reservations" || searchParams?.section === "lessons" || searchParams?.section === "classes" || searchParams?.section === "profile" || searchParams?.section === "teacher" || searchParams?.section === "radar" ? searchParams.section : "home";
   const isSuper12 = section === "leagues" && searchParams?.eventTab === "super12";
   const [data, { currentClient, athleteIdentity }] = await Promise.all([

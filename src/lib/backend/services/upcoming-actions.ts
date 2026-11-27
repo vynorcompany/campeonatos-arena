@@ -1,0 +1,527 @@
+import "server-only";
+import { UpcomingOperationError } from "@/lib/backend/upcoming-operation-error";
+import { issueRecurringOnlineChargeForEntry } from "@/lib/payments/recurring-online-charges";
+import { requireReceivingBankAccount } from "@/lib/finance/receiving-bank-account";
+import { planDueDays } from "@/lib/plans/fixed-court";
+
+import { z } from "zod";
+import { requireModuleEdit } from "@/lib/auth/guards";
+import { arenaDatabase } from "@/lib/arena-database";
+import { getMissingTvTablesMessage, isPrismaSchemaOutdatedError, isPrismaUnknownFieldError } from "@/lib/prisma-errors";
+import { savePublicImageUpload, toPersistentPlayerPhoto } from "@/lib/uploads";
+import { getDiscountedAmountCents } from "@/lib/finance/discounts";
+import { getNextFinancialRecurrenceDate } from "@/lib/finance/recurrences";
+import { withArenaTransaction } from "@/lib/rls";
+
+const manualMatchStatusOptions = ["SCHEDULED", "LIVE", "FINISHED"] as const;
+
+const manualUpcomingMatchSchema = z.object({
+  homePairName: z.string().trim().min(1, "Informe a dupla 1.").max(80, "Dupla 1 deve ter no máximo 80 caracteres."),
+  awayPairName: z.string().trim().min(1, "Informe a dupla 2.").max(80, "Dupla 2 deve ter no máximo 80 caracteres."),
+  courtName: z.string().trim().min(1, "Informe a quadra.").max(80, "Nome da quadra muito longo."),
+  scheduledTime: z
+    .string()
+    .trim()
+    .regex(/^$|^([01]\d|2[0-3]):[0-5]\d$/, "Horário inválido.")
+    .default(""),
+  status: z.enum(manualMatchStatusOptions, {
+    error: "Status inválido."
+  }).default("SCHEDULED")
+});
+
+const updateManualUpcomingMatchSchema = manualUpcomingMatchSchema.extend({
+  matchId: z.string().min(1, "Jogo inválido."),
+  displayOrder: z.coerce.number().int().min(1, "Ordem inválida.").max(99, "Ordem inválida.")
+});
+
+const tvPresentationSettingsSchema = z.object({
+  slideIntervalSeconds: z.coerce.number().int().min(5, "O intervalo mínimo é de 5 segundos.").max(120, "O intervalo máximo é de 120 segundos."),
+  selectedTournamentId: z.string().trim().default(""),
+  tvSourceTournamentId: z.string().trim().default(""),
+  tvMatchSource: z.enum(["MANUAL", "TOURNAMENT"]).default("MANUAL"),
+  selectedRankingIds: z.array(z.string().trim()).default([]),
+  selectedSponsorIds: z.array(z.string().trim()).default([]),
+  showMatches: z.boolean().default(true),
+  showCalendar: z.boolean().default(false),
+  showSponsors: z.boolean().default(false),
+  showRanking: z.boolean().default(false),
+  showMonthlyPrize: z.boolean().default(false),
+  showNightWinner: z.boolean().default(false),
+  monthlyPrizeTitle: z.string().trim().max(80, "Título da premiação muito longo.").default("Premiação mensal"),
+  monthlyPrizeAmount: z.string().trim().max(120, "Valor da premiação muito longo.").default("1º - R$200 em crédito da arena"),
+  monthlyPrizeDescription: z.string().trim().max(280, "Descrição da premiação muito longa.").default("2º - Um tubo de bolinha + R$50 em crédito da arena | 3Âº - Um grip + R$25 em crédito"),
+  nightWinnerTitle: z.string().trim().max(80, "Título do vencedor muito longo.").default("Vencedor da noite"),
+  nightWinnerName: z.string().trim().max(80, "Nome do vencedor muito longo.").default("Super 12"),
+  nightWinnerDescription: z.string().trim().max(280, "Descrição do vencedor muito longa.").default("Ganha uma vaga cortesia para o Super 12 da próxima semana. O uso é obrigatório na semana seguinte.")
+});
+
+const tvSponsorSchema = z.object({
+  name: z.string().trim().min(1, "Informe o nome do patrocinador.").max(80, "Nome do patrocinador muito longo."),
+  subtitle: z.string().trim().max(120, "Título do plano muito longo.").default(""),
+  sponsorshipType: z.string().trim().max(80, "Tipo de patrocínio muito longo.").default(""),
+  monthlyAmount: z.string().trim().default("0"),
+  benefits: z.string().trim().max(500, "As entregas estão muito longas.").default(""),
+  reservationCredits: z.coerce.number().int().min(0, "Saldo de reservas inválido.").max(99, "Saldo de reservas inválido.").default(0),
+  lessonCredits: z.coerce.number().int().min(0, "Saldo de aulas inválido.").max(99, "Saldo de aulas inválido.").default(0),
+  displayOrder: z.coerce.number().int().min(1, "Ordem inválida.").max(99, "Ordem inválida.")
+});
+
+const sponsorshipPlanSchema = z.object({
+  name: z.string().trim().min(1, "Informe o nome do plano.").max(80),
+  sponsorshipType: z.string().trim().min(1, "Informe o tipo de patrocínio.").max(80),
+  monthlyAmount: z.string().trim().default("0"),
+  reservationCredits: z.coerce.number().int().min(0).max(99).default(0),
+  lessonCredits: z.coerce.number().int().min(0).max(99).default(0)
+});
+
+async function toInlineLogo(file: File | null) {
+  return toPersistentPlayerPhoto(file);
+}
+
+function parseMonthlyAmountToCents(value: string) {
+  const cleaned = value.replace(/[R$\s]/g, "");
+  const normalized = cleaned.includes(",") ? cleaned.replace(/\./g, "").replace(",", ".") : cleaned;
+  const amount = Number(normalized);
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new UpcomingOperationError("Informe um valor mensal válido.");
+  }
+  return Math.round(amount * 100);
+}
+
+function parseFormDate(value: string) {
+  const date = new Date(`${value}T12:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function firstDueDate(startedAt: Date, dueDay: number) {
+  const date = new Date(startedAt.getFullYear(), startedAt.getMonth(), dueDay, 12);
+  return date < startedAt ? new Date(startedAt.getFullYear(), startedAt.getMonth() + 1, dueDay, 12) : date;
+}
+
+
+
+async function withTvSchemaGuard<T>(callback: () => Promise<T>) {
+  try {
+    return await callback();
+  } catch (error) {
+    if (isPrismaSchemaOutdatedError(error)) {
+      throw new UpcomingOperationError(getMissingTvTablesMessage());
+    }
+
+    throw error;
+  }
+}
+
+export async function createManualUpcomingMatchAction(formData: FormData) {
+  const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
+  const parsed = manualUpcomingMatchSchema.safeParse({
+    homePairName: formData.get("homePairName"),
+    awayPairName: formData.get("awayPairName"),
+    courtName: formData.get("courtName"),
+    scheduledTime: formData.get("scheduledTime"),
+    status: formData.get("status")
+  });
+
+  if (!parsed.success) {
+    throw new UpcomingOperationError(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+  const matchCount = await db.manualUpcomingMatch.count({ where: { arenaId: auth.arenaId } });
+  if (matchCount >= 3) throw new UpcomingOperationError("A TV permite até 3 jogos manuais. Remova um jogo antes de adicionar outro.");
+  const lastMatch = await db.manualUpcomingMatch.findFirst({
+    where: {
+      arenaId: auth.arenaId
+    },
+    orderBy: {
+      displayOrder: "desc"
+    }
+  });
+
+  try {
+    await db.manualUpcomingMatch.create({
+      data: {
+        arenaId: auth.arenaId,
+        displayOrder: (lastMatch?.displayOrder ?? 0) + 1,
+        homePairName: parsed.data.homePairName,
+        awayPairName: parsed.data.awayPairName,
+        courtName: parsed.data.courtName,
+        scheduledTime: parsed.data.scheduledTime,
+        status: parsed.data.status
+      }
+    });
+  } catch (error) {
+    if (!isPrismaSchemaOutdatedError(error)) {
+      throw error;
+    }
+
+    await db.manualUpcomingMatch.create({
+      data: {
+        arenaId: auth.arenaId,
+        displayOrder: (lastMatch?.displayOrder ?? 0) + 1,
+        homePairName: parsed.data.homePairName,
+        awayPairName: parsed.data.awayPairName,
+        courtName: parsed.data.courtName,
+        scheduledTime: parsed.data.scheduledTime
+      }
+    });
+  }
+
+
+}
+
+export async function updateManualUpcomingMatchAction(formData: FormData) {
+  const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
+  const parsed = updateManualUpcomingMatchSchema.safeParse({
+    matchId: formData.get("matchId"),
+    displayOrder: formData.get("displayOrder"),
+    homePairName: formData.get("homePairName"),
+    awayPairName: formData.get("awayPairName"),
+    courtName: formData.get("courtName"),
+    scheduledTime: formData.get("scheduledTime"),
+    status: formData.get("status")
+  });
+
+  if (!parsed.success) {
+    throw new UpcomingOperationError(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  let updated;
+
+  try {
+    updated = await db.manualUpcomingMatch.updateMany({
+      where: {
+        id: parsed.data.matchId,
+        arenaId: auth.arenaId
+      },
+      data: {
+        displayOrder: parsed.data.displayOrder,
+        homePairName: parsed.data.homePairName,
+        awayPairName: parsed.data.awayPairName,
+        courtName: parsed.data.courtName,
+        scheduledTime: parsed.data.scheduledTime,
+        status: parsed.data.status
+      }
+    });
+  } catch (error) {
+    if (!isPrismaSchemaOutdatedError(error)) {
+      throw error;
+    }
+
+    updated = await db.manualUpcomingMatch.updateMany({
+      where: {
+        id: parsed.data.matchId,
+        arenaId: auth.arenaId
+      },
+      data: {
+        displayOrder: parsed.data.displayOrder,
+        homePairName: parsed.data.homePairName,
+        awayPairName: parsed.data.awayPairName,
+        courtName: parsed.data.courtName,
+        scheduledTime: parsed.data.scheduledTime
+      }
+    });
+  }
+
+  if (!updated.count) {
+    throw new UpcomingOperationError("Jogo não encontrado.");
+  }
+
+
+}
+
+export async function deleteManualUpcomingMatchAction(formData: FormData) {
+  const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
+  const matchId = String(formData.get("matchId") ?? "");
+
+  if (!matchId) {
+    throw new UpcomingOperationError("Jogo inválido.");
+  }
+
+  await db.manualUpcomingMatch.deleteMany({
+    where: {
+      id: matchId,
+      arenaId: auth.arenaId
+    }
+  });
+
+
+}
+
+export async function upsertTvPresentationSettingsAction(formData: FormData) {
+  const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
+  const parsed = tvPresentationSettingsSchema.safeParse({
+    slideIntervalSeconds: formData.get("slideIntervalSeconds"),
+    selectedTournamentId: formData.get("selectedTournamentId"),
+    tvSourceTournamentId: String(formData.get("tvSourceTournamentId") ?? ""),
+    tvMatchSource: formData.get("tvMatchSource"),
+    selectedRankingIds: formData.getAll("selectedRankingIds").map(String).filter(Boolean),
+    selectedSponsorIds: formData.getAll("selectedSponsorIds").map(String).filter(Boolean),
+    showMatches: formData.get("showMatches") === "on",
+    showCalendar: true,
+    showSponsors: formData.get("showSponsors") === "on",
+    showRanking: formData.get("showRanking") === "on",
+    showMonthlyPrize: formData.get("showMonthlyPrize") === "on",
+    showNightWinner: false,
+    monthlyPrizeTitle: String(formData.get("monthlyPrizeTitle") ?? ""),
+    monthlyPrizeAmount: String(formData.get("monthlyPrizeFirst") ?? ""),
+    monthlyPrizeDescription: [
+      String(formData.get("monthlyPrizeSecond") ?? "").trim(),
+      String(formData.get("monthlyPrizeThird") ?? "").trim()
+    ].filter(Boolean).join(" | "),
+    nightWinnerTitle: String(formData.get("nightWinnerTitle") ?? ""),
+    nightWinnerName: String(formData.get("nightWinnerName") ?? ""),
+    nightWinnerDescription: String(formData.get("nightWinnerDescription") ?? "")
+  });
+
+  if (!parsed.success) {
+    throw new UpcomingOperationError(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  if (parsed.data.tvMatchSource === "TOURNAMENT") {
+    if (!parsed.data.tvSourceTournamentId) throw new UpcomingOperationError("Selecione o torneio cujos jogos serão exibidos na TV.");
+    const source = await db.tournament.findFirst({ where: { id: parsed.data.tvSourceTournamentId, arenaId: auth.arenaId, status: { not: "FINISHED" } }, select: { id: true } });
+    if (!source) throw new UpcomingOperationError("O torneio selecionado não está disponível para esta arena.");
+  }
+
+  await withTvSchemaGuard(async () => {
+    try {
+      await db.tvPresentationSettings.upsert({
+        where: {
+          arenaId: auth.arenaId
+        },
+        create: {
+          arenaId: auth.arenaId,
+          ...parsed.data,
+          selectedTournamentId: parsed.data.selectedTournamentId || null,
+          tvSourceTournamentId: parsed.data.tvSourceTournamentId || null
+        },
+        update: {
+          ...parsed.data,
+          selectedTournamentId: parsed.data.selectedTournamentId || null,
+          tvSourceTournamentId: parsed.data.tvSourceTournamentId || null
+        }
+      });
+    } catch (error) {
+      if (!isPrismaUnknownFieldError(error, "tvMatchSource") && !isPrismaUnknownFieldError(error, "tvSourceTournamentId")) {
+        throw error;
+      }
+
+      const { tvMatchSource: _ignored, tvSourceTournamentId: _ignoredTournament, ...legacyData } = parsed.data;
+      await db.tvPresentationSettings.upsert({
+        where: {
+          arenaId: auth.arenaId
+        },
+        create: {
+          arenaId: auth.arenaId,
+          ...legacyData,
+          selectedTournamentId: parsed.data.selectedTournamentId || null
+        },
+        update: {
+          ...legacyData,
+          selectedTournamentId: parsed.data.selectedTournamentId || null
+        }
+      });
+    }
+  });
+
+
+}
+
+export async function createTvSponsorAction(formData: FormData) {
+  const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
+  const parsed = tvSponsorSchema.safeParse({
+    name: formData.get("name"),
+    subtitle: formData.get("subtitle"),
+    sponsorshipType: formData.get("sponsorshipType"),
+    monthlyAmount: formData.get("monthlyAmount"),
+    benefits: [Number(formData.get("reservationCredits") ?? 0) > 0 ? "Reservas" : "", Number(formData.get("lessonCredits") ?? 0) > 0 ? "Aulas" : ""].filter(Boolean).join(" · "),
+    reservationCredits: formData.get("reservationCredits"),
+    lessonCredits: formData.get("lessonCredits"),
+    displayOrder: formData.get("displayOrder")
+  });
+
+  if (!parsed.success) {
+    throw new UpcomingOperationError(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+  const { monthlyAmount, ...sponsorData } = parsed.data;
+  const sponsorshipPlanId = String(formData.get("sponsorshipPlanId") ?? "");
+  const sponsorshipPlan = sponsorshipPlanId ? await db.sponsorshipPlan.findFirst({ where: { id: sponsorshipPlanId, arenaId: auth.arenaId } }) : null;
+  if (sponsorshipPlanId && !sponsorshipPlan) throw new UpcomingOperationError("Plano de patrocínio inválido.");
+
+  const logoFile = formData.get("logo") as File | null;
+  const inlineLogo = await toInlineLogo(logoFile);
+  const logoUrl = inlineLogo ?? await savePublicImageUpload(logoFile, "tv-sponsor-logos", auth.arenaId, auth.arenaId);
+
+  await withTvSchemaGuard(async () => {
+    await db.tvSponsor.create({
+      data: {
+        arenaId: auth.arenaId,
+        ...sponsorData,
+        subtitle: sponsorshipPlan?.name ?? sponsorData.subtitle,
+        sponsorshipType: sponsorshipPlan?.sponsorshipType ?? sponsorData.sponsorshipType,
+        monthlyAmountCents: sponsorshipPlan?.monthlyAmountCents ?? parseMonthlyAmountToCents(monthlyAmount),
+        reservationCredits: sponsorshipPlan?.reservationCredits ?? sponsorData.reservationCredits,
+        lessonCredits: sponsorshipPlan?.lessonCredits ?? sponsorData.lessonCredits,
+        sponsorshipPlanId: sponsorshipPlan?.id ?? null,
+        ...(logoUrl ? { logoUrl } : {})
+      }
+    });
+  });
+
+
+}
+
+export async function createSponsorshipPlanAction(formData: FormData) {
+  const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
+  const parsed = sponsorshipPlanSchema.safeParse({ name: formData.get("name"), sponsorshipType: formData.get("sponsorshipType"), monthlyAmount: formData.get("monthlyAmount"), reservationCredits: formData.get("reservationCredits"), lessonCredits: formData.get("lessonCredits") });
+  if (!parsed.success) throw new UpcomingOperationError(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const { monthlyAmount, ...data } = parsed.data;
+  const kind = String(formData.get("kind") || "SPONSORSHIP");
+  if(formData.has("dueOptionsConfigured") && !formData.getAll("dueDays").length) throw new UpcomingOperationError("Selecione ao menos um vencimento.");
+  const dueDays = planDueDays(formData.getAll("dueDays"), Number(formData.get("dueDay") || 10));
+  const dueDay = dueDays[0];
+  if(!["SPONSORSHIP","FIXED_COURT"].includes(kind)) throw new UpcomingOperationError("Selecione a finalidade do plano.");
+  const monthlyAmountCents=parseMonthlyAmountToCents(monthlyAmount);
+  if(monthlyAmountCents<0 || !Number.isSafeInteger(monthlyAmountCents)) throw new UpcomingOperationError("Informe um valor mensal válido.");
+  await db.sponsorshipPlan.create({ data: { arenaId: auth.arenaId, ...data, kind, dueDay, dueDays, prorateFifthWeek: formData.get("prorateFifthWeek")==="on", monthlyAmountCents, ...(kind==="FIXED_COURT"?{reservationCredits:data.reservationCredits,lessonCredits:0}:{}) } });
+
+}
+
+export async function insertSponsorInPlanAction(formData: FormData) {
+  const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
+  const planId = String(formData.get("sponsorshipPlanId") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const clientId = String(formData.get("clientId") ?? "");
+  const startedAt = parseFormDate(String(formData.get("startedAt") ?? ""));
+  const installments = Math.min(60, Math.max(1, Number(formData.get("installments") ?? 1) || 1));
+  const dueDay = Math.min(28, Math.max(1, Number(formData.get("dueDay") ?? 10) || 10));
+  const discountMode = String(formData.get("discountMode") ?? "AMOUNT") === "PERCENTAGE" ? "PERCENTAGE" : "AMOUNT";
+  const discountApplication = String(formData.get("discountApplication") ?? "ONE_TIME") === "RECURRING" ? "RECURRING" : "ONE_TIME";
+  const discountRaw = String(formData.get("discount") ?? "0");
+  const discountValue = discountMode === "PERCENTAGE" ? Number(discountRaw.replace(",", ".")) : parseMonthlyAmountToCents(discountRaw);
+  if (!planId || name.length < 2 || !startedAt) throw new UpcomingOperationError("Informe empresa, plano e data de início.");
+  if (!Number.isFinite(discountValue) || discountValue < 0 || (discountMode === "PERCENTAGE" && discountValue > 100)) throw new UpcomingOperationError("Informe um desconto válido.");
+  const [plan, client, lastSponsor] = await Promise.all([
+    db.sponsorshipPlan.findFirst({ where: { id: planId, arenaId: auth.arenaId } }),
+    clientId ? db.player.findFirst({ where: { id: clientId, arenaId: auth.arenaId, active: true }, select: { id: true, name: true } }) : Promise.resolve(null),
+    db.tvSponsor.findFirst({ where: { arenaId: auth.arenaId, sponsorshipPlanId: planId }, orderBy: { displayOrder: "desc" }, select: { displayOrder: true } })
+  ]);
+  if (!plan) throw new UpcomingOperationError("Plano de patrocínio não encontrado.");
+  if (clientId && !client) throw new UpcomingOperationError("Cliente vinculado não encontrado.");
+  const monthlyAmountCents = parseMonthlyAmountToCents(String(formData.get("monthlyAmount") ?? ""));
+  const logoFile = formData.get("logo") as File | null;
+  const inlineLogo = await toInlineLogo(logoFile);
+  const logoUrl = inlineLogo ?? await savePublicImageUpload(logoFile, "tv-sponsor-logos", auth.arenaId, auth.arenaId);
+  const firstAmountCents = getDiscountedAmountCents(monthlyAmountCents, discountValue, discountMode);
+  const recurringAmountCents = discountApplication === "RECURRING" ? firstAmountCents : monthlyAmountCents;
+  const counterpartyName = client?.name ?? name;
+  if(plan.kind !== "SPONSORSHIP") throw new UpcomingOperationError("Use a vinculação de cliente do plano fixo.");
+  const firstDue = firstDueDate(startedAt, dueDay);
+  const paymentMethod=String(formData.get("paymentMethod")??"").trim(),boleto=paymentMethod.toLowerCase()==="boleto";
+  if(formData.has("paymentMethod")&&!paymentMethod)throw new UpcomingOperationError("Selecione a forma de pagamento.");
+  if(boleto&&!client)throw new UpcomingOperationError("Vincule um cliente para emitir os boletos.");
+  let firstEntryId="";
+  await withArenaTransaction(auth.arenaId, async (tx) => {
+    const bankAccountId=boleto?await requireReceivingBankAccount(tx,auth.arenaId,formData.get("bankAccountId")):null;
+    const sponsor = await tx.tvSponsor.create({ data: { arenaId: auth.arenaId, name, subtitle: plan.name, sponsorshipType: plan.sponsorshipType, monthlyAmountCents, benefits: [plan.reservationCredits ? "Reservas" : "", plan.lessonCredits ? "Aulas" : ""].filter(Boolean).join(" · "), reservationCredits: plan.reservationCredits, lessonCredits: plan.lessonCredits, sponsorshipPlanId: plan.id, playerId: client?.id ?? null, startedAt, installments, dueDay, discountMode, discountValue: Math.round(discountValue), discountApplication, displayOrder: (lastSponsor?.displayOrder ?? 0) + 1, ...(logoUrl ? { logoUrl } : {}) } });
+    const note = `Patrocínio ${plan.name}. Desconto ${discountMode === "PERCENTAGE" ? `${discountValue}%` : `R$ ${(discountValue / 100).toFixed(2)}`} ${discountApplication === "RECURRING" ? "recorrente" : "na primeira mensalidade"}.`;
+    const recurrence = await tx.financialRecurrence.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName, playerId: client?.id ?? null, bankAccountId,category: "Patrocínios", description: `${plan.name} · ${name}`, amountCents: recurringAmountCents, onlinePaymentMethod:boleto?"BOLETO":"",frequency: "MONTHLY", startsAt: startedAt, endsAt: installments === 1 ? firstDue : null, nextDueDate: firstDue, notes: `${note} Sponsor:${sponsor.id}` } });
+    let dueDate = firstDue, lastDueDate = firstDue;
+    for (let installment = 0; installment < installments; installment += 1) {
+      const entry=await tx.financialEntry.create({ data: { arenaId: auth.arenaId, type: "REVENUE", counterpartyName, playerId: client?.id ?? null, bankAccountId,category: "Patrocínios", description: `${plan.name} · ${name} · ${installment + 1}/${installments}`, amountCents: installment === 0 ? firstAmountCents : recurringAmountCents, dueDate, recurrenceId: recurrence.id, paymentMethod,automaticBoleto:boleto, source: "SPONSORSHIP", externalReference: sponsor.id, notes: note } });
+      if(!firstEntryId)firstEntryId=entry.id;
+      lastDueDate = dueDate;
+      dueDate = getNextFinancialRecurrenceDate(dueDate, "MONTHLY");
+    }
+    await tx.financialRecurrence.update({ where: { id: recurrence.id }, data: { nextDueDate: dueDate, endsAt:lastDueDate, active: installments > 1 } });
+  });
+  if(boleto&&firstEntryId){try{await issueRecurringOnlineChargeForEntry(auth.arenaId,firstEntryId);}catch{ /* Queue preserves retry state. */ }}
+
+
+
+}
+
+export async function deleteSponsorshipPlanAction(formData: FormData) {
+  const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
+  const planId = z.string().trim().min(1).safeParse(formData.get("planId"));
+  if (!planId.success) throw new UpcomingOperationError("Plano de patrocínio inválido.");
+  if(await db.scheduleBookingSeries.count({where:{arenaId:auth.arenaId,sponsorshipPlanId:planId.data}})) return {error:"Este plano possui histórico de reservas. Encerre os vínculos; o histórico deve ser preservado."};
+  await db.sponsorshipPlan.deleteMany({ where: { id: planId.data, arenaId: auth.arenaId } });
+
+}
+
+export async function updateTvSponsorAction(formData: FormData) {
+  const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
+  const sponsorId = String(formData.get("sponsorId") ?? "");
+  const parsed = tvSponsorSchema.safeParse({
+    name: formData.get("name"),
+    subtitle: formData.get("subtitle"),
+    sponsorshipType: formData.get("sponsorshipType"),
+    monthlyAmount: formData.get("monthlyAmount"),
+    benefits: [Number(formData.get("reservationCredits") ?? 0) > 0 ? "Reservas" : "", Number(formData.get("lessonCredits") ?? 0) > 0 ? "Aulas" : ""].filter(Boolean).join(" · "),
+    reservationCredits: formData.get("reservationCredits"),
+    lessonCredits: formData.get("lessonCredits"),
+    displayOrder: formData.get("displayOrder")
+  });
+
+  if (!sponsorId) {
+    throw new UpcomingOperationError("Patrocinador inválido.");
+  }
+
+  if (!parsed.success) {
+    throw new UpcomingOperationError(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+  const { monthlyAmount, ...sponsorData } = parsed.data;
+
+  const logoFile = formData.get("logo") as File | null;
+  const inlineLogo = await toInlineLogo(logoFile);
+  const logoUrl = inlineLogo ?? await savePublicImageUpload(logoFile, "tv-sponsor-logos", auth.arenaId, auth.arenaId);
+  const updated = await withTvSchemaGuard(async () =>
+    db.tvSponsor.updateMany({
+      where: {
+        id: sponsorId,
+        arenaId: auth.arenaId
+      },
+      data: {
+        ...sponsorData,
+        monthlyAmountCents: parseMonthlyAmountToCents(monthlyAmount),
+        ...(logoUrl ? { logoUrl } : {})
+      }
+    })
+  );
+
+  if (!updated?.count) {
+    throw new UpcomingOperationError("Patrocinador não encontrado.");
+  }
+
+
+}
+
+export async function deleteTvSponsorAction(formData: FormData) {
+  const auth = await requireModuleEdit("tv");
+  const db = arenaDatabase(auth.arenaId);
+  const sponsorId = String(formData.get("sponsorId") ?? "");
+
+  if (!sponsorId) {
+    throw new UpcomingOperationError("Patrocinador inválido.");
+  }
+
+  await withTvSchemaGuard(async () => {
+    await db.tvSponsor.deleteMany({
+      where: {
+        id: sponsorId,
+        arenaId: auth.arenaId
+      }
+    });
+  });
+
+
+}

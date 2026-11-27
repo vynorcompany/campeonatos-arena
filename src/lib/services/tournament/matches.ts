@@ -124,6 +124,15 @@ export async function updateKnockoutParticipants(
     throw new Error("A definiÃ§Ã£o manual de confronto sÃ³ vale para o mata-mata.");
   }
 
+  const pairIds = [homePairId, awayPairId].filter((id): id is string => Boolean(id));
+  const pairs = await prisma.pair.findMany({
+    where: { id: { in: pairIds }, tournamentId: match.tournamentId, tournament: { arenaId } },
+    select: { id: true }
+  });
+  if (new Set(pairIds).size !== pairIds.length || pairs.length !== pairIds.length) {
+    throw new Error("As duplas devem pertencer a este torneio.");
+  }
+
   const participantsChanged = match.homePairId !== homePairId || match.awayPairId !== awayPairId;
 
   await withArenaTransaction(arenaId, async (tx) => {

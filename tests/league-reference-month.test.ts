@@ -18,8 +18,9 @@ test("tela, reabertura e premiação usam o mesmo mês da arena", () => {
   const page = readFileSync(new URL("../src/app/(app)/torneios/[tournamentId]/categorias/[categoryId]/page.tsx", import.meta.url), "utf8");
   const actions = readFileSync(new URL("../src/lib/actions/category-competition.ts", import.meta.url), "utf8");
   const service = readFileSync(new URL("../src/lib/services/category-competition.ts", import.meta.url), "utf8");
-  assert.match(page, /const currentReferenceMonth = leagueReferenceMonth\(new Date\(\)\)/);
-  assert.equal((page.match(/cycle\.referenceMonth === currentReferenceMonth/g) ?? []).length, 1);
+  const workspace = readFileSync(new URL("../src/lib/backend/services/tournament-category-workspace.ts", import.meta.url), "utf8");
+  assert.match(workspace, /const currentReferenceMonth = leagueReferenceMonth\(new Date\(\)\)/);
+  assert.equal((workspace.match(/cycle\.referenceMonth === currentReferenceMonth/g) ?? []).length, 1);
   assert.match(page, /leagueCycles\[0\]\?\.referenceMonth === currentReferenceMonth/);
   assert.match(actions, /const referenceMonth = leagueReferenceMonth\(new Date\(\)\)/);
   assert.match(service, /const referenceMonth = leagueReferenceMonth\(new Date\(\)\)/);

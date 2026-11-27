@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import { createRequire } from "node:module";
 import vm from "node:vm";
 import test from "node:test";
@@ -11,16 +11,14 @@ function action(allowed = true) {
   const source = readFileSync(new URL("../src/lib/actions/standard-service-prices.ts", import.meta.url), "utf8");
   const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
   const writes: Record<string, any>[] = [];
-  const refreshed: string[] = [];
   const exports: Record<string, (form: FormData) => Promise<void>> = {};
   vm.runInNewContext(output, { exports, FormData, require: (name: string) => {
-    if (name === "next/cache") return { revalidatePath: (path: string) => refreshed.push(path) };
     if (name === "@/lib/auth/guards") return { requireModuleEdit: async (module: string) => { assert.equal(module, "stock"); if (!allowed) throw new Error("Sem permissão"); return { arenaId: "authorized-arena", userId: "editor" }; } };
     if (name === "@/lib/products/standard-service-catalog") return { syncStandardServiceCatalog: async (_tx: unknown, arenaId: string, serviceCode: string, priceCents: number, userId: string) => { assert.equal(arenaId, "authorized-arena"); assert.equal(userId, "editor"); assert(["LEAGUE", "SUPER12"].includes(serviceCode)); assert(priceCents >= 0); } };
     if (name === "@/lib/rls") return { withArenaTransaction: async (arenaId: string, operation: (tx: unknown) => unknown) => { assert.equal(arenaId, "authorized-arena"); return operation({ arenaServicePrice: { upsert: async (args: Record<string, any>) => { writes.push(args); return args.create; } } }); } };
     return require(name);
   } });
-  return { save: exports.updateStandardServicePriceAction, writes, refreshed };
+  return { save: exports.updateStandardServicePriceAction, writes };
 }
 function input(code: string, price: string) { const form = new FormData(); form.set("serviceCode", code); form.set("price", price); return form; }
 
@@ -34,7 +32,7 @@ test("standard service prices are scoped to the authorized arena and only update
   assert.equal(write.create.serviceCode, "LEAGUE");
   assert.equal(write.update.priceCents, 4050);
   assert.deepEqual(Object.keys(write.update).sort(), ["priceCents", "updatedByUserId"]);
-  assert.deepEqual(handler.refreshed, ["/pdv", "/pdv/servicos", "/agenda", "/comandas"]);
+  // Cache invalidation is verified against the real HTTP facade in product-contract.test.ts.
 });
 
 test("zero is a configured free service, while an absent price remains unconfigured", async () => {

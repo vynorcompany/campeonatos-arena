@@ -5,7 +5,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { addSupportTicketMessageAction, updateAgencyTicketAction } from "@/lib/actions/support";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
-import { agencyDatabase as prisma } from "@/lib/auth/database";
+import { getAgencySupportWorkspace } from "@/lib/support/data";
 
 const statusLabels: Record<string, string> = {
   OPEN: "Aberto",
@@ -24,22 +24,7 @@ const priorityLabels: Record<string, string> = {
 
 export default async function AgencySupportPage() {
   const auth = await requireAgencyPageAccess();
-  const [tickets, agencyUsers] = await Promise.all([
-    prisma.supportTicket.findMany({
-      where: { status: { notIn: ["RESOLVED", "CLOSED"] } },
-      include: {
-        arena: true,
-        requester: true,
-        assignee: true,
-        messages: { include: { author: true }, orderBy: { createdAt: "desc" }, take: 3 }
-      },
-      orderBy: [{ priority: "desc" }, { updatedAt: "desc" }]
-    }),
-    prisma.user.findMany({
-      where: { systemRole: { in: ["SUPER_ADMIN", "ADMIN", "MANAGER"] } },
-      orderBy: { name: "asc" }
-    })
-  ]);
+  const {tickets,agencyUsers} = await getAgencySupportWorkspace();
 
   return (
     <div className={viewStyles.stack_md}>
@@ -67,20 +52,20 @@ export default async function AgencySupportPage() {
 
               <SafeActionForm action={updateAgencyTicketAction} className={viewStyles.agency_ticket_controls} successMessage="Ticket atualizado.">
                 <input type="hidden" name="ticketId" value={ticket.id} />
-                <select name="status" defaultValue={ticket.status}>
+                <select aria-label="Status do chamado" name="status" defaultValue={ticket.status}>
                   <option value="OPEN">Aberto</option>
                   <option value="IN_PROGRESS">Em andamento</option>
                   <option value="WAITING_CUSTOMER">Aguardando cliente</option>
                   <option value="RESOLVED">Resolvido</option>
                   <option value="CLOSED">Fechado</option>
                 </select>
-                <select name="priority" defaultValue={ticket.priority}>
+                <select aria-label="Prioridade do chamado" name="priority" defaultValue={ticket.priority}>
                   <option value="LOW">Baixa</option>
                   <option value="MEDIUM">Média</option>
                   <option value="HIGH">Alta</option>
                   <option value="URGENT">Urgente</option>
                 </select>
-                <select name="assigneeId" defaultValue={ticket.assigneeId ?? ""}>
+                <select aria-label="Responsável pelo chamado" name="assigneeId" defaultValue={ticket.assigneeId ?? ""}>
                   <option value="">Assumir automaticamente</option>
                   {agencyUsers.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
                 </select>

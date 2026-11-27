@@ -25,7 +25,7 @@ export function RegulationPublicAcceptanceForm({ regulationDocumentId }: Regulat
       <input type="hidden" name="regulationDocumentId" value={regulationDocumentId} />
 
       <label className={cx(`${viewStyles.regulation_accept_box}${accepted ? " " + viewStyles.regulation_accept_box_checked : ""}`)} htmlFor="regulation-accepted">
-        <span className={viewStyles.regulation_accept_box_icon} aria-hidden="true">
+        <span className={viewStyles.regulation_accept_box_icon}>
           <input
             id="regulation-accepted"
             name="accepted"

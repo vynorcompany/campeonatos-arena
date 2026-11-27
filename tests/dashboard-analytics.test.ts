@@ -37,7 +37,7 @@ test("dashboard renders a daily cash-flow chart and the requested operational ch
 });
 
 test("dashboard only reads prior-period totals when comparison is enabled", () => {
-  const dashboard = readFileSync(resolve(process.cwd(), "src/app/(app)/painel/page.tsx"), "utf8");
+  const dashboard = readFileSync(resolve(process.cwd(), "src/lib/backend/services/dashboard.ts"), "utf8");
   const loader = readFileSync(resolve(process.cwd(), "src/lib/reports/dashboard-data.ts"), "utf8");
   assert.match(dashboard, /comparing \? previous.from : undefined/);
   assert.match(loader, /previousFrom && previousTo \? tx\.financialEntry\.findMany/);
@@ -45,7 +45,7 @@ test("dashboard only reads prior-period totals when comparison is enabled", () =
 });
 
 test("shared layout waits for tenant-scoped notifications during a connection spike", () => {
-  const layout = readFileSync(resolve(process.cwd(), "src/app/(app)/layout.tsx"), "utf8");
+  const layout = readFileSync(resolve(process.cwd(), "src/lib/backend/services/management-shell.ts"), "utf8");
   assert.match(layout, /arenaDatabase\(auth\.arenaId\)\.\$transaction\(/);
   assert.match(layout, /tx\.arenaNotification\.findMany\(\{ where: \{ arenaId: auth\.arenaId/);
   assert.match(layout, /maxWait: 20_000, timeout: 10_000/);

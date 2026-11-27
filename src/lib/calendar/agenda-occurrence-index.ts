@@ -1,8 +1,6 @@
-type CourtOccurrence = {
-  startsAt: Date;
-  endsAt: Date;
-  occurrenceCourts: { courtId: string }[];
-};
+type CourtOccurrence = {occurrenceCourts:{courtId:string}[]} & (
+ {startsAt:Date;endsAt:Date} | {startsAtMinute:number;endsAtMinute:number}
+);
 
 function minuteOfDay(value: Date) {
   return value.getHours() * 60 + value.getMinutes();
@@ -13,8 +11,8 @@ export function buildAgendaOccurrenceIndex<T extends CourtOccurrence>(occurrence
   const occupiedCourtSlots = new Set<string>();
 
   for (const occurrence of occurrences) {
-    const firstMinute = minuteOfDay(occurrence.startsAt);
-    const lastMinute = minuteOfDay(occurrence.endsAt);
+    const firstMinute = "startsAtMinute" in occurrence ? occurrence.startsAtMinute : minuteOfDay(occurrence.startsAt);
+    const lastMinute = "endsAtMinute" in occurrence ? occurrence.endsAtMinute : minuteOfDay(occurrence.endsAt);
     for (const { courtId } of occurrence.occurrenceCourts) {
       const startKey = `${courtId}:${firstMinute}`;
       if (!byCourtAndSlot.has(startKey)) byCourtAndSlot.set(startKey, occurrence);

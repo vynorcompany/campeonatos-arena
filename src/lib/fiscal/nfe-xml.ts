@@ -1,3 +1,4 @@
+import { NfeXmlValidationError } from "./nfe-error";
 import { createHash } from "node:crypto";
 
 export type NfeXmlItem = {
@@ -43,13 +44,15 @@ function blockOf(xml: string, name: string) {
 
 function cents(value: string) {
   const amount = Number(value.replace(",", "."));
-  if (!Number.isFinite(amount) || amount < 0) throw new Error("O XML possui um valor de produto inválido.");
-  return Math.round(amount * 100);
+  if (!Number.isFinite(amount) || amount < 0) throw new NfeXmlValidationError("O XML possui um valor de produto inválido.");
+  const result = Math.round(amount * 100);
+  if (!Number.isSafeInteger(result) || result > 2147483647) throw new NfeXmlValidationError("O XML possui um valor que excede o limite permitido.");
+  return result;
 }
 
 function quantity(value: string) {
   const amount = Number(value.replace(",", "."));
-  if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) throw new Error("O estoque atual aceita apenas quantidades inteiras. Ajuste itens fracionados manualmente.");
+  if (!Number.isFinite(amount) || amount <= 0 || !Number.isSafeInteger(amount) || amount > 2147483647) throw new NfeXmlValidationError("O estoque atual aceita apenas quantidades inteiras. Ajuste itens fracionados manualmente.");
   return amount;
 }
 
@@ -60,24 +63,25 @@ function parseDate(value: string) {
 }
 
 export function parseNfeXml(xml: string): ParsedNfeXml {
-  if (!xml.trim()) throw new Error("Envie um arquivo XML de NF-e válido.");
-  if (Buffer.byteLength(xml, "utf8") > MAX_XML_SIZE) throw new Error("O XML excede o limite de 5 MB.");
-  if (/<!DOCTYPE|<!ENTITY/i.test(xml)) throw new Error("O XML contém uma estrutura não permitida.");
+  if (!xml.trim()) throw new NfeXmlValidationError("Envie um arquivo XML de NF-e válido.");
+  if (Buffer.byteLength(xml, "utf8") > MAX_XML_SIZE) throw new NfeXmlValidationError("O XML excede o limite de 5 MB.");
+  if (/<!DOCTYPE|<!ENTITY/i.test(xml)) throw new NfeXmlValidationError("O XML contém uma estrutura não permitida.");
 
   const infNfe = xml.match(new RegExp(`<${tagName("infNFe")}\\b[^>]*\\bId=["']([^"']+)["'][^>]*>`));
   const accessKey = valueOf(xml, "chNFe") || (infNfe?.[1] ?? "").replace(/^NFe/i, "");
-  if (!/^\d{44}$/.test(accessKey)) throw new Error("Não foi possível identificar a chave de acesso de 44 dígitos da NF-e.");
+  if (!/^\d{44}$/.test(accessKey)) throw new NfeXmlValidationError("Não foi possível identificar a chave de acesso de 44 dígitos da NF-e.");
 
   const ide = blockOf(xml, "ide");
   const emitter = blockOf(xml, "emit");
   const total = blockOf(xml, "ICMSTot");
   const details = Array.from(xml.matchAll(new RegExp(`<${tagName("det")}\\b[^>]*>([\\s\\S]*?)<\\/${tagName("det")}>`, "g")));
-  if (!details.length) throw new Error("A NF-e não possui itens de produto para importar.");
+  if (details.length > 10000) throw new NfeXmlValidationError("A NF-e excede o limite de itens para importação.");
+  if (!details.length) throw new NfeXmlValidationError("A NF-e não possui itens de produto para importar.");
 
   const items = details.map((detail) => {
     const product = blockOf(detail[1], "prod");
     const description = valueOf(product, "xProd");
-    if (!description) throw new Error("Um item da NF-e não possui descrição.");
+    if (!description) throw new NfeXmlValidationError("Um item da NF-e não possui descrição.");
     return {
       code: valueOf(product, "cProd"),
       barcode: valueOf(product, "cEAN") === "SEM GTIN" ? "" : valueOf(product, "cEAN"),

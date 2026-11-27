@@ -20,9 +20,7 @@ async function render(category: any) {
    if (name === "next/navigation") return { redirect: () => { throw Error("Unexpected redirect"); } };
    if (name === "@/lib/auth/guards") return { requireModuleView: async () => ({ arenaId: "arena", arenaRole: "ADMIN" }) };
    if (name === "@/lib/permissions") return { canPerformPermission: () => true };
-   if (name === "@/lib/arena-database") return { arenaDatabase: () => ({ tournament: { findMany: async () => [{ id: "event", name: "Event" }], findFirst: async () => tournament }, bankAccount: { findMany: async () => [] } }) };
-   if (name === "@/lib/services/tournament") return { getTournamentScheduleConflicts: async () => [] };
-   if (name === "@/lib/tournaments/registration-deletion") return { canEditManualTournamentRegistration: () => false };
+   if (name === "@/lib/tournaments/registration-queries") return { getTournamentGeneralRegistrations: async () => ({events:[{id:"event",name:"Event"}],tournament,bankAccounts:[],categoryBrackets:[],conflicts:[]}) };
    if (name.endsWith(".utilities")) return { viewStyles: new Proxy({}, { get: () => "" }) };
    if (name === "@/components/tournaments/tournament-workspace") return { tournamentWorkspace: new Proxy({}, { get: () => "" }) };
    if (name.startsWith("@/components/") || name === "@/lib/actions/tournament") return new Proxy({}, { get: (_target, key) => String(key) });

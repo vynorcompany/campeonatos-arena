@@ -15,7 +15,8 @@ test("active events are listed before their categories are selected", () => {
   assert.match(legacy, /redirect\(`/);
   assert.match(navigation, /children: canSee\("tournaments"\) \? \[/);
   assert.match(page, /if \(!canViewTournaments && !canReadMatches\) notFound\(\)/);
-  assert.match(page, /selectedTournament && !canManageTournaments && !canRecordResults/);
+  const directory = readFileSync(resolve(process.cwd(), "src/lib/backend/services/tournament-directory.ts"), "utf8");
+  assert.match(directory, /selectedTournament && !canManageTournaments && !canRecordResults/);
   assert.match(page, /Categorias/);
   assert.match(page, /Novo evento/);
   assert.match(page, /Gerenciar evento/);

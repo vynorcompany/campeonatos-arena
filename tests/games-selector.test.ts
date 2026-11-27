@@ -12,19 +12,22 @@ async function readSource(...segments: string[]) {
 
 test("games starts with arena-scoped active events in a list", async () => {
   const source = await readSource("src", "app", "(app)", "torneios", "page.tsx");
+  const query = await readSource("src", "lib", "backend", "services", "tournament-directory.ts");
 
-  assert.match(source, /prisma\.tournament\.findMany/);
-  assert.match(source, /arenaId:\s*auth\.arenaId/);
-  assert.match(source, /registrationPhase:[^\n]*not:\s*"FINISHED"/);
+  assert.match(source, /await getTournamentDirectory/);
+  assert.match(query, /prisma\.tournament\.findMany/);
+  assert.match(query, /arenaId:\s*auth\.arenaId/);
+  assert.match(query, /registrationPhase:[^\n]*not:\s*"FINISHED"/);
   assert.match(source, /Categorias/);
   assert.doesNotMatch(source, /aria-label="Selecionar evento"/);
 });
 
 test("games offers categories only after selecting an active event", async () => {
   const source = await readSource("src", "app", "(app)", "torneios", "page.tsx");
+  const query = await readSource("src", "lib", "backend", "services", "tournament-directory.ts");
 
   assert.match(source, /selectedTournament\.categories/);
-  assert.match(source, /active:\s*true/);
+  assert.match(query, /active:\s*true/);
   assert.match(source, /Escolha uma categoria/);
   assert.doesNotMatch(source, /aria-label="Selecionar categoria"/);
 });
@@ -39,12 +42,13 @@ test("games routes the selected category to its workspace", async () => {
 
 test("games permits match consultation without granting tournament management", async () => {
   const source = await readSource("src", "app", "(app)", "torneios", "page.tsx");
+  const query = await readSource("src", "lib", "backend", "services", "tournament-directory.ts");
 
   assert.match(source, /canViewModule\("tournaments"/);
   assert.match(source, /canPerformPermission\("tournaments:manage", auth\.arenaRole, auth\.systemRole, auth\.editPermissions\)/);
   assert.match(source, /canViewModule\("matches"/);
   assert.match(source, /if \(!canViewTournaments && !canReadMatches\) notFound\(\)/);
-  assert.match(source, /tournament: \{ arenaId: auth\.arenaId \}/);
+  assert.match(query, /tournament: \{ arenaId: auth\.arenaId \}/);
   assert.match(source, /Programação e placares/);
   assert.match(source, /canManageTournaments \? <Link href=\{`\/torneios\/\$\{selectedTournament\.id\}`\}/);
   assert.doesNotMatch(source, /requireModuleView\("matches"\)/);

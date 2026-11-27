@@ -14,5 +14,6 @@ test("agenda configuration exposes court registration separately from the daily 
   assert.match(actions, /export async function createCourtAction/);
   assert.match(page, /Quadras cadastradas/);
   assert.match(page, /createCourtAction/);
-  assert.match(page, /prisma\.court\.findMany/);
+  assert.match(page, /getCourtConfiguration\(auth\.arenaId\)/);
+  assert.doesNotMatch(page, /arenaDatabase|from "@\/lib\/prisma"/);
 });

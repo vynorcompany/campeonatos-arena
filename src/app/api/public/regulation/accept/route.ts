@@ -1,0 +1,7 @@
+import { NextRequest,NextResponse } from 'next/server';
+import { allowedFrontendOrigin } from '@/lib/backend/origin-policy';
+import { readBoundedJson,RequestBodyTooLargeError } from '@/lib/http/json-body';
+import { regulationAcceptInputSchema,regulationOutcomeSchema } from '@/lib/backend/contracts/regulation';
+import { acceptRegulationDocumentAction } from '@/lib/backend/services/regulation-actions';
+export const dynamic='force-dynamic';
+export async function POST(request:NextRequest){const headers={'Cache-Control':'private, no-store',Vary:'Cookie'};if(!allowedFrontendOrigin(request.headers.get('origin'),process.env.VX4_FRONTEND_ORIGINS))return NextResponse.json({error:'Origem não autorizada.',success:null},{status:403,headers});let input;try{input=regulationAcceptInputSchema.parse(await readBoundedJson(request,4096));}catch(error){return NextResponse.json({error:'Aceite inválido.',success:null},{status:error instanceof RequestBodyTooLargeError?413:400,headers});}const form=new FormData();form.set('regulationDocumentId',input.regulationDocumentId);if(input.accepted!==undefined)form.set('accepted',input.accepted);try{return NextResponse.json(regulationOutcomeSchema.parse(await acceptRegulationDocumentAction({error:null,success:null},form)),{headers});}catch{return NextResponse.json({error:'Não foi possível confirmar o aceite. Confira antes de tentar novamente.',success:null},{status:500,headers});}}

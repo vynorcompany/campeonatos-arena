@@ -7,7 +7,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { SectionCard } from "@/components/section-card";
 import { createSupportTicketAction } from "@/lib/actions/support";
 import { requireArenaAccess } from "@/lib/auth/session";
-import { prisma } from "@/lib/prisma";
+import { getSupportWorkspace } from "@/lib/support/data";
 
 const statusLabels: Record<string, string> = {
   OPEN: "Aberto",
@@ -34,22 +34,7 @@ const categoryLabels: Record<string, string> = {
 
 export default async function SupportPage() {
   const auth = await requireArenaAccess();
-  const tickets = await prisma.supportTicket.findMany({
-    where: {
-      arenaId: auth.arenaId
-    },
-    include: {
-      requester: true,
-      assignee: true,
-      messages: {
-        orderBy: {
-          createdAt: "desc"
-        },
-        take: 1
-      }
-    },
-    orderBy: [{ status: "asc" }, { updatedAt: "desc" }]
-  });
+  const {tickets} = await getSupportWorkspace(auth.arenaId);
 
   return (
     <div className={viewStyles.stack_md}>

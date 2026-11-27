@@ -3,7 +3,7 @@ import * as composition from "../src/lib/products/composition";
 import * as stockAggregates from "../src/lib/products/stock-aggregates";
 import { portalCheckoutPolicy } from "../src/lib/payments/portal-checkout-policy";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";

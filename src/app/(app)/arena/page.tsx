@@ -1,5 +1,5 @@
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
-import { arenaDatabase } from "@/lib/arena-database";
+import { getArenaConfiguration } from "@/lib/arena-configuration/data";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
 import Image from "next/image";
@@ -16,10 +16,9 @@ import { PermissionProfilesManagement } from "@/components/users/permission-prof
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { connectArenaWhatsAppAction, refreshArenaWhatsAppQrAction, resetArenaWhatsAppSessionAction } from "@/lib/actions/agency";
-import { ensureArenaPermissionProfiles } from "@/lib/actions/permission-profile";
+import { getAccessProfiles } from "@/lib/arena-access/data";
 import { requireRole, requireModuleView, requirePermission } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
 import { WhatsAppConnectionStatusWatcher } from "@/components/whatsapp/whatsapp-connection-status-watcher";
 
 type ArenaSection = "data" | "portal" | "courts" | "users" | "profiles" | "integrations";
@@ -39,7 +38,6 @@ function canManageUsers(auth: { arenaRole: string | null; systemRole: string }) 
 export default async function ArenaPage(props: ArenaPageProps) {
   const searchParams = await props.searchParams;
   const auth = await requireModuleView("arena");
-  const prisma = arenaDatabase(auth.arenaId);
   const activeSection = resolveSection(searchParams?.section);
   const userManagementAllowed = canManageUsers(auth);
   const canViewSettings = canPerformPermission("arena:settings", auth.arenaRole, auth.systemRole, auth.viewPermissions);
@@ -49,15 +47,11 @@ export default async function ArenaPage(props: ArenaPageProps) {
   if (activeSection === "portal") await requirePermission("arena:portal", "view");
   if (activeSection === "data" || activeSection === "courts") await requirePermission("arena:settings", "view");
 
-  if ((activeSection === "users" || activeSection === "profiles") && !userManagementAllowed) {
+  if ((activeSection === "users" || activeSection === "profiles" || activeSection === "integrations") && !userManagementAllowed) {
     await requireRole("ADMIN");
   }
 
-  const arena = await prisma.arena.findUniqueOrThrow({ where: { id: auth.arenaId }, include: { whatsappConnection: true } });
-  const [announcements, posts] = await Promise.all([
-    prisma.portalAnnouncement.findMany({ where: { arenaId: auth.arenaId }, orderBy: [{ pinned: "desc" }, { createdAt: "desc" }] }),
-    prisma.portalEventPost.findMany({ where: { arenaId: auth.arenaId }, orderBy: [{ pinned: "desc" }, { createdAt: "desc" }] })
-  ]);
+  const {profile,portal,connection,announcements,posts} = await getArenaConfiguration(auth.arenaId,activeSection);
 
   return (
     <div className={viewStyles.stack_md}>
@@ -84,44 +78,34 @@ export default async function ArenaPage(props: ArenaPageProps) {
 
         <section className={viewStyles.arena_settings_content}>
           {activeSection === "integrations" && userManagementAllowed ? <AgentIntegrations arenaId={auth.arenaId} /> : null}
-          {activeSection === "data" ? (
+          {activeSection === "data" && profile ? (
             <section className={ui.panel} aria-label="Dados da arena">
               <div className={viewStyles.arena_profile_layout}>
                 <div className={viewStyles.arena_logo_preview}>
-                  <Image src={arena.logoUrl || "/arena-profile.jpg"} alt={`Logo de ${arena.name}`} width={160} height={160} />
-                  <strong>{arena.name}</strong>
+                  <Image src={profile.logoUrl || "/arena-profile.jpg"} alt={`Logo de ${profile.name}`} width={160} height={160} />
+                  <strong>{profile.name}</strong>
                 </div>
                 <ArenaProfileForm
                   arena={{
-                    name: arena.name,
-                    legalName: arena.legalName,
-                    cnpj: arena.cnpj,
-                    phone: arena.phone,
-                    email: arena.email,
-                    address: arena.address,
-                    city: arena.city,
-                    state: arena.state,
-                    zipCode: arena.zipCode
+                    name: profile.name,
+                    legalName: profile.legalName,
+                    cnpj: profile.cnpj,
+                    phone: profile.phone,
+                    email: profile.email,
+                    address: profile.address,
+                    city: profile.city,
+                    state: profile.state,
+                    zipCode: profile.zipCode
                   }}
                 />
               </div>
             </section>
           ) : null}
 
-          {activeSection === "portal" ? (
+          {activeSection === "portal" && portal ? (
             <div className={viewStyles.stack_md}>
               <section className={ui.panel} aria-label="Configurações do VX4">
-                <AthletePortalSettingsForm
-                  settings={{
-                    showLeagues: arena.athletePortalShowLeagues,
-                    showBooking: arena.athletePortalShowBooking,
-                    showReservations: arena.athletePortalShowReservations,
-                    showLessons: arena.athletePortalShowLessons,
-                    showClasses: arena.athletePortalShowClasses,
-                    showDoublesRadar: arena.athletePortalShowDoublesRadar,
-                    portalLogoUrl: arena.athletePortalLogoUrl
-                  }}
-                />
+                <AthletePortalSettingsForm settings={portal} />
               </section>
               <PortalEditorPanels announcements={announcements} posts={posts} />
             </div>
@@ -129,7 +113,7 @@ export default async function ArenaPage(props: ArenaPageProps) {
 
           {activeSection === "courts" ? <CourtConfigurationWorkspace courtId={searchParams?.court} /> : null}
 
-          {activeSection === "integrations" && userManagementAllowed ? <WhatsAppConnectionSection arena={{ id: arena.id, name: arena.name, connection: arena.whatsappConnection }} /> : null}
+          {activeSection === "integrations" && userManagementAllowed ? <WhatsAppConnectionSection arena={{ id: auth.arenaId, name: auth.arenaName??"Arena", connection }} /> : null}
 
           {activeSection === "users" && userManagementAllowed ? (
             <ArenaUsersManagement arenaId={auth.arenaId} currentUserId={auth.userId} />
@@ -144,13 +128,12 @@ export default async function ArenaPage(props: ArenaPageProps) {
   );
 }
 
-function WhatsAppConnectionSection({ arena }: { arena: { id: string; name: string; connection: { instanceName: string; status: string; qrCodeDataUrl: string; connectedPhone: string; lastError: string; lastConnectedAt: Date | null } | null } }) {
+function WhatsAppConnectionSection({ arena }: { arena: { id: string; name: string; connection: { status: string; qrCodeDataUrl: string; connectedPhone: string; lastError: string } | null } }) {
   const connected = arena.connection?.status === "CONNECTED";
   return <SectionCard title="WhatsApp Business" hideHeading>{arena.connection && !connected ? <WhatsAppConnectionStatusWatcher arenaId={arena.id} /> : null}<div className={viewStyles.arena_whatsapp_panel}><div className={viewStyles.arena_whatsapp_panel_header}><div><span className={cx(`${viewStyles.agency_connection_status} ${connected ? "is-connected" : ""}`)}><i />{connected ? "Conectado" : arena.connection ? "Aguardando conexão" : "Não configurado"}</span><strong>{connected ? arena.connection?.connectedPhone || "WhatsApp conectado" : "Conecte o número da arena"}</strong></div></div>{connected ? <p className="form-message form-message-success">WhatsApp conectado com sucesso. As novas conversas serão exibidas no menu WhatsApp.</p> : null}{arena.connection?.qrCodeDataUrl && !connected ? <div className={viewStyles.agency_whatsapp_qr}><img src={arena.connection.qrCodeDataUrl} alt={`QR Code para conectar o WhatsApp da ${arena.name}`} /><div><strong>Escaneie o QR Code no WhatsApp Business</strong><p>Abra Dispositivos conectados e escolha Conectar dispositivo.</p><SafeActionForm action={refreshArenaWhatsAppQrAction} successMessage="QR Code atualizado."><input type="hidden" name="arenaId" value={arena.id} /><SubmitButton label="Gerar novo QR Code" pendingLabel="Gerando..." className={viewStyles.button_button_small} /></SafeActionForm></div></div> : <SafeActionForm action={connectArenaWhatsAppAction} successMessage={connected ? "Conexão verificada." : "Instância preparada. Escaneie o QR Code para concluir."}><input type="hidden" name="arenaId" value={arena.id} /><SubmitButton label={connected ? "Verificar conexão" : "Conectar WhatsApp"} pendingLabel="Preparando conexão..." className={viewStyles.button_button_primary_button_small} /></SafeActionForm>}{arena.connection ? <div className={viewStyles.arena_whatsapp_reset}><p>Troque a sessão somente ao mudar o aparelho conectado.</p><SafeActionForm action={resetArenaWhatsAppSessionAction} successMessage="Sessão resetada. Escaneie o novo QR Code."><input type="hidden" name="arenaId" value={arena.id} /><SubmitButton label="Resetar sessão" pendingLabel="Resetando..." className={viewStyles.button_button_danger_button_small} /></SafeActionForm></div> : null}{arena.connection?.lastError ? <p className={viewStyles.form_error}>{arena.connection.lastError}</p> : null}</div></SectionCard>;
 }
 
 async function PermissionProfilesSection({ arenaId }: { arenaId: string }) {
-  await ensureArenaPermissionProfiles(arenaId);
-  const profiles = await prisma.permissionProfile.findMany({ where: { arenaId, active: true }, select: { id: true, name: true, description: true, members: { select: { user: { select: { name: true } } }, orderBy: { user: { name: "asc" } } } }, orderBy: { name: "asc" } });
+  const {profiles} = await getAccessProfiles(arenaId);
   return <PermissionProfilesManagement profiles={profiles} />;
 }

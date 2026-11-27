@@ -6,7 +6,7 @@ import * as portalOrders from "../src/lib/comandas/portal-orders";
 import * as servicePricing from "../src/lib/products/service-pricing";
 import * as operationalPolicy from "../src/lib/comandas/operational-policy";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import vm from "node:vm";

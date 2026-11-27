@@ -208,7 +208,7 @@ test("Liga persists athlete eligibility by modality and keeps a tier history", (
 test("client profile can set the athlete's Liga A or B eligibility", () => {
   const clientEditor = readFileSync(resolve(process.cwd(), "src/components/players/client-management-workspace.tsx"), "utf8");
   const playerAction = readFileSync(resolve(process.cwd(), "src/lib/actions/tournament.ts"), "utf8");
-  const playerPage = readFileSync(resolve(process.cwd(), "src/app/(app)/jogadores/page.tsx"), "utf8");
+  const playerPage = readFileSync(resolve(process.cwd(), "src/lib/backend/services/client-directory.ts"), "utf8");
 
   assert.match(clientEditor, /Liga do atleta/);
   assert.match(clientEditor, /name="leagueTier"/);
@@ -224,7 +224,9 @@ test("Liga workspace exposes category editing and a monthly history tab", () => 
   assert.match(tabs, /Histórico/);
   assert.match(page, /LeagueCategorySettingsDialog/);
   assert.match(page, /LeagueHistoryPanel/);
-  assert.match(page, /snapshotChampionName\(cycle\.snapshot, cycle\.championPairId\)/);
+  const workspace = readFileSync(resolve(process.cwd(), "src/lib/backend/services/tournament-category-workspace.ts"), "utf8");
+  assert.match(workspace, /snapshotChampionName\(cycle\.snapshot, cycle\.championPairId\)/);
+  assert.match(page, /cycle\.history/);
   assert.match(page, /Ciclo da Liga processado com sucesso/);
   assert.match(page, /successHref=\{`\/torneios\/\$\{params\.tournamentId\}\/categorias\/\$\{params\.categoryId\}\?tab=overview&reopened=1`\}/);
   assert.match(history, /Campeã: \{cycle\.championName/);

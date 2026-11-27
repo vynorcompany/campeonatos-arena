@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import { resolve } from "node:path";
 import test from "node:test";
 
 test("portal do cliente prepara verificação, recuperação e bloqueio por telefone", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
-  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/player-auth.ts"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/backend/services/player-auth.ts"), "utf8");
   const env = readFileSync(resolve(process.cwd(), "src/lib/env.ts"), "utf8");
 
   assert.match(schema, /model PlayerAuthAttempt \{/);
@@ -18,7 +18,7 @@ test("portal do cliente prepara verificação, recuperação e bloqueio por tele
 });
 
 test("recuperação do atleta só avança após envio aceito e atualiza todos os vínculos da identidade", () => {
-  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/player-auth.ts"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/backend/services/player-auth.ts"), "utf8");
   const globalForm = readFileSync(resolve(process.cwd(), "src/components/global-athlete-auth-form.tsx"), "utf8");
   const arenaForm = readFileSync(resolve(process.cwd(), "src/components/public-client-auth-form.tsx"), "utf8");
 

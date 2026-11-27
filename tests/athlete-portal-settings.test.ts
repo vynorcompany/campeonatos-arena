@@ -1,4 +1,4 @@
-import { readFileSync } from "./helpers/style-source";
+import { readFileSync } from "./helpers/domain-source";
 import { readPortalSources } from "./helpers/portal-source";
 import assert from "node:assert/strict";
 

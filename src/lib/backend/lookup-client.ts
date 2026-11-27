@@ -1,0 +1,7 @@
+import"server-only";
+import{headers}from"next/headers";
+import{backendOrigin,readBackendContract}from"./http-client";
+import{managementCookieHeader}from"./management-context-client";
+import{lookupFields,lookupInputSchema,lookupOutcomeSchema,clientRegistrationDefaultsSchema}from"./contracts/lookups";
+export async function remoteSmartLookup(origin:string,form:FormData){const fields:Record<string,string>={};for(const key of lookupFields){const values=form.getAll(key);if(values.length>1||values.some(value=>typeof value!=="string"))throw Error("Campo inválido.");if(values.length)fields[key]=values[0] as string;}const input=lookupInputSchema.parse({fields}),cookie=await managementCookieHeader(),browserOrigin=(await headers()).get("origin");const response=await fetch(new URL("/api/management/lookups",backendOrigin(origin)),{method:"POST",headers:{Accept:"application/json","Content-Type":"application/json",...(cookie?{cookie}:{}),...(browserOrigin?{origin:browserOrigin}:{})},body:JSON.stringify(input),cache:"no-store",redirect:"error",signal:AbortSignal.timeout(60000)});const result=lookupOutcomeSchema.parse(await response.json());return response.ok?result:{error:"error"in result?result.error:"Não foi possível confirmar o cadastro."};}
+export async function remoteClientRegistrationDefault(origin:string){return(await readBackendContract(origin,"/api/management/lookups",clientRegistrationDefaultsSchema,{cookie:(await managementCookieHeader())??""})).allowOverdueComandas;}

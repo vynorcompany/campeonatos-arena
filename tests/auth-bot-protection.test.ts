@@ -9,8 +9,8 @@ import { createRequire } from "node:module";
 const nodeRequire = createRequire(import.meta.url);
 test("bulk form fillers cannot reach credential checks, account writes or WhatsApp delivery", async () => {
   const routes: [string, string[]][] = [
-    ["../src/lib/actions/player-auth.ts", ["registerPublicClientAction", "confirmPublicClientRegistrationAction", "loginPublicClientAction", "loginGlobalAthleteAction", "requestGlobalPublicPasswordResetAction", "confirmGlobalPublicPasswordResetAction", "requestPublicPasswordResetAction", "confirmPublicPasswordResetAction"]],
-    ["../src/lib/auth/actions.ts", ["loginAction"]],
+    ["../src/lib/backend/services/player-auth.ts", ["registerPublicClientAction", "confirmPublicClientRegistrationAction", "loginPublicClientAction", "loginGlobalAthleteAction", "requestGlobalPublicPasswordResetAction", "confirmGlobalPublicPasswordResetAction", "requestPublicPasswordResetAction", "confirmPublicPasswordResetAction"]],
+    ["../src/lib/backend/services/management-auth.ts", ["loginAction"]],
   ];
   for (const [path, names] of routes) {
     const exports: Record<string, (state: unknown, form: FormData) => Promise<{ error: string | null }>> = {};

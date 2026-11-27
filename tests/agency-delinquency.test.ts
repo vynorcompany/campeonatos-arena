@@ -9,7 +9,7 @@ import { agencyInvoiceDeadline } from "../src/lib/finance/agency-billing-dates";
 import { teacherPlanCondition } from "../src/lib/finance/plan-filter";
 
 const delinquencySource = readFileSync(new URL("../src/lib/finance/agency-delinquency.ts", import.meta.url), "utf8");
-const sessionSource = readFileSync(new URL("../src/lib/auth/session.ts", import.meta.url), "utf8");
+const sessionSource = readFileSync(new URL("../src/lib/backend/services/management-session.ts", import.meta.url), "utf8");
 
 function loadDelinquency(graceDays: number | null, invoice: { id: string; dueAt: Date; checkoutUrl: string; period: string } | null) {
   const exports: Record<string, (arenaId: string, now: Date) => Promise<{ blocked: boolean; daysRemaining: number; id: string } | null>> = {};

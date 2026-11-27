@@ -2,8 +2,7 @@
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { requireModuleView } from "@/lib/auth/guards";
-import { withArenaTransaction } from "@/lib/rls";
-import { loadVisibleProductNames, visibleProductName } from "@/lib/products/visible-product-names";
+import { getSalesWorkspaceData } from "@/lib/products/pos-workspace-data";
 
 const paymentLabels: Record<string, string> = {
   PIX: "Pix",
@@ -28,23 +27,7 @@ function formatDate(value: Date) {
 
 export default async function SalesPage() {
   const auth = await requireModuleView("pos");
-  const { sales, stockMovements, productNames } = await withArenaTransaction(auth.arenaId, async (tx) => {
-    const [sales, stockMovements] = await Promise.all([tx.sale.findMany({
-      where: { arenaId: auth.arenaId },
-      include: { items: true },
-      orderBy: { createdAt: "desc" },
-      take: 40
-    }), tx.stockMovement.findMany({
-      where: { arenaId: auth.arenaId },
-      orderBy: { createdAt: "desc" },
-      take: 24
-    })]);
-    const productNames = await loadVisibleProductNames(tx, auth.arenaId, [
-      ...sales.flatMap((sale) => sale.items.map((item) => item.productId)),
-      ...stockMovements.map((movement) => movement.productId)
-    ]);
-    return { sales, stockMovements, productNames };
-  });
+  const { sales, stockMovements } = await getSalesWorkspaceData(auth.arenaId);
 
   return (
     <div className={viewStyles.stack_md}>
@@ -59,7 +42,7 @@ export default async function SalesPage() {
                 <span>
                   {formatMoney(sale.totalCents)} - {paymentLabels[sale.paymentMethod] ?? sale.paymentMethod} - {formatDate(sale.createdAt)}
                 </span>
-                <span>{sale.items.map((item) => `${item.quantity}x ${visibleProductName(productNames, item.productId)}`).join(", ")}</span>
+                <span>{sale.items.map((item) => `${item.quantity}x ${item.productName}`).join(", ")}</span>
               </div>
             ))}{!sales.length ? <p className={viewStyles.muted}>Nenhuma venda registrada ainda.</p> : null}</>
 
@@ -70,7 +53,7 @@ export default async function SalesPage() {
           <div className={viewStyles.simple_list}>
             <>{stockMovements.map((movement) => (
               <div className={viewStyles.simple_item} key={movement.id}>
-                <strong>{visibleProductName(productNames, movement.productId)}</strong>
+                <strong>{movement.productName}</strong>
                 <span>
                   {movement.type} {movement.quantity} un. - {movement.reason || "Sem motivo"} - {formatDate(movement.createdAt)}
                 </span>

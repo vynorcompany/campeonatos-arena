@@ -44,9 +44,9 @@ test("colaborador redefine senha por link privado e entra, sem manter bloqueio o
       const token = randomBytes(32).toString("hex");
       const hashAccountToken = (value: string) => createHash("sha256").update(value).digest("hex");
       const prisma = { ...tx, $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) };
-      const recovery = loadActions("../src/lib/actions/account-access.ts", {
+      const recovery = loadActions("../src/lib/backend/services/account-access.ts", {
         "next/cache": { revalidatePath() {} },
-        "@/lib/auth/session": { requireArenaAccess: async () => ({ arenaId: arena.id, arenaRole: "OWNER", systemRole: "VIEWER" }) },
+        "@/lib/backend/services/management-session": { requireArenaAccess: async () => ({ arenaId: arena.id, arenaRole: "OWNER", systemRole: "VIEWER" }) },
         "@/lib/auth/account-email": { accountEmailIsConfigured: () => false, sendAccountEmail: async () => { throw new Error("E-mail não configurado"); } },
         "@/lib/auth/account-tokens": {
           hashAccountToken,
@@ -74,10 +74,10 @@ test("colaborador redefine senha por link privado e entra, sem manter bloqueio o
 
       let sessionsCreated = 0;
       const redirectSignal = new Error("redirect:/painel");
-      const login = loadActions("../src/lib/auth/actions.ts", {
+      const login = loadActions("../src/lib/backend/services/management-auth.ts", {
         "next/navigation": { redirect: () => { throw redirectSignal; } },
         "@/lib/prisma": { prisma: tx },
-        "@/lib/auth/session": { createSession: async () => { sessionsCreated += 1; } },
+        "@/lib/backend/services/management-session": { createSession: async () => { sessionsCreated += 1; } },
         "@/lib/validators/auth": { loginSchema },
         "@/lib/permissions": {},
         "@/lib/finance/agency-billing-dates": {},
@@ -90,7 +90,7 @@ test("colaborador redefine senha por link privado e entra, sem manter bloqueio o
       const loginForm = new FormData(); loginForm.set("email", email); loginForm.set("password", oldPassword);
       assert.equal((await login.loginAction({ error: null }, loginForm)).error, "E-mail ou senha inválidos.");
       loginForm.set("password", newPassword);
-      await assert.rejects(login.loginAction({ error: null }, loginForm), (error: unknown) => error === redirectSignal);
+      assert.equal((await login.loginAction({ error: null }, loginForm)).redirectTo, "/painel");
       assert.equal(sessionsCreated, 1);
       throw rollback;
     }), (error: unknown) => error === rollback);

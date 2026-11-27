@@ -1,0 +1,47 @@
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+export async function assertCourtBookingSmoke(db,origin,staffId,sessionCookie){
+ const arenas=[];
+ try{
+  for(const name of ['Booking own synthetic','Booking foreign synthetic'])arenas.push(await db.arena.create({data:{name,slug:'court-booking-'+randomUUID(),createdById:'goal-test',onlineBookingWhatsappConfirmationEnabled:false}}));
+  const[arena,foreign]=arenas;
+  const member=await db.arenaMember.create({data:{arenaId:arena.id,userId:staffId,role:'STAFF',viewPermissions:['calendar'],editPermissions:[]}});
+  const cookie=sessionCookie.split(';')[0]+`; padel_arena=${arena.id}`;
+  const post=(operation,fields={},requestOrigin='http://127.0.0.1:3014')=>fetch(`${origin}/api/management/court-bookings/actions/${operation}`,{method:'POST',headers:{cookie,origin:requestOrigin,'content-type':'application/json'},body:JSON.stringify({fields:Object.fromEntries(Object.entries(fields).map(([key,value])=>[key,Array.isArray(value)?value:[value]]))}),redirect:'manual'});
+  const ok=async response=>{assert.equal(response.status,200,await response.clone().text());assert.equal(response.headers.get('cache-control'),'private, no-store');const value=await response.json();assert.equal(value.error,null,JSON.stringify(value));return value;};
+  const court=await db.court.create({data:{arenaId:arena.id,name:'Booking court'}});const foreignCourt=await db.court.create({data:{arenaId:foreign.id,name:'Foreign booking court'}});
+  const player=await db.player.create({data:{arenaId:arena.id,name:'Booking athlete'}});const foreignPlayer=await db.player.create({data:{arenaId:foreign.id,name:'Foreign booking athlete'}});
+  const bank=await db.bankAccount.create({data:{arenaId:arena.id,name:'Booking bank'}});
+  const participants=(paymentMethod='',bankAccountId='')=>JSON.stringify([{playerId:player.id,amountCents:7500,paymentMethod,bankAccountId}]);
+  const form={occurrenceId:'',courtId:court.id,courtIds:JSON.stringify([court.id]),title:'Booking supplied title',startsAt:'2040-01-02T10:00',durationMinutes:'60',bookingTypeName:'Reserva',repeatUntil:'',teacherId:'',responsiblePlayerId:player.id,notes:'',participants:participants(),courtPriceCents:'7500'};
+  assert.equal((await post('save',form)).status,403);
+  await db.arenaMember.update({where:{id:member.id},data:{editPermissions:['calendar:booking:create']}});
+  assert.equal((await post('save',{...form,arenaId:foreign.id})).status,400);assert.equal((await post('save',{...form,title:['one','two']})).status,400);assert.equal((await post('save',form,'https://foreign.invalid')).status,403);
+  assert.equal((await post('save',{...form,participants:participants('CASH',bank.id)})).status,403);
+  for(const fields of [{...form,courtId:foreignCourt.id,courtIds:JSON.stringify([foreignCourt.id])},{...form,participants:JSON.stringify([{playerId:foreignPlayer.id,amountCents:7500,paymentMethod:''}]),responsiblePlayerId:foreignPlayer.id}]){const response=await post('save',fields);assert.equal(response.status,200);assert.ok((await response.json()).error);}
+  const race=await Promise.all([post('save',form),post('save',form)]);const raceValues=await Promise.all(race.map(async response=>{assert.equal(response.status,200);return response.json();}));assert.equal(raceValues.filter(value=>value.version).length,1);assert.equal(raceValues.filter(value=>value.error).length,1);
+  let booking=await db.scheduleOccurrence.findFirstOrThrow({where:{arenaId:arena.id},include:{participants:{include:{financialEntry:true}}}});assert.equal(booking.participants[0].financialEntry.status,'PENDING');assert.equal(booking.participants[0].financialEntry.amountCents,7500);assert.equal(await db.scheduleOccurrence.count({where:{arenaId:arena.id}}),1);
+  const created=await db.auditEvent.findFirstOrThrow({where:{arenaId:arena.id,entityId:booking.id,action:'booking.created'}});assert.equal(created.actorId,staffId);
+  assert.equal((await post('save',{...form,occurrenceId:booking.id,expectedUpdatedAt:booking.updatedAt.toISOString()})).status,403);
+  await db.arenaMember.update({where:{id:member.id},data:{editPermissions:['calendar:booking:edit','finance:receivable:settle']}});
+  const receive={...form,occurrenceId:booking.id,expectedUpdatedAt:booking.updatedAt.toISOString(),participants:participants('CASH',bank.id)};
+  await ok(await post('save',receive));booking=await db.scheduleOccurrence.findUniqueOrThrow({where:{id:booking.id},include:{participants:{include:{financialEntry:{include:{settlements:true}}}}}});assert.equal(booking.participants[0].financialEntry.status,'PAID');assert.equal(booking.participants[0].financialEntry.settlements.length,1);assert.equal(booking.participants[0].financialEntry.bankAccountId,bank.id);
+  const stale=await post('save',{...receive,notes:'Stale should not save'});assert.equal(stale.status,200);assert.ok((await stale.json()).error);assert.equal((await db.scheduleOccurrence.findUniqueOrThrow({where:{id:booking.id}})).notes,'');
+  await ok(await post('save',{...receive,expectedUpdatedAt:booking.updatedAt.toISOString()}));assert.equal(await db.financialSettlement.count({where:{arenaId:arena.id}}),1);
+  const pending=await db.scheduleOccurrence.create({data:{arenaId:arena.id,sourceType:'ONLINE_BOOKING',status:'PENDING_CONFIRMATION',title:'Online confirmation synthetic',startsAt:new Date('2040-01-03T13:00:00Z'),endsAt:new Date('2040-01-03T14:00:00Z'),occurrenceCourts:{create:{courtId:court.id}},participants:{create:{playerId:player.id}}}});
+  const confirmations=await Promise.all([post('confirm',{occurrenceId:pending.id}),post('confirm',{occurrenceId:pending.id})]);assert.deepEqual(confirmations.map(response=>response.status).sort(),[200,400]);await ok(confirmations.find(response=>response.status===200));assert.equal((await db.scheduleOccurrence.findUniqueOrThrow({where:{id:pending.id}})).status,'SCHEDULED');assert.equal(await db.playerNotification.count({where:{playerId:player.id,type:'ONLINE_BOOKING_CONFIRMED'}}),1);assert.equal((await post('confirm',{occurrenceId:pending.id})).status,400);assert.equal(await db.playerNotification.count({where:{playerId:player.id,type:'ONLINE_BOOKING_CONFIRMED'}}),1);
+  await db.arenaMember.update({where:{id:member.id},data:{editPermissions:['calendar:booking:create','finance:receivable:settle']}});
+  await ok(await post('save',{...form,startsAt:'2040-02-01T10:00',bookingTypeName:'Reserva fixa',repeatUntil:'2040-02-15',participants:participants('CASH',bank.id)}));
+  const series=await db.scheduleBookingSeries.findFirstOrThrow({where:{arenaId:arena.id},include:{occurrences:{orderBy:{startsAt:'asc'},include:{participants:{include:{financialEntry:true}}}}}});assert.equal(series.occurrences.length,3);assert.deepEqual(series.occurrences.map(row=>row.participants[0].financialEntry.status),['PAID','PENDING','PENDING']);
+  const middle=series.occurrences[1];const cancel={occurrenceId:middle.id,mode:'FREE',cancelOpenCharges:'yes'};
+  assert.equal((await post('cancel',cancel)).status,403);
+  await db.arenaMember.update({where:{id:member.id},data:{editPermissions:['calendar:recurrence:release']}});
+  await ok(await post('cancel',cancel));
+  const preserved=await db.scheduleBookingSeries.findUniqueOrThrow({where:{id:series.id},include:{occurrences:{orderBy:{startsAt:'asc'},include:{participants:{include:{financialEntry:true}}}}}});assert.equal(preserved.status,'ACTIVE');assert.equal(preserved.occurrences.length,3);assert.deepEqual(preserved.occurrences.map(row=>row.status),['SCHEDULED','CANCELED','SCHEDULED']);assert.deepEqual(preserved.occurrences.map(row=>row.participants[0].financialEntry.status),['PAID','VOIDED','PENDING']);
+  const releasedAudit=await db.auditEvent.findFirstOrThrow({where:{arenaId:arena.id,entityId:middle.id,action:'DB:UPDATE:ScheduleOccurrence'},orderBy:{createdAt:'desc'}});assert.equal(releasedAudit.actorId,staffId);
+  assert.equal((await post('cancel',{occurrenceId:booking.id,mode:'CANCEL',cancelOpenCharges:'yes'})).status,403);
+  await db.arenaMember.update({where:{id:member.id},data:{editPermissions:['calendar:booking:cancel']}});await ok(await post('cancel',{occurrenceId:booking.id,mode:'CANCEL',cancelOpenCharges:'yes'}));assert.equal((await db.financialEntry.findUniqueOrThrow({where:{id:booking.participants[0].financialEntryId}})).status,'PAID');assert.equal(await db.financialSettlement.count({where:{arenaId:arena.id}}),2);
+  const foreignOccurrence=await db.scheduleOccurrence.create({data:{arenaId:foreign.id,sourceType:'BOOKING',title:'Foreign occurrence',startsAt:new Date('2040-01-02T13:00:00Z'),endsAt:new Date('2040-01-02T14:00:00Z')}});assert.equal((await post('cancel',{occurrenceId:foreignOccurrence.id,mode:'CANCEL',cancelOpenCharges:'no'})).status,400);assert.equal((await db.scheduleOccurrence.findUniqueOrThrow({where:{id:foreignOccurrence.id}})).status,'SCHEDULED');
+  console.log('Court bookings HTTP: scoped permissions, concurrency, stale versions, paid receipts, confirmation, one-slot release with attributed audit and preservation of the recurring series/paid charges passed.');
+ }finally{const ids=arenas.map(row=>row.id);await db.scheduleOccurrence.deleteMany({where:{arenaId:{in:ids}}});await db.financialEntry.deleteMany({where:{arenaId:{in:ids}}});await db.auditEvent.deleteMany({where:{arenaId:{in:ids}}});await db.arena.deleteMany({where:{id:{in:ids},slug:{startsWith:'court-booking-'}}});}
+}

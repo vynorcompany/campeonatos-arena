@@ -1,0 +1,6 @@
+import"server-only";
+import{planListSchema,planListQuerySchema,planDetailSchema,type PlanListQuery}from"@/lib/backend/contracts/plan-queries";
+import{readBackendContract,backendOrigin}from"@/lib/backend/http-client";
+import{managementCookieHeader}from"@/lib/backend/management-context-client";
+export async function getPlanList(arenaId:string,query:PlanListQuery){const parsed=planListQuerySchema.parse(query),origin=process.env.VX4_BACKEND_ORIGIN;return origin?readBackendContract(origin,`/api/management/plans/list?${new URLSearchParams(parsed)}`,planListSchema,{cookie:(await managementCookieHeader())??""},{timeoutMs:60000}):(await import("@/lib/backend/services/plan-queries")).resolvePlanList(arenaId,parsed);}
+export async function getPlanDetail(arenaId:string,id:string){const origin=process.env.VX4_BACKEND_ORIGIN;if(!origin)return(await import("@/lib/backend/services/plan-queries")).resolvePlanDetail(arenaId,id);const response=await fetch(new URL(`/api/management/plans/detail?${new URLSearchParams({id})}`,backendOrigin(origin)),{headers:{Accept:"application/json",cookie:(await managementCookieHeader())??""},cache:"no-store",redirect:"error",signal:AbortSignal.timeout(60000)});if(response.status===404)return null;if(!response.ok)throw Error("Não foi possível consultar o plano.");return planDetailSchema.parse(await response.json());}

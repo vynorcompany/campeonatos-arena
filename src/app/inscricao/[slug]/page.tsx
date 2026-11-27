@@ -5,8 +5,7 @@ import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicRegistrationForm } from "@/components/forms/public-registration-form";
-import { prisma } from "@/lib/prisma";
-import { arenaDatabase } from "@/lib/arena-database";
+import { getPublicRegistrationPage } from "@/lib/services/public-event-pages";
 
 type PublicTournamentTab = "inscricao" | "inscritos" | "chaveamento" | "jogos";
 
@@ -32,34 +31,7 @@ export default async function PublicRegistrationPage(
   const requestedTab = publicTabs.some((tab) => tab.id === searchParams?.tab)
     ? searchParams?.tab as PublicTournamentTab
     : "inscricao";
-  const [tournamentOwner] = await prisma.$queryRaw<{ id: string; arenaId: string }[]>`SELECT * FROM public.resolve_tournament_public_slug(${params.slug})`;
-  if (!tournamentOwner) notFound();
-  const tournament = await arenaDatabase(tournamentOwner.arenaId).tournament.findUnique({
-    where: { publicSlug: params.slug, arenaId: tournamentOwner.arenaId },
-    include: {
-      arena: { select: { name: true, logoUrl: true, slug: true } },
-      categories: { where: { active: true, archivedAt: null }, orderBy: { level: "asc" }, include: { competition: { select: { format: true, status: true, isPublic: true, pairs: { where: { active: true, competition: { format: "TRIO", isPublic: true, status: { in: ["PUBLISHED", "FINISHED"] } } }, orderBy: { drawOrder: "asc" }, select: { id: true, name: true, players: { orderBy: { slot: "asc" }, select: { player: { select: { id: true, name: true } } } } } }, matches: { where: { competition: { format: "TRIO", isPublic: true, status: { in: ["PUBLISHED", "FINISHED"] } } }, orderBy: { roundOrder: "asc" }, select: { id: true, label: true, stage: true, scheduledTime: true, courtName: true, homeScore: true, awayScore: true, homePair: { select: { name: true, players: { select: { player: { select: { id: true, name: true } } } } } }, awayPair: { select: { name: true, players: { select: { player: { select: { id: true, name: true } } } } } }, trioGames: { orderBy: { gameNumber: "asc" }, select: { gameNumber: true, homePlayerIds: true, awayPlayerIds: true, homeScore: true, awayScore: true } } } } } } } },
-      publicRegistrations: {
-        where: { status: "CONFIRMED" },
-        orderBy: [{ registrationOrder: "asc" }, { createdAt: "asc" }, { id: "asc" }],
-        select: { id: true, leadName: true, partnerName: true, thirdName: true, categoryId: true },
-      },
-      categoryBrackets: {
-        where: { category: { archivedAt: null } },
-        include: {
-          category: { select: { name: true } },
-          matches: {
-            orderBy: [{ roundOrder: "asc" }, { label: "asc" }],
-            include: {
-              homeRegistration: { select: { leadName: true, partnerName: true, thirdName: true } },
-              awayRegistration: { select: { leadName: true, partnerName: true, thirdName: true } },
-              winnerRegistration: { select: { leadName: true, partnerName: true, thirdName: true } },
-            },
-          },
-        },
-      },
-    },
-  });
+  const tournament = await getPublicRegistrationPage(params.slug);
 
   if (!tournament) notFound();
   const availablePublicTabs = tournament.categories.some(category => category.registrationType !== "INDIVIDUAL") ? publicTabs : publicTabs.filter(tab => tab.id === "inscricao" || tab.id === "inscritos");

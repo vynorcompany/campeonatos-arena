@@ -1,11 +1,11 @@
 
+import { teacherDetailDateInput as inputDate } from "@/lib/academy/teacher-detail-dates";
 import { currentPlanBill } from "@/lib/academy/current-plan-bill";
-import { lessonCreditBalances } from "@/lib/academy/lesson-credits";
-import { withArenaTransaction } from "@/lib/rls";
+import { getTeacherDetailData } from "@/lib/academy/teacher-detail-data";
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { TeacherPlanTransferDialog } from "@/components/teachers/teacher-plan-transfer-dialog";
 import { TeacherPlanPriceSchedule } from "@/components/teachers/teacher-plan-price-schedule";
-import { academyToday } from "@/lib/academy/plan-price-worker";
+import { academyToday } from "@/lib/academy/today";
 import { transferCycle } from "@/lib/academy/plan-transfer-calculation";
 import { cx } from "@/lib/ui/classes";
 import { viewStyles } from "./page.utilities";
@@ -29,14 +29,11 @@ import {
 } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
-import { arenaDatabase } from "@/lib/arena-database";
-import { instantToArenaWallClock } from "@/lib/calendar/arena-wall-clock";
 
 const money = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
     value / 100,
   );
-const inputDate = (value: Date) => value.toISOString().slice(0, 10);
 type DetailQuery = {
   q?: string;
   tab?: string;
@@ -56,128 +53,16 @@ export default async function TeacherDetailPage(
   const searchParams = await props.searchParams;
   const params = await props.params;
   const auth = await requireModuleView("teachers");
-  const prisma = arenaDatabase(auth.arenaId);
   const tab =
     searchParams?.tab === "students" ||
     searchParams?.tab === "classes" ||
     searchParams?.tab === "report"
       ? searchParams.tab
       : "plans";
-  const canRegisterEnrollmentPayment = canPerformPermission("finance:receivable:settle", auth.arenaRole, auth.systemRole, auth.editPermissions);
-  const enrollmentBankAccounts = canRegisterEnrollmentPayment ? await prisma.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }) : [];
-  const now = instantToArenaWallClock(new Date());
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-    999,
-  );
-  const reportStart = searchParams?.inicio
-    ? new Date(`${searchParams.inicio}T00:00:00`)
-    : monthStart;
-  const reportEnd = searchParams?.fim
-    ? new Date(`${searchParams.fim}T23:59:59`)
-    : monthEnd;
-  const [teacher, clients, targetTeachers, makeupAttendances] = await Promise.all([
-    prisma.teacher.findFirst({
-      where: { id: params.teacherId, arenaId: auth.arenaId },
-      include: {
-        player: { select: { photoUrl: true } },
-        planAssignments: {
-          where: { active: true },
-          include: {
-            priceChanges: { where: { status: "SCHEDULED" }, orderBy: { effectiveDate: "asc" } },
-            plan: {
-              include: {
-                subscriptions: {
-                  where: { status: "ACTIVE", student: { teacherAssignments: { some: { teacherId: params.teacherId, active: true } } } },
-                  include: {
-                    student: {
-                      select: { id: true, name: true, playerId: true, remainingClasses: true },
-                    },
-                  },
-                },
-                financialEntries: {
-                  select: {
-                    id: true,
-                    counterpartyName: true,
-                    playerId: true,
-                    amountCents: true,
-                    status: true,
-                    paidAt: true,
-                    dueDate: true,
-                  },
-                  orderBy: { dueDate: "desc" },
-                },
-              },
-            },
-          },
-        },
-        lessons: {
-          where: { scheduledAt: { gte: monthStart, lte: monthEnd } },
-          include: { attendances: true },
-        },
-        classGroups: {
-          where: { active: true },
-          include: {
-            schedules: { orderBy: [{ weekday: "asc" }, { startTime: "asc" }] },
-            plans: { select: { planId: true } },
-            enrollments: {
-              where: { status: "ACTIVE" },
-              include: { student: { select: { id: true, name: true } } },
-              orderBy: { student: { name: "asc" } },
-            },
-          },
-          orderBy: { name: "asc" },
-        },
-      },
-    }),
-    prisma.player.findMany({
-      where: { arenaId: auth.arenaId, active: true },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true, phone: true },
-    }),
-    prisma.teacher.findMany({
-      where: {
-        arenaId: auth.arenaId,
-        active: true,
-        NOT: { id: params.teacherId },
-      },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
-    prisma.lessonAttendance.findMany({ where: { student: { arenaId: auth.arenaId, teacherAssignments: { some: { teacherId: params.teacherId, active: true } } }, makeupRequestedAt: { not: null } }, select: { makeupScheduledAt: true, makeupExpiresAt: true } }),
-  ]);
-  if (!teacher) notFound();
-  const paidCreditBalances = await withArenaTransaction(auth.arenaId, tx => lessonCreditBalances(tx, auth.arenaId, teacher.planAssignments.flatMap(({ plan }) => plan.subscriptions.map(sub => sub.student.id))));
-  for (const { plan } of teacher.planAssignments) for (const subscription of plan.subscriptions) subscription.student.remainingClasses = paidCreditBalances.get(subscription.student.id) ?? subscription.student.remainingClasses;
-  const activeStudentFinancialEntries = await prisma.financialEntry.findMany({
-    where: {
-      arenaId: auth.arenaId,
-      type: "REVENUE",
-      planId: { in: teacher.planAssignments.map(({ plan }) => plan.id) },
-      playerId: {
-        in: teacher.planAssignments.flatMap(({ plan }) =>
-          plan.subscriptions
-            .map((subscription) => subscription.student.playerId)
-            .filter((playerId): playerId is string => Boolean(playerId)),
-        ),
-      },
-    },
-    select: {
-      id: true,
-      planId: true,
-      playerId: true,
-      status: true,
-      dueDate: true,
-      paidAt: true,
-    },
-    orderBy: { dueDate: "desc" },
-  });
+  const canRegisterPayment = canPerformPermission("finance:receivable:settle", auth.arenaRole, auth.systemRole, auth.editPermissions);
+  const data = await getTeacherDetailData(auth.arenaId, params.teacherId, { inicio: searchParams?.inicio, fim: searchParams?.fim }, canRegisterPayment);
+  if (!data) notFound();
+  const { teacher, clients, targetTeachers, makeupAttendances, activeStudentFinancialEntries, enrollmentBankAccounts, canRegisterEnrollmentPayment, now, reportStart, reportEnd } = data;
   const classGroupsBySchedule = [...teacher.classGroups].sort(
     (first, second) => {
       const firstSchedule = first.schedules[0];

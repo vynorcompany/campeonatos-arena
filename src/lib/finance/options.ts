@@ -1,0 +1,7 @@
+import"server-only";
+import{readBackendContract}from"@/lib/backend/http-client";
+import{managementCookieHeader}from"@/lib/backend/management-context-client";
+import{financialOperationsOptionsSchema,portalPaymentOptionsSchema,comandaWhatsappOptionsSchema}from"@/lib/backend/contracts/financial-options";
+export async function getFinancialOperationsOptions(arenaId:string){const origin=process.env.VX4_BACKEND_ORIGIN;return origin?readBackendContract(origin,"/api/management/finance/options/operations",financialOperationsOptionsSchema,{cookie:(await managementCookieHeader())??""}):(await import("@/lib/backend/services/financial-options")).resolveFinancialOperationsOptions(arenaId);}
+export async function getPortalPaymentOptions(arenaId:string){const origin=process.env.VX4_BACKEND_ORIGIN;return origin?readBackendContract(origin,"/api/management/finance/options/portal",portalPaymentOptionsSchema,{cookie:(await managementCookieHeader())??""}):(await import("@/lib/backend/services/financial-options")).resolvePortalPaymentOptions(arenaId);}
+export async function getComandaWhatsappOptions(arenaId:string){const origin=process.env.VX4_BACKEND_ORIGIN;return origin?readBackendContract(origin,"/api/management/finance/options/whatsapp",comandaWhatsappOptionsSchema,{cookie:(await managementCookieHeader())??""}):(await import("@/lib/backend/services/financial-options")).resolveComandaWhatsappOptions(arenaId);}

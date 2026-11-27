@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 
 import vm from "node:vm";
 import { randomUUID } from "node:crypto";
+import { PortalAccountOperationError } from "../src/lib/backend/portal-account-error";
 import { reservationCreditGrants } from "../src/lib/plans/reservation-credits";
 import {z} from "zod";
 import { availableFixedTimes, fixedMonthAmount, fixedCycle, fixedSchedules } from "../src/lib/plans/fixed-court";
@@ -62,6 +63,7 @@ test("dependent billing snapshots guardian, spends guardian credit atomically, a
             let portalPlayerId = parent.id; let providerCalls=0;let canceledProvider:string[]=[];let cancelFails=false;const providerStatuses:Record<string,string>={};
             const auth = { arenaId: arena.id, userId: "goal-test", userName: "Operador QA" };
             const mocks: Record<string, unknown> = {
+                "@/lib/backend/portal-account-error": { PortalAccountOperationError },
                 "@prisma/client": { Prisma }, zod:{z},
                 "@/lib/auth/player-session":{requirePublicPlayerAuth:async()=>({arenaId:arena.id,playerId:portalPlayerId})},
                 "@/lib/env":{env:{appUrl:"http://localhost"}},

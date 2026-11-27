@@ -1,5 +1,5 @@
 import { viewStyles } from "./agency-plans-content.utilities";
-import type { AgencyInvoice, AgencyPaymentConnection, AgencyPlan, AgencySubscription, Arena } from "@prisma/client";
+import type { AgencyPlansPage } from "@/lib/backend/contracts/agency-pages";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { assignAgencyPlanAction, prepareAgencyInvoiceAction, saveAgencyBillingGraceAction, saveAgencyPlanAction, setAgencySubscriptionStatusAction } from "@/lib/actions/agency-subscriptions";
@@ -8,12 +8,7 @@ import { agencyStatusLabel } from "@/lib/agency/status-label";
 
 const date = (value: Date | null) => value ? new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(value) : "—";
 
-export type AgencyPlansContentProps = {
-  plans: AgencyPlan[];
-  arenas: Array<Pick<Arena, "id" | "name" | "accountStatus">>;
-  subscriptions: Array<AgencySubscription & { plan: AgencyPlan }>;
-  invoices: Array<AgencyInvoice & { arena: { name: string } }>;
-  connection: AgencyPaymentConnection | null;
+export type AgencyPlansContentProps = AgencyPlansPage & {
   notice: { connected?: string; connectionError?: string };
 };
 

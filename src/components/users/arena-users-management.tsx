@@ -7,8 +7,7 @@ import { SectionCard } from "@/components/section-card";
 import { UserActionsCell } from "@/components/users/user-actions-cell";
 import { SafeActionForm } from "@/components/forms/safe-action-form";
 import { revokeArenaInviteAction } from "@/lib/actions/account-access";
-import { ensureArenaPermissionProfiles } from "@/lib/actions/permission-profile";
-import { prisma } from "@/lib/prisma";
+import { getAccessUsers } from "@/lib/arena-access/data";
 import { isMigratedPermissionProfile, permissionProfileLabel, permissionProfileOptionLabel } from "@/lib/permission-profile-label";
 import type { ArenaRole } from "@/types/auth";
 
@@ -19,16 +18,7 @@ type ArenaUsersManagementProps = {
 };
 
 export async function ArenaUsersManagement({ arenaId, currentUserId, query = "" }: ArenaUsersManagementProps) {
-  await ensureArenaPermissionProfiles(arenaId);
-  const members = await prisma.arenaMember.findMany({
-    where: { arenaId, ...(query ? { user: { OR: [{ name: { contains: query, mode: "insensitive" } }, { email: { contains: query, mode: "insensitive" } }] } } : {}) },
-    include: { user: true, permissionProfile: true },
-    orderBy: [{ role: "desc" }, { user: { name: "asc" } }]
-  });
-  const [profiles, invites] = await Promise.all([
-    prisma.permissionProfile.findMany({ where: { arenaId, active: true }, orderBy: { name: "asc" } }),
-    prisma.accountActionToken.findMany({ where: { arenaId, kind: "INVITE", usedAt: null, expiresAt: { gt: new Date() }, ...(query ? { OR: [{ name: { contains: query, mode: "insensitive" } }, { email: { contains: query, mode: "insensitive" } }] } : {}) }, select: { id: true, email: true, name: true, expiresAt: true }, orderBy: { createdAt: "desc" }, take: 50 })
-  ]);
+  const {members,profiles,invites} = await getAccessUsers(arenaId,query);
   const assignableProfiles = profiles
     .filter((profile) => !isMigratedPermissionProfile(profile.name))
     .map((profile) => ({ id: profile.id, name: profile.name }));

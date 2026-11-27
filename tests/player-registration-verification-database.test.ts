@@ -42,7 +42,7 @@ test(`cadastro por código sincroniza e-mail (${existingContact ? "contato exist
       const mocks: Record<string, unknown> = {
     "@/lib/legal/version": { legalVersion },
         "next/navigation": { redirect: (url: string) => { throw new Error(`redirect:${url}`); } },
-        "@/lib/auth/player-session": { createPublicPlayerSession: async (id: string) => { sessions.push(id); }, destroyPublicPlayerSession: async () => {} },
+        "@/lib/backend/services/player-session": { createPublicPlayerSession: async (id: string) => { sessions.push(id); }, destroyPublicPlayerSession: async () => {} },
         "@/lib/prisma": { prisma },
         "@/lib/rls": { withArenaTransaction: async (_arenaId: string, callback: (client: typeof tx) => Promise<unknown>) => callback(tx) },
         "@/lib/services/public-client-registration": { resolvePublicClientPlayer: (players: any[]) => players.find(player => player.phone === phone) ?? null },
@@ -51,7 +51,7 @@ test(`cadastro por código sincroniza e-mail (${existingContact ? "contato exist
         "@/lib/phone": { normalizeBrazilianPhone },
         "@/lib/auth/login-attempts": { activeLoginLock: async () => null, recordFailedLogin: async () => null, clearLoginFailures: async () => {} },
       };
-      const source = readFileSync(new URL("../src/lib/actions/player-auth.ts", import.meta.url), "utf8");
+      const source = readFileSync(new URL("../src/lib/backend/services/player-auth.ts", import.meta.url), "utf8");
       vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, { exports, require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)), FormData, Date, URL, Buffer, console });
       const form = (code?: string) => { const data = new FormData(); data.set("termsAccepted", "on"); data.set("legalVersion", legalVersion); data.set("arenaSlug", "arena-teste-goal"); data.set("returnTo", ""); data.set("email", "Atleta@Example.test"); data.set("name", "Atleta Descartável GOAL"); data.set("phone", code ? phone : `+55${phone}`); data.set("password", "GoalSenha123!"); data.set("confirmPassword", "GoalSenha123!"); if (code) data.set("code", code); return data; };
 
@@ -68,7 +68,7 @@ test(`cadastro por código sincroniza e-mail (${existingContact ? "contato exist
         exports.confirmPublicClientRegistrationAction({ error: null }, form(ownCode)),
         exports.confirmPublicClientRegistrationAction({ error: null }, form(ownCode)),
       ]);
-      assert.equal(confirmations.filter((result) => result.status === "rejected" && String(result.reason).includes("redirect:/reservar/arena-teste-goal")).length, 1);
+      assert.equal(confirmations.filter((result) => result.status === "fulfilled" && result.value.redirectTo === "/reservar/arena-teste-goal").length, 1);
       assert.equal(confirmations.filter((result) => result.status === "fulfilled" && /código|conta/i.test(result.value.error ?? "")).length, 1);
       assert.equal(await tx.playerAccount.count({ where: { arenaId: arenaA.id, phone } }), 1);
       assert.equal(await tx.playerAccount.count({ where: { arenaId: arenaB.id, phone } }), 0);

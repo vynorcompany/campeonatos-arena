@@ -1,3 +1,4 @@
+import { FinanceOperationError } from "@/lib/finance/action-error";
 export function parseMoneyToCents(value: string) {
   const cleanValue = value.trim() || "0";
   // Aceita tanto o valor técnico ("1200,50") quanto o valor exibido pelo
@@ -9,7 +10,7 @@ export function parseMoneyToCents(value: string) {
   const amount = Number(normalized);
 
   if (!Number.isFinite(amount) || amount < 0) {
-    throw new Error("Valor inválido.");
+    throw new FinanceOperationError("Valor inválido.");
   }
 
   return Math.round(amount * 100);

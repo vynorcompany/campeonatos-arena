@@ -1,129 +1,30 @@
 "use server";
-import { availabilityDate, readDateAvailability } from "@/lib/calendar/date-availability";
-import { activeCourtOccurrenceWhere } from "@/lib/calendar/online-booking-hold";
-import { z } from "zod";
-import { BookingServiceUnavailableError } from "@/lib/calendar/booking-services";
-import { requirePermission } from "@/lib/auth/guards";
-import { withArenaTransaction } from "@/lib/rls";
-import { manuallyCheckInParticipant, addOptionalBookingService, removeOptionalBookingService, blockCourtSlots, moveBookingCourt, releaseBlockedCourtSlot } from "@/lib/calendar/staff-operations";
-import { refreshCalendarRoutes } from "@/lib/calendar/revalidation";
-import { refreshFinanceRoutes } from "@/lib/finance/revalidation";
-
-type BookingCharges = {
-  version: string;
-  totalAmountCents: number;
-  participants: { playerId: string; amountCents: number; paymentMethod: string; bankAccountId?: string; checkedInAt: string | null }[];
-  services: { id: string; name: string; priceCents: number }[];
-};
-type AgendaResult = { error?: string; checkedInAt?: string; charges?: BookingCharges };
-async function bookingCharges(tx: import("@/lib/rls").ArenaTransaction, arenaId: string, occurrenceId: string): Promise<BookingCharges> {
-  const booking = await tx.scheduleOccurrence.findFirstOrThrow({ where: { id: occurrenceId, arenaId }, include: {
-    participants: { orderBy: { id: "asc" }, include: { financialEntry: { select: { bankAccountId: true } } } },
-    serviceReservations: { orderBy: { id: "asc" } },
-  } });
-  return {
-    version: booking.updatedAt.toISOString(),
-    participants: booking.participants.map(participant => ({ playerId: participant.playerId, amountCents: participant.amountCents, paymentMethod: participant.paymentMethod ?? "", bankAccountId: participant.financialEntry?.bankAccountId ?? undefined, checkedInAt: participant.checkedInAt?.toISOString() ?? null })),
-    totalAmountCents: booking.courtPriceCents == null ? booking.participants.reduce((sum, p) => sum + p.amountCents, 0) : booking.courtPriceCents + booking.serviceReservations.reduce((sum, service) => sum + service.priceCents, 0),
-    services: booking.serviceReservations.map(service => ({ id: service.id, name: service.serviceName, priceCents: service.priceCents })),
-  };
+import { runCourtBookingMutation } from "@/lib/calendar/booking-mutation";
+export async function manualBookingCheckinAction(form: FormData) {
+  const result = await runCourtBookingMutation("checkin", form);
+  return { error: result.error ?? undefined, checkedInAt: result.checkedInAt, charges: result.charges };
 }
-const visibleErrors = new Set([
-  "Adicione atletas à reserva antes de inserir o serviço.",
-  "Revise o pagamento da reserva antes de inserir o serviço.",
-  "Serviço indisponível na grade desta arena.",
-  "Bloqueio não encontrado. Atualize a grade.",
-  "Selecione um atleta desta reserva confirmada.",
-  "Salve o atleta na reserva antes de fazer o check-in.",
-  "Este cliente está inativo. Ative o cadastro antes de fazer o check-in.",
-  "Este atleta já realizou check-in em outro horário coincidente.",
-  "Serviço não encontrado nesta reserva.",
-  "Revise o pagamento da reserva antes de remover o serviço.",
-  "O valor da reserva precisa de revisão financeira antes de remover este serviço.",
-  "Selecione de 1 a 200 horários válidos.",
-  "Quadra não encontrada nesta arena.",
-  "Selecione horários pertencentes à grade.",
-  "Um dos horários foi reservado. Atualize a grade e selecione novamente.",
-  "Reserva não encontrada nesta arena.",
-  "Selecione uma reserva confirmada de uma única quadra.",
-  "A reserva foi alterada. Atualize a grade antes de mudar a quadra.",
-  "Já existe um agendamento nessa quadra para este horário.",
-  "Este horário é gerenciado pela origem e não pode ser editado pela agenda.",
-  "Esta reserva aguarda pagamento e não pode ser editada agora.",
-  "Esta reserva já tem pagamento ou cobrança online vinculada. Faça o ajuste financeiro antes de editá-la.",
-]);
-function actionError(error: unknown, fallback: string): AgendaResult {
-  const message = error instanceof Error ? error.message : "";
-  return { error: error instanceof BookingServiceUnavailableError || visibleErrors.has(message) ? message : fallback };
+export async function addBookingServiceAction(form: FormData) {
+  const result = await runCourtBookingMutation("service-add", form);
+  return { error: result.error ?? undefined, checkedInAt: result.checkedInAt, charges: result.charges };
 }
-
-export async function manualBookingCheckinAction(form: FormData): Promise<AgendaResult> {
-  const auth = await requirePermission("calendar:booking:edit");
-  try {
-    const input = z.object({ occurrenceId: z.string().min(1), playerId: z.string().min(1) }).parse(Object.fromEntries(form));
-    const date = await withArenaTransaction(auth.arenaId, tx => manuallyCheckInParticipant(tx, { ...input, arenaId: auth.arenaId, actorId: auth.userId, actorName: auth.userName }));
-    refreshCalendarRoutes(); return { checkedInAt: date.toISOString() };
-  } catch (error) { return actionError(error, "Não foi possível registrar o check-in. Atualize a reserva e tente novamente."); }
+export async function removeBookingServiceAction(form: FormData) {
+  const result = await runCourtBookingMutation("service-remove", form);
+  return { error: result.error ?? undefined, checkedInAt: result.checkedInAt, charges: result.charges };
 }
-export async function addBookingServiceAction(form: FormData): Promise<AgendaResult> {
-  const auth = await requirePermission("calendar:booking:edit");
-  try {
-    const input = z.object({ occurrenceId: z.string().min(1), productId: z.string().min(1) }).parse(Object.fromEntries(form));
-    const charges = await withArenaTransaction(auth.arenaId, async tx => { await addOptionalBookingService(tx, auth.arenaId, input.occurrenceId, input.productId); return bookingCharges(tx, auth.arenaId, input.occurrenceId); });
-    refreshCalendarRoutes(); refreshFinanceRoutes(); return { charges };
-  } catch (error) { return actionError(error, "Não foi possível inserir o serviço. Confira a disponibilidade e as condições na lista de serviços."); }
+export async function blockAgendaSlotsAction(form: FormData) {
+  const result = await runCourtBookingMutation("block-slots", form);
+  return { error: result.error ?? undefined, checkedInAt: result.checkedInAt, charges: result.charges };
 }
-export async function removeBookingServiceAction(form: FormData): Promise<AgendaResult> {
-  const auth = await requirePermission("calendar:booking:edit");
-  try {
-    const input = z.object({ occurrenceId: z.string().min(1), serviceId: z.string().min(1) }).parse(Object.fromEntries(form));
-    const charges = await withArenaTransaction(auth.arenaId, async tx => { await removeOptionalBookingService(tx, auth.arenaId, input.occurrenceId, input.serviceId); return bookingCharges(tx, auth.arenaId, input.occurrenceId); });
-    refreshCalendarRoutes(); refreshFinanceRoutes(); return { charges };
-  } catch (error) { return actionError(error, "Não foi possível remover o serviço. Atualize a reserva e tente novamente."); }
+export async function moveBookingCourtAction(form: FormData) {
+  const result = await runCourtBookingMutation("move", form);
+  return { error: result.error ?? undefined, checkedInAt: result.checkedInAt, charges: result.charges };
 }
-export async function blockAgendaSlotsAction(form: FormData): Promise<AgendaResult> {
-  const auth = await requirePermission("calendar:booking:create");
-  try {
-    const slots = z.array(z.object({ courtId: z.string().min(1), startsAt: z.string().datetime({ local: true }), endsAt: z.string().datetime({ local: true }) })).min(1).max(200).parse(JSON.parse(String(form.get("slots") ?? "[]")));
-    await withArenaTransaction(auth.arenaId, tx => blockCourtSlots(tx, auth.arenaId, slots.map(s => ({ courtId: s.courtId, startsAt: new Date(s.startsAt), endsAt: new Date(s.endsAt) }))), { timeout: 20_000 });
-    refreshCalendarRoutes(); return {};
-  } catch (error) { return actionError(error, "Não foi possível bloquear os horários. Atualize a grade e tente novamente."); }
+export async function releaseBlockedAgendaSlotAction(form: FormData) {
+  const result = await runCourtBookingMutation("release-block", form);
+  return { error: result.error ?? undefined, checkedInAt: result.checkedInAt, charges: result.charges };
 }
-export async function moveBookingCourtAction(form: FormData): Promise<AgendaResult> {
-  const auth = await requirePermission("calendar:booking:edit");
-  try {
-    const input = z.object({ occurrenceId: z.string().min(1), courtId: z.string().min(1) }).parse(Object.fromEntries(form));
-    await withArenaTransaction(auth.arenaId, tx => moveBookingCourt(tx, auth.arenaId, input.occurrenceId, input.courtId));
-    refreshCalendarRoutes(); return {};
-  } catch (error) { return actionError(error, "Não foi possível mudar a quadra. Atualize a reserva e tente novamente."); }
-}
-
-export async function releaseBlockedAgendaSlotAction(form: FormData): Promise<AgendaResult> {
-  const auth = await requirePermission("calendar:recurrence:release");
-  try {
-    const occurrenceId = z.string().min(1).parse(form.get("occurrenceId"));
-    await withArenaTransaction(auth.arenaId, tx => releaseBlockedCourtSlot(tx, auth.arenaId, occurrenceId));
-    refreshCalendarRoutes(); return {};
-  } catch (error) { return actionError(error, "Não foi possível liberar o horário. Atualize a grade e tente novamente."); }
-}
-
-export async function openAgendaDateSlotAction(form: FormData): Promise<AgendaResult> {
-  const auth = await requirePermission("calendar:recurrence:release");
-  try {
-    const input = z.object({ courtId:z.string().min(1), date:z.string().regex(/^\d{4}-\d{2}-\d{2}$/), startsAtMinute:z.coerce.number().int().min(0).max(1439), endsAtMinute:z.coerce.number().int().min(1).max(1440), priceCents:z.coerce.number().int().min(0).max(100000000), online:z.enum(["true","false"]) }).parse(Object.fromEntries(form));
-    await withArenaTransaction(auth.arenaId, async tx => {
-      await tx.$queryRaw`SELECT id FROM "Court" WHERE id = ${input.courtId} AND "arenaId" = ${auth.arenaId} FOR UPDATE`;
-      const [court, arena] = await Promise.all([tx.court.findFirst({where:{id:input.courtId,arenaId:auth.arenaId,active:true}}),tx.arena.findUniqueOrThrow({where:{id:auth.arenaId},select:{scheduleStartMinute:true,scheduleEndMinute:true,scheduleSlotMinutes:true}})]);
-      if(!court) throw new Error("Quadra não encontrada nesta arena.");
-      const start = new Date(`${input.date}T00:00:00`);
-      if(!Number.isFinite(start.getTime()) || availabilityDate(start)!==input.date || input.endsAtMinute-input.startsAtMinute!==arena.scheduleSlotMinutes || input.startsAtMinute<arena.scheduleStartMinute || input.endsAtMinute>arena.scheduleEndMinute || (input.startsAtMinute-arena.scheduleStartMinute)%arena.scheduleSlotMinutes!==0) throw new Error("Selecione horários pertencentes à grade.");
-      const end=new Date(start);start.setMinutes(input.startsAtMinute);end.setMinutes(input.endsAtMinute);
-      const conflict=await tx.scheduleOccurrence.findFirst({where:{arenaId:auth.arenaId,...activeCourtOccurrenceWhere(),startsAt:{lt:end},endsAt:{gt:start},occurrenceCourts:{some:{courtId:court.id}}},select:{id:true}});
-      if(conflict) throw new Error("Um dos horários foi reservado. Atualize a grade e selecione novamente.");
-      const rows=readDateAvailability(court.dateAvailability).filter(row=>row.date!==input.date || row.startsAtMinute!==input.startsAtMinute);
-      rows.push({date:input.date,startsAtMinute:input.startsAtMinute,endsAtMinute:input.endsAtMinute,priceCents:input.priceCents,online:input.online==="true"});
-      await tx.court.update({where:{id:court.id,arenaId:auth.arenaId},data:{dateAvailability:rows}});
-    });
-    refreshCalendarRoutes(); return {};
-  } catch(error) { return actionError(error,"Não foi possível liberar o horário deste dia. Atualize a grade e tente novamente."); }
+export async function openAgendaDateSlotAction(form: FormData) {
+  const result = await runCourtBookingMutation("open-slot", form);
+  return { error: result.error ?? undefined, checkedInAt: result.checkedInAt, charges: result.charges };
 }

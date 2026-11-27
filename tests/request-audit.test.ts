@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import test from "node:test";
 import { noteAuditArena } from "../src/lib/audit/request-context";
-const { createAuditedHandler, shouldAudit, operationOf } = createRequire(import.meta.url)("../scripts/request-audit.cjs");
+const { auditFailure, createAuditedHandler, shouldAudit, operationOf } = createRequire(import.meta.url)("../scripts/request-audit.cjs");
 const token = "synthetic-session-token";
 const digest = (value: string) => createHash("sha256").update(value).digest("hex");
 function fixture() {
@@ -69,14 +69,16 @@ test("uma solicitação sem sessão fica registrada sem atribuir uma arena arbit
 
 test("falha ao registrar a tentativa impede executar a ação e não expõe o erro do banco", async () => {
   const state = fixture();
-  state.tx.auditEvent.create = async () => { throw new Error("database-password-not-public"); };
+  state.tx.auditEvent.create = async () => { throw Object.assign(new Error("database-password-not-public"), { name: "PrismaClientKnownRequestError", code: "P2028" }); };
+  const failures: unknown[] = [];
   let executed = false;
-  await server(createAuditedHandler((_req: any, res: any) => { executed = true; res.end("executado"); }, { db: state.db, onError() {} }), async url => {
+  await server(createAuditedHandler((_req: any, res: any) => { executed = true; res.end("executado"); }, { db: state.db, onError(failure: unknown) { failures.push(failure); } }), async url => {
     const response = await fetch(`${url}/comandas`, { method: "POST" });
     assert.equal(response.status, 503);
     assert.doesNotMatch(await response.text(), /database-password-not-public/);
   });
   assert.equal(executed, false);
+  assert.deepEqual(failures, [{ stage: "REQUESTED", name: "PrismaClientKnownRequestError", code: "P2028" }]);
 });
 
 test("login é atribuído à sessão criada pela resposta; não perde o registro anônimo inicial", async () => {
@@ -108,10 +110,12 @@ test("sessões simultâneas atribuem a ação do portal ao cliente e a API à ch
   tx.agentApiKey = { findUnique: async () => ({ name: "Integração de teste" }) };
   await server(createAuditedHandler((_req: any, res: any) => { res.end("ok"); }, { db }), async url => {
     await fetch(`${url}/arena-client/portaldoatleta/agendamento`, { headers: { cookie: `padel_session=${token}; arena_player_session=client-token` } });
+    await fetch(`${url}/api/portal/session`, { headers: { cookie: `padel_session=${token}; arena_player_session=client-token` } });
+    await fetch(`${url}/api/portal/auth/logout-portal`, { method: "POST", headers: { cookie: `padel_session=${token}; arena_player_session=client-token` } });
     await fetch(`${url}/api/agents/clients`, { headers: { cookie: `padel_session=${token}`, authorization: `Bearer arena_${"c".repeat(64)}` } });
     await settled(state.records);
   });
-  assert.deepEqual([...state.records.values()].map(row => [row.actorId, row.arenaId]), [["client", "arena-client"], ["key", "arena-agent"]]);
+  assert.deepEqual([...state.records.values()].map(row => [row.actorId, row.arenaId]), [["client", "arena-client"], ["client", "arena-client"], ["client", "arena-client"], ["key", "arena-agent"]]);
 });
 
 test("erro inesperado do handler preserva a tentativa e registra interrupção sem expor detalhes", async () => {
@@ -165,4 +169,22 @@ test("requisições de integração usam as arenas observadas sem misturar conte
   });
   assert.deepEqual(new Map([...state.records.values()].map(row => [row.details.path, row.arenaId])), new Map([["/api/integration/a", "arena-a"], ["/api/integration/b", "arena-b"]]));
   for (const row of state.records.values()) assert.equal(row.details.affectedArenaCount, 1);
+});
+
+test("audit diagnostics classify failures without driver messages, SQL or credentials", () => {
+  const error = Object.assign(new Error('postgres://private:password@host/db SQL SELECT'), { name: 'PrismaClientKnownRequestError', code: 'P2028', meta: { query: 'private SQL' } });
+  assert.deepEqual(auditFailure(error, 'REQUESTED'), { stage: 'REQUESTED', name: 'PrismaClientKnownRequestError', code: 'P2028' });
+  const unknown = auditFailure({ name: 'private credential', code: 'private SQL', message: 'private body' }, 'private stage');
+  assert.deepEqual(unknown, { stage: 'COMPLETION', name: 'Error' });
+  assert.equal(JSON.stringify(auditFailure(error, 'REQUESTED')).includes('private'), false);
+});
+
+
+test("public registration audit does not adopt an unrelated management session", async () => {
+  const state = fixture();
+  await server(createAuditedHandler((_req: any, res: any) => { noteAuditArena("arena-event"); res.end("ok"); }, { db: state.db }), async url => {
+    assert.equal((await fetch(`${url}/api/public/registrations`, {method:"POST",headers:{cookie:`padel_session=${token}; padel_arena=arena-a`}})).status,200);
+    await settled(state.records);
+  });
+  const [record]=[...state.records.values()];assert.equal(record.actorId,"ANONYMOUS");assert.equal(record.arenaId,"arena-event");assert.equal(record.details.affectedArenaCount,1);
 });

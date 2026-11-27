@@ -8,6 +8,7 @@ import { PrismaClient } from "@prisma/client";
 import { isCategoryGender } from "../src/lib/tournament-category/options";
 import { arenaDatabaseForTest } from "./helpers/arena-database";
 import { parseReaisToCents } from "../src/lib/tournaments/inputs";
+import * as createContextContracts from "../src/lib/backend/contracts/tournament-events";
 
 const url = process.env.ARENA_GOAL_TEST_DATABASE_URL ?? "";
 const enabled = /^postgresql:\/\/postgres@127\.0\.0\.1:55433\/arena_goal\?/.test(url);
@@ -30,13 +31,25 @@ test("Editar Liga salva Mista com RLS, preserva atletas e impede editar outra ar
       return {};
     },
   });
+  const createContext: Record<string, (...args: any[]) => Promise<any>> = {};
+  vm.runInNewContext(ts.transpileModule(readFileSync("src/lib/backend/services/tournament-create-context.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
+    exports: createContext,
+    require(name: string) {
+      if (name === "server-only") return {};
+      if (name === "@/lib/auth/guards") return { requireModuleView: async () => ({ arenaId }) };
+      if (name === "@/lib/permissions") return { canPerformPermission: () => true };
+      if (name === "@/lib/arena-database") return { arenaDatabase: (id: string) => arenaDatabaseForTest(runtime, id) };
+      if (name === "../contracts/tournament-events") return createContextContracts;
+      throw Error("Unexpected context dependency " + name);
+    },
+  });
   const page: { default?: (props: any) => Promise<any> } = {};
   vm.runInNewContext(ts.transpileModule(readFileSync("src/app/(app)/torneios/[tournamentId]/categorias/nova/page.tsx", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText, {
     exports: page,
     require(name: string) {
       if (name === "@/lib/auth/guards") return { requireModuleView: async () => ({ arenaId }) };
       if (name === "@/lib/permissions") return { canPerformPermission: () => true };
-      if (name === "@/lib/arena-database") return { arenaDatabase: (id: string) => arenaDatabaseForTest(runtime, id) };
+      if (name === "@/lib/tournament/create-context") return { getTournamentCategoryCreateContext: (id: string) => createContext.resolveTournamentCategoryCreateContext(id) };
       if (name === "next/navigation") return { notFound() { throw new Error("NAO_ENCONTRADO"); }, redirect() { throw new Error("SEM_PERMISSAO"); } };
       if (name === "react/jsx-runtime") return { jsx: (type: any, props: any) => ({ type, props }), jsxs: (type: any, props: any) => ({ type, props }) };
       if (name === "./page.utilities") return { viewStyles: {} };

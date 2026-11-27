@@ -1,3 +1,4 @@
+import { getFinanceWorkspace } from "@/lib/finance/workspace-page";
 
 import { operationalWorkspace as ui } from "@/components/ui/operational-workspace";
 import { ReceivingBankAccountSelect } from "@/components/finance/bank-account-select";
@@ -8,7 +9,7 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { createSubscriptionAction, recordPlanPaymentAction } from "@/lib/actions/finance";
 import { requireFinanceView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
-import { withArenaTransaction } from "@/lib/rls";
+
 
 function getReferenceMonth() {
   const now = new Date();
@@ -27,22 +28,7 @@ export default async function MonthlyPaymentsPage() {
   const auth = await requireFinanceView("receivable");
   const canCreate = canPerformPermission("finance:receivable:create", auth.arenaRole, auth.systemRole, auth.editPermissions);
   const canSettle = canPerformPermission("finance:receivable:settle", auth.arenaRole, auth.systemRole, auth.editPermissions);
-  const [students, plans, subscriptions, bankAccounts] = await withArenaTransaction(auth.arenaId, (tx) => Promise.all([
-    tx.student.findMany({
-      where: { arenaId: auth.arenaId, active: true },
-      orderBy: { name: "asc" }
-    }),
-    tx.plan.findMany({
-      where: { arenaId: auth.arenaId, active: true },
-      orderBy: { name: "asc" }
-    }),
-    tx.studentSubscription.findMany({
-      where: { arenaId: auth.arenaId, status: "ACTIVE" },
-      include: { student: true, plan: true },
-      orderBy: { dueDay: "asc" }
-    }),
-    tx.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } })
-  ]));
+  const { students, plans, subscriptions, bankAccounts } = await getFinanceWorkspace(auth.arenaId, 'monthly');
   const today = new Date();
   const renewalLimit = new Date(today); renewalLimit.setDate(renewalLimit.getDate() + 30);
   const renewals = subscriptions.map((subscription) => ({ ...subscription, renewAt: renewalDate(subscription.startedAt) })).filter((subscription) => subscription.renewAt <= renewalLimit).sort((left, right) => left.renewAt.getTime() - right.renewAt.getTime());

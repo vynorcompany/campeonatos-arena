@@ -1,4 +1,4 @@
-import { readFileSync } from "./helpers/style-source";
+import { readStyledFileSync as readFileSync } from "./helpers/domain-source";
 import assert from "node:assert/strict";
 
 import { resolve } from "node:path";

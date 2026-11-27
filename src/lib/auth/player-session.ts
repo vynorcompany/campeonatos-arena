@@ -1,113 +1,25 @@
 import "server-only";
-
-import crypto from "node:crypto";
 import { cookies } from "next/headers";
-import { prisma } from "@/lib/auth/database";
-import { arenaDatabase } from "@/lib/arena-database";
-
-const PLAYER_SESSION_COOKIE = "arena_player_session";
-const PLAYER_SESSION_DAYS = 14;
-
-function hashToken(token: string) { return crypto.createHash("sha256").update(token).digest("hex"); }
-function parsePadelCategories(value: string, fallback: string) {
-  try {
-    const parsed = JSON.parse(value);
-    if (Array.isArray(parsed)) return parsed.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).map((item) => item.trim());
-  } catch {}
-  return fallback.trim() ? [fallback.trim()] : [];
-}
-
-export async function createPublicPlayerSession(playerAccountId: string, athleteIdentityId?: string | null) {
-  const token = crypto.randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + PLAYER_SESSION_DAYS * 24 * 60 * 60 * 1000);
-  await prisma.playerSession.create({ data: { token: hashToken(token), expiresAt, playerAccountId, athleteIdentityId: athleteIdentityId ?? undefined } });
-  (await cookies()).set(PLAYER_SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", expires: expiresAt, path: "/" });
-}
-
-export async function destroyPublicPlayerSession() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(PLAYER_SESSION_COOKIE)?.value;
-  if (token) await prisma.playerSession.deleteMany({ where: { token: { in: [token, hashToken(token)] } } });
-  cookieStore.delete(PLAYER_SESSION_COOKIE);
-}
-
-const membershipInclude = {
-  player: { include: { arena: { select: { slug: true, name: true, logoUrl: true, city: true, state: true, archivedAt: true } }, teacher: { select: { active: true } } } },
-} as const;
-
-async function getSession() {
-  const token = (await cookies()).get(PLAYER_SESSION_COOKIE)?.value;
-  if (!token) return null;
-  const session = await prisma.playerSession.findFirst({
-    where: { token: { in: [token, hashToken(token)] } },
-    select: {
-      id: true, expiresAt: true, athleteIdentityId: true,
-      playerAccount: { select: { id: true, arenaId: true, playerId: true, phone: true, identityId: true } },
-    },
-  });
-  if (!session || session.expiresAt < new Date()) {
-    if (session) await prisma.playerSession.deleteMany({ where: { id: session.id } });
-    return null;
-  }
-  const identityId = session.athleteIdentityId ?? session.playerAccount.identityId;
-  const [identity, accountRows] = await Promise.all([
-    identityId ? prisma.athleteIdentity.findUnique({ where: { id: identityId }, select: { id: true, phone: true, recoveryEmail: true } }) : Promise.resolve(null),
-    identityId
-      ? prisma.playerAccount.findMany({ where: { identityId }, select: { id: true, arenaId: true, playerId: true, phone: true, identityId: true } })
-      : Promise.resolve([session.playerAccount]),
-  ]);
-  const membershipRows = accountRows.some((account) => account.id === session.playerAccount.id)
-    ? accountRows
-    : [session.playerAccount, ...accountRows];
-  const accounts = (await Promise.all(membershipRows.map(async (account) => {
-    const player = await arenaDatabase(account.arenaId).player.findFirst({
-      where: { id: account.playerId, arenaId: account.arenaId },
-      include: membershipInclude.player.include,
-    });
-    return player && !player.arena.archivedAt ? { ...account, player } : null;
-  }))).filter((account): account is NonNullable<typeof account> => account !== null);
-  const primary = accounts.find((account) => account.id === session.playerAccount.id) ?? accounts[0];
-  if (!primary) return null;
-  const resolvedIdentity = identity ? { ...identity, accounts } : null;
-  return {
-    athleteIdentity: session.athleteIdentityId ? resolvedIdentity : null,
-    playerAccount: { ...primary, identity: resolvedIdentity },
-  };
-}
-
-type PublicPlayerSession = Awaited<ReturnType<typeof getSession>>;
-
-function resolvePublicPlayerAuth(session: PublicPlayerSession, arenaSlug: string) {
-  if (!session) return null;
-  const identity = session.athleteIdentity ?? session.playerAccount.identity;
-  const account = identity?.accounts.find((entry) => entry.player.active && entry.player.arena.slug === arenaSlug)
-    ?? (session.playerAccount.player.active && session.playerAccount.player.arena.slug === arenaSlug ? session.playerAccount : null);
-  if (!account) return null;
-  const player = account.player;
-  return { recoveryEmail: identity?.recoveryEmail ?? null, playerId: player.id, playerAccountId: account.id, athleteIdentityId: identity?.id ?? null, name: player.name, phone: player.phone, email: player.email, photoUrl: player.photoUrl, bio: player.bio, birthDate: player.birthDate?.toISOString().slice(0, 10) ?? "", gender: player.gender, padelCategories: parsePadelCategories(player.padelCategories, player.class), padelSide: player.padelSide, tournamentAvailability: player.tournamentAvailability, isTeacher: Boolean(player.teacher?.active), arenaId: player.arenaId };
-}
-
-function resolvePublicAthleteIdentity(session: PublicPlayerSession) {
-  if (!session) return null;
-  const identity = session.athleteIdentity ?? session.playerAccount.identity;
-  const accounts = identity?.accounts ?? [session.playerAccount];
-  return { id: identity?.id ?? null, phone: identity?.phone ?? session.playerAccount.phone, arenas: accounts.filter((account) => account.player.active).map((account) => ({ slug: account.player.arena.slug, name: account.player.arena.name, logoUrl: account.player.arena.logoUrl, playerName: account.player.name, city: account.player.addressCity || account.player.arena.city, state: account.player.addressState || account.player.arena.state })) };
-}
+import { readBackendContract } from "@/lib/backend/http-client";
+import { publicPlayerContextSchema } from "@/lib/backend/contracts/player-context";
 
 export async function getPublicPlayerContext(arenaSlug: string) {
-  const session = await getSession();
-  return {
-    currentClient: resolvePublicPlayerAuth(session, arenaSlug),
-    athleteIdentity: resolvePublicAthleteIdentity(session),
-  };
+  if (process.env.VX4_BACKEND_ORIGIN) {
+    const token = (await cookies()).get("arena_player_session")?.value;
+    return readBackendContract(process.env.VX4_BACKEND_ORIGIN,
+      `/api/portal/session?arena=${encodeURIComponent(arenaSlug)}`, publicPlayerContextSchema,
+      token ? { cookie: `arena_player_session=${encodeURIComponent(token)}` } : undefined);
+  }
+  const local = await import("@/lib/backend/services/player-session");
+  return local.getPublicPlayerContext(arenaSlug);
 }
 
 export async function getPublicPlayerAuth(arenaSlug: string) {
-  return resolvePublicPlayerAuth(await getSession(), arenaSlug);
+  return (await getPublicPlayerContext(arenaSlug)).currentClient;
 }
 
 export async function getPublicAthleteIdentity() {
-  return resolvePublicAthleteIdentity(await getSession());
+  return (await getPublicPlayerContext("")).athleteIdentity;
 }
 
 export async function requirePublicPlayerAuth(arenaSlug: string) {

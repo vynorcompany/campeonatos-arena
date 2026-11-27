@@ -8,8 +8,10 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8"
 
 test("inscrição em revisão não oferece novo pagamento e mostra o motivo da espera", () => {
   const page = read("src/app/inscricao/[slug]/sucesso/[registrationId]/page.tsx");
-  assert.match(page, /arenaDatabase\(tournament\.arenaId\)\.publicTournamentRegistration\.findFirst/);
-  assert.match(page, /where: \{ id: params\.registrationId, tournamentId: tournament\.id \}/);
+  assert.match(page, /getPublicRegistrationReceipt\(params\.slug, params\.registrationId\)/);
+  const receiptService=read("src/lib/backend/services/public-event-pages.ts");
+  assert.match(receiptService, /arenaDatabase\(owner\.arenaId\)\.publicTournamentRegistration\.findFirst/);
+  assert.match(receiptService, /where:\s*\{id:registrationId,tournamentId:owner\.id,category:\{tournamentId:owner\.id\}\}/);
   assert.match(page, /registration\.paymentStatus === "REVIEW"/);
   assert.match(page, /Não faça outro pagamento agora/);
   assert.match(page, /!canceled && !confirmed && !needsReview && !expired \? <RegistrationPaymentControls/);
@@ -35,13 +37,15 @@ test("portal bloqueia nova cobrança quando o pagamento anterior exige concilia�
   assert.match(action, /status: "REVIEW", items: \{ some: \{ financialEntryId: \{ in: entryIds \} \} \}/);
   assert.match(action, /entry\.notes\.includes\("\[MP_REVIEW:"\)/);
   const report = read("src/app/(app)/relatorios/[relatorio]/page.tsx");
-  assert.match(report, /label="Em análise" value=\{reviewCount \+ entryReviewCount \+ registrationReviewCount\}/);
-  assert.match(report, /checkoutStatusLabel\(item\.status\)/);
+  const reportBackend = read("src/lib/backend/services/report-workspace.ts");
+  assert.match(reportBackend, /label:"Em análise",value:reviewCount\+entryReviewCount\+registrationReviewCount/);
+  assert.match(reportBackend, /checkoutStatusLabel\(item\.status\)/);
   const checkoutStatus = read("src/lib/payments/checkout-status.ts");
   assert.match(checkoutStatus, /normalized === "REVIEW"\) return "Em análise — conferir no Mercado Pago"/);
   assert.match(report, /<ReviewedCheckoutRelease/);
-  assert.match(report, /kind="entry" recordId=\{item\.id\} paymentId=\{paymentId\}/);
-  assert.match(report, /kind="registration" recordId=\{item\.id\} paymentId=\{item\.mercadoPagoPaymentId\}/);
+  assert.match(reportBackend, /kind:"entry" as const,recordId:item\.id,paymentId/);
+  assert.match(report, /kind=\{item\.kind\} recordId=\{item\.recordId\} paymentId=\{item\.paymentId\}/);
+  assert.match(reportBackend, /kind:"registration" as const,recordId:item\.id,paymentId:item\.mercadoPagoPaymentId/);
   const webhook = read("src/app/api/payments/mercado-pago/webhook/route.ts");
   assert.match(webhook, /\["PAID", "REVIEW", "REFUNDED"\]\.includes\(current\.paymentStatus\)/);
   assert.match(webhook, /current\.status === "CANCELED"/);

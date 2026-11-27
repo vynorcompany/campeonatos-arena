@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
+import { academyToday } from "../src/lib/academy/today";
 import { instantToArenaWallClock } from "../src/lib/calendar/arena-wall-clock";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
@@ -70,6 +71,7 @@ test("transferência proporcional, crédito, confirmação desatualizada, reajus
     '@/lib/rls':{withArenaTransaction:(_arena:string,run:(tx:any)=>Promise<any>)=>scoped(run)},
     '@/lib/calendar/arena-wall-clock':{instantToArenaWallClock},
     './plan-transfer-calculation':{dateOnly},
+    './today':{academyToday},
     './plan-price-changes':{applyDuePlanPriceChanges},
   };
   vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports:worker,require:(name:string)=>mocks[name],Date,console});

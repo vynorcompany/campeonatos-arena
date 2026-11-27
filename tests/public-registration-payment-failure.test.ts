@@ -1,6 +1,6 @@
 import { withDatabaseModuleMocks } from "./helpers/client-module-mocks";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import { createRequire } from "node:module";
 import vm from "node:vm";
 import test from "node:test";
@@ -37,8 +37,8 @@ function loadAction(createPayment: (input: Record<string, unknown>) => Promise<R
     },
   };
   const prisma = { $transaction: async (operation: (client: unknown) => Promise<unknown>) => operation(tx) };
-  const exports: Record<string, (state: unknown, formData: FormData) => Promise<Record<string, unknown>>> = {};
-  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
+  const exports: Record<string, (state: unknown, formData: FormData, onCommitted?: () => void) => Promise<Record<string, unknown>>> = {};
+  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
     exports, FormData, Date, Error,
     require: withDatabaseModuleMocks((name: string) => {
       if (name === "@/lib/finance/receiving-bank-account") return { requireReceivingBankAccount };
@@ -58,8 +58,10 @@ function loadAction(createPayment: (input: Record<string, unknown>) => Promise<R
 
 test("falha na criação da cobrança libera a vaga sem apagar a referência para callback tardio", async () => {
   const { action, registration, updates, releaseFilters, contexts, providerAtCreation } = loadAction(async () => { throw new Error("Mercado Pago indisponível"); });
-  const result = await action({}, new FormData());
-  assert.match(String(result.error), /Mercado Pago indisponível/);
+  let committed=0;const result = await action({}, new FormData(),()=>{committed+=1;});
+  assert.ok(committed>0);
+  assert.match(String(result.error), /Confira a situação/);
+  assert.doesNotMatch(String(result.error), /Mercado Pago indisponível|SQL|private/);
   assert.equal(providerAtCreation(), "MERCADO_PAGO_PENDING");
   assert.equal(registration.status, "CANCELED");
   assert.equal(registration.paymentStatus, "PENDING");

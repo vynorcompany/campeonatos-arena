@@ -25,7 +25,7 @@ export const viewStyles = {
     "tw:[&_h2]:mr-[0]", "tw:[&_h2]:mb-[0]", "tw:[&_h2]:ml-[0]", "tw:[&_h2]:text-[color:#173961]",
     "tw:[&_h2]:text-[1.08rem]", "tw:[&_h2]:font-[400]", "tw:[&_h2]:leading-[1.35]",
   ].join(" "),
-  "tv_config_fields": "tv-config-fields tw:grid tw:grid-cols-[repeat(auto-fit,minmax(160px,220px))] tw:items-start tw:gap-3 tw:viewport-440:grid-cols-1 tw:[&_.field]:min-w-0 tw:[&_.field]:gap-1 tw:[&_.field]:text-xs tw:[&_label]:text-xs! tw:[&_input]:h-9! tw:[&_input]:min-h-9! tw:[&_select]:h-9! tw:[&_select]:min-h-9! tw:[&_select]:text-xs! tw:[&_input]:text-xs!",
+  "tv_config_fields": "tv-config-fields tw:grid tw:grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] tw:items-start tw:gap-3 tw:viewport-440:grid-cols-1 tw:[&_.field]:min-w-0 tw:[&_.field]:gap-1 tw:[&_.field]:text-xs tw:[&_label]:text-xs! tw:[&_input]:h-9! tw:[&_input]:min-h-9! tw:[&_select]:h-9! tw:[&_select]:min-h-9! tw:[&_select]:text-xs! tw:[&_input]:text-xs!",
   "field": sharedUtilities.field,
   "field_2": [
     "field", "tv-prize-select", "tw:grid", "tw:gap-y-[8px]",

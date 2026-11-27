@@ -12,14 +12,14 @@ function fixture() {
     "next/cache": { revalidatePath() {} },
     "@/lib/auth/database": { prisma: { athleteIdentity: { findUnique: async ({where}: any) => where.id ? {passwordHash:"hash"} : where.recoveryEmail === "known@example.test" ? {id:"actor",recoveryEmailVerifiedAt:new Date()} : null }, accountActionToken:{updateMany:async()=>{invalidated++;}} } },
     "@/lib/env": {env:{appUrl:"https://portal.example.test"}},
-    "@/lib/auth/player-session":{getPublicAthleteIdentity:async()=>({id:"actor"})},
+    "@/lib/backend/services/player-session":{getPublicAthleteIdentity:async()=>({id:"actor"})},
     "@/lib/auth/account-email":{accountEmailIsConfigured:()=>true,sendAccountEmail:async()=>{sends++;if(failSend)throw Error("private provider response");}},
     "@/lib/auth/login-attempts":{activeLoginLock:async()=>false,clearLoginFailures:async()=>{},recordFailedLogin:async()=>{}},
     "bcryptjs":{compare:async(password:string)=>password==="correct-password",hash:async()=>"new-hash"},
     "@/lib/auth/athlete-email-recovery":{athleteEmailKinds:{verify:"VERIFY",reset:"RESET"},issueAthleteEmailToken:async (_db:any,id:string)=>{assert.equal(id,"actor");issued++;return {token:"a".repeat(64),id:"token"};},confirmAthleteRecoveryEmail:async()=>true,resetAthletePasswordByEmail:async()=>true},
   };
   const exports: any = {};
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/athlete-email-access.ts",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,{exports,Date,URL,require:(name:string)=>name in mocks?mocks[name]:require(name)});
+  vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/backend/services/athlete-email-access.ts",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,{exports,Date,URL,require:(name:string)=>name in mocks?mocks[name]:require(name)});
   return {exports,get sends(){return sends;},get issued(){return issued;},get invalidated(){return invalidated;},fail(){failSend=true;}};
 }
 const form = (values: Record<string,string>) => {const data=new FormData();for(const [k,v] of Object.entries(values))data.set(k,v);return data;};

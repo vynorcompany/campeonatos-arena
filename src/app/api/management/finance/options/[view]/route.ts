@@ -1,0 +1,7 @@
+import{NextRequest,NextResponse}from"next/server";
+import{getArenaAccessDecision}from"@/lib/backend/services/management-session";
+import{canViewModule,canPerformPermission}from"@/lib/permissions";
+import{financialOptionsViewSchema}from"@/lib/backend/contracts/financial-options";
+import{resolveFinancialOperationsOptions,resolvePortalPaymentOptions,resolveComandaWhatsappOptions}from"@/lib/backend/services/financial-options";
+export const dynamic="force-dynamic";
+export async function GET(request:NextRequest,context:{params:Promise<{view:string}>}){const headers={"Cache-Control":"private, no-store",Vary:"Cookie"},fail=(error:string,status:number)=>NextResponse.json({error},{status,headers});const d=await getArenaAccessDecision(),a=d.auth;if(!a)return fail("Acesso à arena indisponível.",d.redirectTo==="/login"?401:403);if(!canViewModule("finance",a.arenaRole,a.systemRole,a.viewPermissions)||!canPerformPermission("finance:settings:manage",a.arenaRole,a.systemRole,a.editPermissions))return fail("Sem permissão para consultar configurações financeiras.",403);const view=financialOptionsViewSchema.safeParse((await context.params).view);if(!view.success)return fail("Consulta inválida.",404);if(request.nextUrl.searchParams.size)return fail("Filtros inválidos.",400);try{const query={operations:resolveFinancialOperationsOptions,portal:resolvePortalPaymentOptions,whatsapp:resolveComandaWhatsappOptions}[view.data];return NextResponse.json(await query(a.arenaId),{headers});}catch{return fail("Não foi possível consultar as configurações financeiras.",503);}}

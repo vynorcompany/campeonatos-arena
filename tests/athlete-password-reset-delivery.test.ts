@@ -8,7 +8,7 @@ import test from "node:test";
 import ts from "typescript";
 
 const require = createRequire(import.meta.url);
-const source = readFileSync(new URL("../src/lib/actions/player-auth.ts", import.meta.url), "utf8");
+const source = readFileSync(new URL("../src/lib/backend/services/player-auth.ts", import.meta.url), "utf8");
 
 function loadActions(deliveryFails: boolean) {
   const calls = { sent: 0, created: 0, removed: 0 };
@@ -35,7 +35,7 @@ function loadActions(deliveryFails: boolean) {
       if (name === "next/navigation") return { redirect() {} };
       if (name === "@/lib/prisma") return { prisma };
       if (name === "@/lib/rls") return { withArenaTransaction: async (_arenaId: string, callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma) };
-      if (name === "@/lib/auth/player-session") return {};
+      if (name === "@/lib/backend/services/player-session") return {};
       if (name === "@/lib/auth/login-attempts") return {};
       if (name === "@/lib/services/public-client-registration") return {};
       if (name === "@/lib/env") return { env: {} };

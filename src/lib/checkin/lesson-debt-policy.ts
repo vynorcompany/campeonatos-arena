@@ -1,3 +1,4 @@
+import { AcademyOperationError } from "@/lib/backend/academy-operation-error";
 import type { Prisma } from "@prisma/client";
 import { arenaToday } from "../calendar/arena-wall-clock";
 import { getOutstandingCents } from "../finance/settlements";
@@ -22,5 +23,5 @@ export async function assertLessonCheckinDebtPolicy(tx: Prisma.TransactionClient
   const overdue = entries.map(entry => getOutstandingCents(entry.amountCents, entry.settlements)).filter(amount => amount > 0);
   if (!overdue.length) return;
   const total = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(overdue.reduce((sum, amount) => sum + amount, 0) / 100);
-  throw new Error(`Você tem ${overdue.length} cobrança(s) de aulas vencida(s) em aberto, no total de ${total}. Acerte no caixa antes de fazer o check-in.`);
+  throw new AcademyOperationError(`Você tem ${overdue.length} cobrança(s) de aulas vencida(s) em aberto, no total de ${total}. Acerte no caixa antes de fazer o check-in.`);
 }

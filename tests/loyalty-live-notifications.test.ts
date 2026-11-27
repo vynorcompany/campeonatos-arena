@@ -96,9 +96,9 @@ test("alertas ao vivo exigem sessão e respeitam permissões de clientes e coman
 test("ordinary notification dismissal preserves administrative recovery alerts", async () => {
   let auth = { arenaId: "arena-a", arenaRole: "STAFF", systemRole: "VIEWER" };
   const writes: any[] = [];
-  const actions = load("../src/lib/actions/notifications.ts", {
-    "next/cache": { revalidatePath: () => {} },
-    "@/lib/auth/session": { requireArenaAccess: async () => auth },
+  const actions = load("../src/lib/backend/services/notifications.ts", {
+    "server-only": {},
+    "@/lib/backend/services/management-session": { requireArenaAccess: async () => auth },
     "@/lib/arena-database": { arenaDatabase: (arenaId: string) => ({ arenaNotification: { updateMany: async (query: any) => { writes.push({arenaId,...query}); return {count:0}; } } }) },
   });
   await actions.markAllArenaNotificationsReadAction();

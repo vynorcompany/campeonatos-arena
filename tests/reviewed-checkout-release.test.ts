@@ -63,7 +63,7 @@ test("revisão de estornos exige quitação de recebíveis ou gestão de torneio
   assert.deepEqual(action.permissions(), ["finance:receivable:settle", "finance:receivable:settle", "tournaments:manage"]);
   assert.equal(action.providerCalls(), 0);
   for (const file of [
-    "../src/app/(app)/relatorios/[relatorio]/page.tsx",
+    "../src/lib/backend/services/report-workspace.ts",
     "../src/app/(app)/torneios/inscricoes/page.tsx",
     "../src/app/(app)/torneios/[tournamentId]/inscricoes/page.tsx",
   ]) {

@@ -28,7 +28,7 @@ export const viewStyles = {
   "page_header": sharedUtilities.pageHeader,
   "eyebrow": sharedUtilities.eyebrow,
   "muted": sharedUtilities.muted,
-  "button": (sharedUtilities.button) + " " + managementControls.secondary,
+  "button": managementControls.secondary,
   "section_card_tournament_games_list": [
     "section-card", "tournament-games-list", "tw:pt-[0]", "tw:pr-[0]",
     "tw:pb-[0]", "tw:pl-[0]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",

@@ -46,7 +46,7 @@ test("limpar conversa zera mensagens, não lidas e SLA sem tocar em outra conta 
       await admin.whatsAppMessage.create({ data: { conversationId: conversation.id, providerId: `goal-clear-${conversation.id}`, direction: "INBOUND", body: "Mensagem descartável" } });
     }
 
-    const source = readFileSync(new URL("../src/lib/actions/whatsapp-chat.ts", import.meta.url), "utf8");
+    const source = readFileSync(new URL("../src/lib/backend/services/whatsapp-chat-actions.ts", import.meta.url), "utf8");
     const exports: Record<string, (form: FormData) => Promise<void>> = {};
     const require = createRequire(import.meta.url);
     vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, {
