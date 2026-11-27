@@ -1,8 +1,7 @@
 
 
 import { SmartEntitySelect } from "@/components/forms/smart-entity-select";
-import { lessonCreditBalances } from "@/lib/academy/lesson-credits";
-import { withArenaTransaction } from "@/lib/rls";
+import { getAcademyPageData } from "@/lib/academy/page-data";
 import { canViewModule } from "@/lib/permissions";
 import { LessonCreditRequestsPanel } from "@/components/teachers/lesson-credit-portal";
 import { LessonPaymentFields } from "@/components/finance/lesson-payment-fields";
@@ -20,7 +19,6 @@ import {
   createStudentAction
 } from "@/lib/actions/academy";
 import { requireModuleView } from "@/lib/auth/guards";
-import { arenaDatabase } from "@/lib/arena-database";
 
 function formatDate(value: Date | null) {
   if (!value) {
@@ -46,55 +44,8 @@ function attendanceRate(student: { attendedClasses: number; missedClasses: numbe
 
 export default async function LessonsPage() {
   const auth = await requireModuleView("lessons");
-  const prisma = arenaDatabase(auth.arenaId);
-  const [students, teachers, lessons, players, plans, classGroups, classGroupRequests] = await Promise.all([
-    prisma.student.findMany({
-      where: { arenaId: auth.arenaId },
-      include: {
-        player: true
-      },
-      orderBy: [{ active: "desc" }, { name: "asc" }]
-    }),
-    prisma.teacher.findMany({
-      where: { arenaId: auth.arenaId, active: true },
-      orderBy: { name: "asc" }
-    }),
-    prisma.lesson.findMany({
-      where: { arenaId: auth.arenaId },
-      include: {
-        teacher: true,
-        attendances: {
-          include: {
-            student: true
-          },
-          orderBy: {
-            student: {
-              name: "asc"
-            }
-          }
-        }
-      },
-      orderBy: [{ scheduledAt: "desc" }, { createdAt: "desc" }],
-      take: 16
-    }),
-    prisma.player.findMany({
-      where: { arenaId: auth.arenaId, active: true },
-      orderBy: { name: "asc" }
-    }),
-    prisma.plan.findMany({ where: { arenaId: auth.arenaId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.classGroup.findMany({
-      where: { arenaId: auth.arenaId, active: true },
-      include: { teacher: { select: { name: true } }, enrollments: { where: { status: "ACTIVE" }, select: { id: true } }, schedules: { orderBy: [{ weekday: "asc" }, { startTime: "asc" }] } },
-      orderBy: { name: "asc" }
-    }),
-    prisma.classGroupRequest.findMany({ where: { arenaId: auth.arenaId, status: "PENDING" }, include: { student: { select: { name: true } }, classGroup: { include: { plans: { include: { plan: { select: { id: true, name: true } } } } } } }, orderBy: { createdAt: "asc" } })
-  ]);
-
-  const bankAccounts = await prisma.bankAccount.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
-
-  const activeStudents = students.filter((student) => student.active);
-  const paidCreditBalances = await withArenaTransaction(auth.arenaId, tx => lessonCreditBalances(tx, auth.arenaId, students.map(student => student.id)));
-  for (const student of students) student.remainingClasses = paidCreditBalances.get(student.id) ?? student.remainingClasses;
+  const { students, teacherOptions: teachers, lessons, playerOptions: players, plans, classGroups, classGroupRequests, bankAccounts } = await getAcademyPageData(auth.arenaId, "lessons");
+  const activeStudents = students.filter(student => student.active);
   const linkedPlayerIds = new Set(students.map((student) => student.playerId).filter(Boolean));
   const availablePlayers = players.filter((player) => !linkedPlayerIds.has(player.id));
   const scheduledLessons = lessons.filter((lesson) => lesson.status !== "COMPLETED");
@@ -208,7 +159,7 @@ export default async function LessonsPage() {
       </SectionCard>
 
       <SectionCard title="Alunos e créditos" description="Acompanhe aulas restantes, presenças e frequência de cada aluno." hideHeading>
-        <table className={viewStyles.data_table}>
+        <table className={viewStyles.data_table} role="table" aria-label="Alunos e créditos">
           <thead>
             <tr>
               <th>Aluno</th>
@@ -233,10 +184,10 @@ export default async function LessonsPage() {
                     linkedPlayerName={student.player?.name}
                   />
                 </td>
-                <td>{student.remainingClasses}</td>
-                <td>{student.attendedClasses}</td>
-                <td>{student.missedClasses}</td>
-                <td>{attendanceRate(student)}</td>
+                <td><span className={viewStyles.mobile_column_label} aria-hidden="true">Aulas restantes</span>{student.remainingClasses}</td>
+                <td><span className={viewStyles.mobile_column_label} aria-hidden="true">Presenças</span>{student.attendedClasses}</td>
+                <td><span className={viewStyles.mobile_column_label} aria-hidden="true">Faltas</span>{student.missedClasses}</td>
+                <td><span className={viewStyles.mobile_column_label} aria-hidden="true">Frequência</span>{attendanceRate(student)}</td>
                 <td>
                   <SafeActionForm action={addStudentCreditsAction} className={viewStyles.inline_form} successMessage="Aulas adicionadas.">
                     <input type="hidden" name="studentId" value={student.id} />

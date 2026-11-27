@@ -3,7 +3,7 @@ import test from 'node:test';
 import { academyPageSchema, academyPageDataSchema } from '../src/lib/backend/contracts/academy-pages';
 import { academyMutationInputSchema, portalAcademyOperations } from '../src/lib/backend/contracts/academy-mutations';
 test('academy page DTOs refuse private entity fields and unknown pages', () => {
-  const empty = { teachers: [], clients: [], students: [], lessons: [], bankAccounts: [], playerOptions: [], studentOptions: [], teacherOptions: [], policy: null };
+  const empty = { teachers: [], clients: [], students: [], lessons: [], bankAccounts: [], playerOptions: [], studentOptions: [], teacherOptions: [], policy: null, plans: [], classGroups: [], classGroupRequests: [] };
   assert.deepEqual(academyPageDataSchema.parse(empty), empty);
   assert.equal(academyPageSchema.safeParse('../../private').success, false);
   assert.equal(academyPageDataSchema.safeParse({ ...empty, clients: [{ id: 'a', name: 'Cliente', phone: '', email: '', passwordHash: 'secret' }] }).success, false);

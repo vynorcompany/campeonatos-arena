@@ -44,6 +44,9 @@ export async function assertAcademySmoke(db, origin, arenaId, cookie, staffId, p
   const classRequest = await post('request-class-group', { arenaSlug: arena.slug, classGroupId: groupStored.id, message: 'Inscrição sintética' }, 'portal', undefined, `arena_player_session=${studentToken}`); assert.equal(classRequest.status, 200, await classRequest.text());
   assert.equal((await post('request-class-group', { arenaSlug: arena.slug, classGroupId: groupStored.id }, 'portal', undefined, `arena_player_session=${studentToken}`)).status, 400);
   const groupRequest = await db.classGroupRequest.findFirstOrThrow({ where: { arenaId, classGroupId: groupStored.id, studentId: student.id, status: 'PENDING' } });
+  const pendingWorkspace = await page('lessons'); assert.equal(pendingWorkspace.status, 200);
+  const pendingData = await pendingWorkspace.json();
+  assert.ok(pendingData.classGroupRequests.some(row => row.id === groupRequest.id && row.student.name === student.name && row.classGroup.plans.some(link => link.plan.id === planId)));
   const approved = await post('approve-class-group-request', { requestId: groupRequest.id, planId, dueDay: '15', startedAt: '2026-11-27' }); assert.equal(approved.status, 200, await approved.text());
   assert.equal((await db.classGroupRequest.findUniqueOrThrow({ where: { id: groupRequest.id } })).status, 'APPROVED');
   const batch = await db.lessonCreditBatch.create({ data: { arenaId, studentId: student.id, sourceKey: 'SYNTHETIC-REQUEST', granted: 1, remaining: 1, expiresAt: new Date(Date.now() + 2 * 86400000) } });
@@ -85,8 +88,16 @@ export async function assertAcademySmoke(db, origin, arenaId, cookie, staffId, p
   const makeupFields = { arenaSlug: arena.slug, lessonId: futureLesson.id };
   const makeup = await post('request-portal-lesson-makeup', makeupFields, 'portal', undefined, `arena_player_session=${studentToken}`); assert.equal(makeup.status, 200, await makeup.text());
   assert.equal((await post('request-portal-lesson-makeup', makeupFields, 'portal', undefined, `arena_player_session=${studentToken}`)).status, 400);
-  for (const name of ['teachers', 'students', 'register', 'policy']) { const response = await page(name); assert.equal(response.status, 200, name); const body = await response.text(); assert.equal(body.includes('passwordHash'), false); }
+  for (const name of ['teachers', 'students', 'register', 'policy', 'lessons']) { const response = await page(name); assert.equal(response.status, 200, name); const body = await response.text(); assert.equal(body.includes('passwordHash'), false); }
   const registration = await (await page('register')).json(); assert.equal(registration.students.length, 0); assert.equal(registration.teachers.length, 0); assert.ok(registration.studentOptions.length); assert.equal(JSON.stringify(registration).includes('\"email\"'), false); assert.equal(JSON.stringify(registration).includes('\"notes\"'), false);
+  const workspace = await (await page('lessons')).json();
+  assert.ok(workspace.classGroups.some(row => row.id === groupStored.id && row.schedules.length === 2));
+  assert.ok(workspace.lessons.some(row => row.id === lesson.id && row.status === 'COMPLETED'));
+  assert.ok(workspace.students.some(row => row.id === student.id && row.active));
+  assert.equal(workspace.students.find(row => row.id === student.id).remainingClasses, afterCheckin.remainingClasses);
+  assert.equal(workspace.classGroupRequests.some(row => row.id === groupRequest.id), false, 'Approved enrollment must leave the pending queue');
+  assert.equal(JSON.stringify(workspace.classGroups).includes('arenaId'), false);
+  assert.equal(JSON.stringify(workspace.playerOptions).includes('phone'), false);
   const directory = await (await page('teachers')).json(); assert.equal(directory.teachers[0].name, player.name); assert.equal(directory.teachers[0].studentAssignments.length, 1);
   assert.equal((await fetch(`${origin}/api/management/academy/pages/students?arenaId=forged`, { headers: { cookie } })).status, 400);
   await db.arenaMember.update({ where: { id: member.id }, data: { editPermissions: member.editPermissions } });
