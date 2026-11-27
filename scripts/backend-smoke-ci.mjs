@@ -411,6 +411,15 @@ try {
   await assertFinancialSettingsSSR('http://127.0.0.1:3014', financeFixture.cookie);
   await assertFinanceWorkspacesSSR('http://127.0.0.1:3014', financeFixture.cookie);
   for (const path of ['/professores', '/aulas/alunos', '/aulas/registrar', '/aulas', '/pdv/servicos', '/pdv/estoque']) { const response = await fetch('http://127.0.0.1:3014' + path, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200, path); assert.equal((await response.text()).includes('passwordHash'), false); }
+  for (const path of ['/pdv/balanco', '/pdv/balanco?historico=1']) { const response = await fetch('http://127.0.0.1:3014' + path, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200, path); }
+  const stockMember = await fixtureDb.arenaMember.findFirstOrThrow({ where: { arenaId: financeFixture.arenaId, userId: staffFixtureId } });
+  assert.equal((await fetch('http://127.0.0.1:3014/pdv/novo', { headers: { cookie: financeFixture.cookie }, redirect: 'manual' })).status, 404);
+  await fixtureDb.arenaMember.update({ where: { id: stockMember.id }, data: { editPermissions: [...stockMember.editPermissions, 'stock'] } });
+  try {
+    for (const path of ['/pdv/novo', '/pdv/balanco?novo=1']) { const response = await fetch('http://127.0.0.1:3014' + path, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200, path); }
+    const balance = await fixtureDb.auditEvent.findFirstOrThrow({ where: { arenaId: financeFixture.arenaId, action: 'STOCK_BALANCE_COMPLETED' } });
+    const response = await fetch(`http://127.0.0.1:3014/pdv/balanco/${balance.id}`, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200); assert.ok((await response.text()).includes('Inventário sintético'));
+  } finally { await fixtureDb.arenaMember.update({ where: { id: stockMember.id }, data: { editPermissions: stockMember.editPermissions } }); }
   for (const tab of ['plans', 'students', 'classes', 'report']) {
     const response = await fetch(`http://127.0.0.1:3014/professores/${financeFixture.teacherId}?tab=${tab}&inicio=2026-11-01&fim=2026-11-30`, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' });
     assert.equal(response.status, 200, `Teacher profile SSR failed: ${tab}`); const html = await response.text(); assert.ok(html.includes('Professor Academia Contrato')); assert.equal(html.includes('passwordHash'), false); if (tab === 'report') assert.match(html, /name="fim"[^>]*value="2026-11-30"/);

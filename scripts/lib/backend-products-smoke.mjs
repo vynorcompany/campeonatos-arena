@@ -2,11 +2,17 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 export async function assertProductsSmoke(db, origin, arenaId, cookie, staffId) {
   const page = name => fetch(`${origin}/api/management/products/pages/${name}`, { headers: { cookie } });
+  const workspace = (name, query = '') => fetch(`${origin}/api/management/products/workspaces/${name}${query}`, { headers: { cookie } });
   const post = (operation, fields, originHeader = 'http://127.0.0.1:3014') => fetch(`${origin}/api/management/products/actions/${operation}`, { method: 'POST', headers: { cookie, origin: originHeader, 'content-type': 'application/json' }, body: JSON.stringify({ fields }) });
   assert.equal((await page('stock')).status, 404, 'Unrelated permission must not expose stock');
+  assert.equal((await workspace('balance')).status, 404);
   const member = await db.arenaMember.findFirstOrThrow({ where: { arenaId, userId: staffId } });
   await db.arenaMember.update({ where: { id: member.id }, data: { viewPermissions: [...member.viewPermissions, 'stock'] } });
   assert.equal((await page('stock')).status, 200);
+  assert.equal((await workspace('new-product')).status, 403);
+  assert.deepEqual((await (await workspace('balance', '?creating=1')).json()).products, [], 'Read-only inventory must not receive the counting form data');
+  assert.equal((await workspace('balance', '?arenaId=forged')).status, 400);
+  assert.equal((await workspace('balance', '?creating=1&creating=0')).status, 400);
   assert.equal((await post('standard-service-price', { serviceCode: 'LEAGUE', price: '40,00' })).status, 403, 'Stock view must not allow writes');
   await db.arenaMember.update({ where: { id: member.id }, data: { editPermissions: [...member.editPermissions, 'stock'] } });
   const category = await db.productCategory.create({ data: { arenaId, name: 'Categoria sintética' } });
@@ -64,6 +70,15 @@ export async function assertProductsSmoke(db, origin, arenaId, cookie, staffId) 
   assert.equal(balance.status, 200, await balance.clone().text()); assert.deepEqual(await balance.json(), { updated: 1 });
   assert.equal((await db.product.findUniqueOrThrow({ where: { id: current.id } })).stockQuantity, 14);
   assert.equal((await db.product.findUniqueOrThrow({ where: { id: product.id } })).stockQuantity, 4);
+  const categoryData = await (await workspace('new-product')).json(); assert.deepEqual(categoryData.categories, [{ id: category.id, name: category.name }]);
+  const counting = await (await workspace('balance', '?creating=1')).json(); assert.ok(counting.products.some(row => row.id === current.id && row.stockQuantity === 14)); assert.equal(JSON.stringify(counting).includes('costCents'), false);
+  const balanceListResponse = await workspace('balance'); assert.equal(balanceListResponse.headers.get('cache-control'), 'private, no-store');
+  const balanceList = await balanceListResponse.json(); const savedBalance = balanceList.balances.find(row => row.title === 'Inventário sintético'); assert.ok(savedBalance); assert.equal(savedBalance.details, undefined); assert.equal(savedBalance.arenaId, undefined);
+  const savedSnapshot = (await (await workspace('balance-detail', `?id=${savedBalance.id}`)).json()).snapshot; assert.equal(savedSnapshot.items.length, 1); assert.equal(savedSnapshot.items[0].systemQuantity, 16); assert.equal(savedSnapshot.items[0].countedQuantity, 14); assert.equal(savedSnapshot.items[0].difference, -2);
+  const adjustments = await (await workspace('balance', '?history=1')).json(); assert.ok(adjustments.movements.some(row => row.productName === 'Produto detalhe atualizado')); assert.equal(JSON.stringify(adjustments).includes('productId'), false);
+  assert.equal((await (await workspace('balance-detail', '?id=missing')).json()).snapshot, null);
+  const foreignBalance = await db.auditEvent.create({ data: { arenaId: other.id, actorId: staffId, actorName: 'Fixture', action: 'STOCK_BALANCE_COMPLETED', entityId: randomUUID(), details: { title: 'Foreign private snapshot', reason: '', items: [] } } });
+  try { assert.equal((await (await workspace('balance-detail', `?id=${foreignBalance.id}`)).json()).snapshot, null); } finally { await db.auditEvent.delete({ where: { id: foreignBalance.id } }); }
   assert.equal((await post('create-sale', { productId: current.id, quantity: '1', paymentMethod: 'PIX', customerName: 'Sintético' })).status, 403, 'Stock editing must not grant sales access');
   const invalidFiscal = await post('product-fiscal', { productId: current.id, fiscalProfile: '{invalid' }); assert.equal(invalidFiscal.status, 200); assert.ok((await invalidFiscal.json()).error);
   assert.equal((await post('product-fiscal', { productId: current.id, fiscalProfile: JSON.stringify({ additionalInfo: 'Informação sintética' }) })).status, 200);
