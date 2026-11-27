@@ -18,6 +18,9 @@ const domains = new Set([
 // Characterization follows the business implementation; facade transport has
 // separate contract/HTTP tests and must never be mistaken for domain execution.
 const backendDomains = new Map([
+  [path.resolve("src/lib/actions/league-challenges.ts"), path.resolve("src/lib/backend/services/league-challenges.ts")],
+  [path.resolve("src/lib/actions/league-medical-substitutions.ts"), path.resolve("src/lib/backend/services/league-medical-substitutions.ts")],
+
   [path.resolve("src/lib/services/public-league-portal.ts"), path.resolve("src/lib/backend/services/public-league-portal.ts")],
   [path.resolve("src/lib/actions/public-super12.ts"), path.resolve("src/lib/backend/services/public-super12-actions.ts")],
   [path.resolve("src/lib/services/public-standings.ts"), path.resolve("src/lib/backend/services/public-standings.ts")],
@@ -92,7 +95,7 @@ export function domainSource(filename: string): string {
     const text = readOriginal(file, "utf8");
     const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
     const local = (name: string) => name.startsWith("@/") ? path.resolve("src", name.slice(2)) + ".ts" : path.resolve(path.dirname(file), name) + ".ts";
-    const internal = (name: string) => (name.startsWith("@/") || name.startsWith(".")) && (local(name).startsWith(directory + path.sep) || ["src/lib/backend/upcoming-operation-error.ts", "src/lib/backend/comanda-operation-error.ts", "src/lib/backend/product-operation-error.ts", "src/lib/backend/client-operation-error.ts", "src/lib/backend/academy-operation-error.ts", "src/lib/finance/action-error.ts"].some(file => local(name) === path.resolve(file)));
+    const internal = (name: string) => (name.startsWith("@/") || name.startsWith(".")) && (local(name).startsWith(directory + path.sep) || ["src/lib/backend/services/league-operation-errors.ts", "src/lib/backend/upcoming-operation-error.ts", "src/lib/backend/comanda-operation-error.ts", "src/lib/backend/product-operation-error.ts", "src/lib/backend/client-operation-error.ts", "src/lib/backend/academy-operation-error.ts", "src/lib/finance/action-error.ts"].some(file => local(name) === path.resolve(file)));
     for (const statement of source.statements) {
       if ((ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement)) && statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier) && internal(statement.moduleSpecifier.text)) visit(local(statement.moduleSpecifier.text));
     }
