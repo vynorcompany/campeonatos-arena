@@ -33,3 +33,19 @@ test("agenda keeps the first booking at a shared start and the existing occupied
   assert.equal(index.occupiedCourtSlots.has("court-a:450"), true);
   assert.equal(index.occupiedCourtSlots.has("court-a:480"), true);
 });
+
+test("agenda indexes backend wall-clock minutes without interpreting them as frontend dates", () => {
+  const occurrence = {
+    id: "wire-booking", startsAtMinute: 420, endsAtMinute: 510,
+    occurrenceCourts: [{ courtId: "court-a" }, { courtId: "court-b" }],
+  };
+  const index = buildAgendaOccurrenceIndex([occurrence], [390, 420, 450, 480, 510]);
+  for (const court of ["court-a", "court-b"]) {
+    assert.equal(index.byCourtAndSlot.get(`${court}:420`), occurrence);
+    assert.equal(index.occupiedCourtSlots.has(`${court}:390`), false);
+    assert.equal(index.occupiedCourtSlots.has(`${court}:420`), false);
+    assert.equal(index.occupiedCourtSlots.has(`${court}:450`), true);
+    assert.equal(index.occupiedCourtSlots.has(`${court}:480`), true);
+    assert.equal(index.occupiedCourtSlots.has(`${court}:510`), false);
+  }
+});

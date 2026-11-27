@@ -77,7 +77,9 @@ test("agenda interna respeita bloqueio de 15 minutos e serializa a gravação", 
   const staffBooking = actions.split("export async function saveCourtBookingAction")[1]?.split("export async function ")[0] ?? "";
   assert.match(staffBooking, /FOR UPDATE[\s\S]*activeCourtOccurrenceWhere\(\)/);
   assert.match(staffBooking, /assertCourtBookingMayBeEdited\(tx, auth\.arenaId, parsed\.data\.occurrenceId, true, String\(expectedVersion\)\)/);
-  assert.match(agenda, /activeCourtOccurrenceWhere\(\)/);
+  const agendaRead = readFileSync(resolve(process.cwd(), "src/lib/backend/services/agenda-day.ts"), "utf8");
+  assert.match(agendaRead, /activeCourtOccurrenceWhere\(\)/);
+  assert.match(agenda, /getAgendaDay\(auth,/);
   assert.match(agenda, /Aguardando pagamento/);
 });
 

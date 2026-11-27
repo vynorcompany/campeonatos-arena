@@ -1,3 +1,4 @@
+import { assertAgendaDaySmoke } from './lib/backend-agenda-day-smoke.mjs';
 import { assertCourtSettingsSmoke } from './lib/backend-court-settings-smoke.mjs';
 import { startEvolutionFixture } from './lib/backend-evolution-fixture.mjs';
 import { assertAgencySmoke } from './lib/backend-agency-smoke.mjs';
@@ -216,6 +217,7 @@ try {
   financeFixture = await prepareFinanceSmoke(fixtureDb, process.env.DATABASE_URL, origin, staffFixtureId, staffToken, clientFixtureTag);
   await assertAgencySmoke(fixtureDb, origin, staffFixtureId, financeFixture.cookie, providerFixture);
   await assertCourtSettingsSmoke(fixtureDb, origin, staffFixtureId, financeFixture.cookie);
+  await assertAgendaDaySmoke(fixtureDb, origin, staffFixtureId, financeFixture.cookie);
   const shellResponse = await fetch(origin + '/api/management/shell', { headers: { cookie: staffCookie } });
   assert.equal(shellResponse.status, 200);
   assert.equal(shellResponse.headers.get('cache-control'), 'private, no-store');
