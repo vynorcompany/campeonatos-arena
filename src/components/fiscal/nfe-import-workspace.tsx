@@ -30,7 +30,9 @@ export function NfeImportWorkspace({ buttonLabel, buttonClassName }: { buttonLab
     const form = new FormData(); form.set("xml", file);
     startTransition(async () => {
       try {
-        const result = await previewNfeXmlAction(form) as Preview;
+        const outcome = await previewNfeXmlAction(form);
+        if ("error" in outcome) { setMessage(outcome.error); return; }
+        const result = outcome;
         setPreview(result);
         setMappings(result.invoice.items.map((item, index) => {
           const matched = result.products.find((product) => item.code && product.sku === item.code) ?? result.products.find((product) => product.name.trim().toLocaleLowerCase("pt-BR") === item.description.trim().toLocaleLowerCase("pt-BR"));
@@ -47,7 +49,7 @@ export function NfeImportWorkspace({ buttonLabel, buttonClassName }: { buttonLab
   const confirm = () => {
     const file = fileRef.current?.files?.[0]; if (!file) return;
     setMessage(""); const form = new FormData(); form.set("xml", file); form.set("items", JSON.stringify(mappings));
-    startTransition(async () => { try { await importNfeXmlAction(form); setPreview(null); if (fileRef.current) fileRef.current.value = ""; setMessage("NF-e importada e estoque atualizado."); router.refresh(); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível concluir a importação."); } });
+    startTransition(async () => { try { const result = await importNfeXmlAction(form); if ("error" in result) { setMessage(result.error); return; } setPreview(null); if (fileRef.current) fileRef.current.value = ""; setMessage("NF-e importada e estoque atualizado."); router.refresh(); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível concluir a importação."); } });
   };
   return <>
     {buttonLabel ? <button type="button" className={buttonClassName} disabled={pending} onClick={() => fileRef.current?.click()}>{pending ? "Lendo XML…" : buttonLabel}</button> : null}

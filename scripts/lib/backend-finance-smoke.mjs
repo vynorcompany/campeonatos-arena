@@ -1,3 +1,4 @@
+import { assertNfeSmoke } from './backend-nfe-smoke.mjs';
 import { assertCashSmoke } from './backend-cash-smoke.mjs';
 import { assertProductsSmoke } from './backend-products-smoke.mjs';
 import { assertAcademySmoke } from './backend-academy-smoke.mjs';
@@ -115,6 +116,7 @@ export async function prepareFinanceSmoke(db, databaseUrl, origin, staffId, staf
     const academy = await assertAcademySmoke(db, origin, arena.id, cookie, staffId, plan.id);
     await assertProductsSmoke(db, origin, arena.id, cookie, staffId);
     await assertCashSmoke(db, origin, arena.id, cookie, staffId);
+    await assertNfeSmoke(db, origin, arena.id, cookie, staffId);
     return { arenaId: arena.id, cookie, cleanup, teacherId: academy.teacherId };
   } catch (error) { await cleanup(); throw error; }
 }

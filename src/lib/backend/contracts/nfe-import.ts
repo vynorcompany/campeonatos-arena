@@ -1,0 +1,15 @@
+import { z } from 'zod';
+export const nfeMaxFileBytes = 5 * 1024 * 1024;
+export const nfeMaxMappingBytes = 2 * 1024 * 1024;
+const cents = z.number().int().min(0).max(2147483647);
+export const nfeReconciliationSchema = z.array(z.object({ index: z.number().int().min(0), productId: z.string().max(100).optional(), name: z.string().max(2000), sku: z.string().max(255), costCents: cents, priceCents: cents }).strict()).max(10000).refine(rows => new Set(rows.map(row => row.index)).size === rows.length, 'Não repita itens na conciliação.').refine(rows => new TextEncoder().encode(JSON.stringify(rows)).byteLength <= nfeMaxMappingBytes, 'A conciliação excede o limite permitido.');
+export const nfeFileSchema = z.object({ name: z.string().max(255), type: z.string().max(128), data: z.string().min(4).max(Math.ceil(nfeMaxFileBytes / 3) * 4).regex(/^[A-Za-z0-9+/]*={0,2}$/).refine(value => value.length % 4 === 0) }).strict();
+export const nfePreviewInputSchema = z.object({ file: nfeFileSchema }).strict();
+export const nfeImportInputSchema = nfePreviewInputSchema.extend({ items: nfeReconciliationSchema }).strict();
+export type NfeOperation = 'preview' | 'import';
+export const nfeErrorSchema = z.object({ error: z.string() }).strict();
+export const nfePreviewDataSchema = z.object({ invoice: z.object({ number: z.string(), supplierName: z.string(), totalCents: cents, items: z.array(z.object({ code: z.string(), description: z.string(), quantity: z.number().int().min(1).max(2147483647), unitCostCents: cents }).strict()).min(1).max(10000) }).strict(), products: z.array(z.object({ id: z.string(), name: z.string(), sku: z.string(), costCents: z.number().int(), priceCents: z.number().int() }).strict()).max(1000) }).strict();
+export const nfeImportDataSchema = z.object({ createdProducts: z.number().int().min(0), updatedProducts: z.number().int().min(0), importedItems: z.number().int().min(1) }).strict();
+export const nfePreviewOutcomeSchema = z.union([nfePreviewDataSchema, nfeErrorSchema]);
+export const nfeImportOutcomeSchema = z.union([nfeImportDataSchema, nfeErrorSchema]);
+export const nfeOutcomeSchema = (operation: NfeOperation) => operation === 'preview' ? nfePreviewOutcomeSchema : nfeImportOutcomeSchema;
