@@ -1,3 +1,4 @@
+import { assertPublicCourtBookingSmoke } from "./lib/backend-public-court-booking-smoke.mjs";
 import { assertAgendaQueriesSmoke } from './lib/backend-agenda-queries-smoke.mjs';
 import { cleanupForeignArenaFixtures } from './lib/backend-foreign-fixtures.mjs';
 import { assertCourtBookingSmoke } from './lib/backend-court-booking-smoke.mjs';
@@ -410,6 +411,7 @@ try {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   assert.ok(frontendReady, 'SSR frontend did not become healthy');
+  await assertPublicCourtBookingSmoke(fixtureDb, origin);
   await assertAgendaQueriesSmoke(fixtureDb, origin, 'http://127.0.0.1:3014', staffFixtureId, financeFixture.cookie);
   const login = await fetch('http://127.0.0.1:3014/portal');
   assert.equal(login.status, 200);
