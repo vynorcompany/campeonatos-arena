@@ -2204,13 +2204,20 @@ async function main() {
           throw new Error(`${calendarLabel}: calendário de leitura permitiu editar ou ficou cortado: ${JSON.stringify(calendarControls.result.value)}`);
         }
         const label = `${viewport.name}-agenda-permissao-criar`;
+        const agendaPreflight = await fetch(`${baseUrl}/agenda?data=${futureAgendaDate}`, {headers:{Cookie:cookie(arenaA.id,restrictedToken)},redirect:"manual",signal:AbortSignal.timeout(20_000)});
+        const agendaHtml = await agendaPreflight.text();
+        if(agendaPreflight.status!==200 || !agendaHtml.includes(`id="reserva-${restrictedBooking.id}"`)) {
+          const stored = await db.scheduleOccurrence.findUnique({where:{id:restrictedBooking.id},select:{startsAt:true,endsAt:true,status:true,occurrenceCourts:{select:{courtId:true}}}});
+          const bounds = await db.arena.findUnique({where:{id:arenaA.id},select:{scheduleStartMinute:true,scheduleEndMinute:true,scheduleSlotMinutes:true}});
+          throw new Error(`${label}: reserva ausente no HTML do servidor: ${JSON.stringify({status:agendaPreflight.status,date:futureAgendaDate,stored,bounds})}`);
+        }
         await visit(`/agenda?data=${futureAgendaDate}`, viewport, arenaA.id, label, restrictedToken);
         // A document can finish loading while a streamed client boundary is
         // still mounting. Keep the same identity/record assertions, but wait
         // for this specific booking rather than unrelated page text.
         let bookingVisible;
         for (let attempt = 0; attempt < 30; attempt += 1) {
-          bookingVisible = await send("Runtime.evaluate", {expression: `(() => { const trigger=document.querySelector('button[data-occurrence-id="${restrictedBooking.id}"]'); return {present:Boolean(trigger),visible:Boolean(trigger?.getClientRects().length),identity:document.body.innerText.includes('Operador restrito GOAL'),cell:Boolean(document.getElementById('reserva-${restrictedBooking.id}')),bookings:document.querySelectorAll('button[data-occurrence-id]').length,path:location.pathname}; })()`,returnByValue:true});
+          bookingVisible = await send("Runtime.evaluate", {expression: `(() => { const trigger=document.querySelector('button[data-occurrence-id="${restrictedBooking.id}"]'); return {present:Boolean(trigger),visible:Boolean(trigger?.getClientRects().length),identity:document.body.innerText.includes('Operador restrito GOAL'),cell:Boolean(document.getElementById('reserva-${restrictedBooking.id}')),bookings:document.querySelectorAll('button[data-occurrence-id]').length,path:location.pathname,search:location.search}; })()`,returnByValue:true});
           const state = bookingVisible.result.value;
           if (state?.present && state.visible && (viewport.name !== "desktop" || state.identity)) break;
           await pause(200);
