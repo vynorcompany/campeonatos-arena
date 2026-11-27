@@ -8,7 +8,7 @@ import { readBoundedJson, RequestBodyTooLargeError } from '@/lib/http/json-body'
 import { executeClientMutation } from '@/lib/backend/services/client-mutations';
 import { ClientOperationError } from '@/lib/backend/client-operation-error';
 export const dynamic = 'force-dynamic';
-const permission = { balance: 'players:balance', merge: 'players:merge', 'archive-many': 'players:edit', import: 'players:import' } as const;
+const permission = { dependent: 'players:edit', balance: 'players:balance', merge: 'players:merge', 'archive-many': 'players:edit', import: 'players:import' } as const;
 export async function POST(request: NextRequest, context: { params: Promise<{ operation: string }> }) {
   const headers = { 'Cache-Control': 'private, no-store', Vary: 'Cookie' };
   if (!allowedFrontendOrigin(request.headers.get('origin'), process.env.VX4_FRONTEND_ORIGINS)) return NextResponse.json({ error: 'Origem não autorizada.' }, { status: 403, headers });

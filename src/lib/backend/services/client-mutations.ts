@@ -1,3 +1,4 @@
+import {createDependentAction} from "./dependents";
 import 'server-only';
 import * as loyalty from '@/lib/backend/services/client-loyalty';
 import * as players from '@/lib/backend/services/players';
@@ -5,6 +6,7 @@ import * as management from '@/lib/backend/services/client-management';
 import { clientMutationOutcomeSchema, type ClientMutationOperation } from '@/lib/backend/contracts/client-mutations';
 export async function executeClientMutation(operation: ClientMutationOperation, form: FormData) {
   switch (operation) {
+    case 'dependent': {const result=await createDependentAction(form);return clientMutationOutcomeSchema.parse('error'in result?{error:result.error}:{error:null});}
     case 'loyalty-settings': await loyalty.updateClientLoyaltySettingsAction(form); break;
     case 'loyalty-visit': await loyalty.recordClientVisitAction(form); break;
     case 'loyalty-redeem': await loyalty.redeemClientLoyaltyAction(form); break;

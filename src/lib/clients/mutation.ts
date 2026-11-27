@@ -9,7 +9,7 @@ export async function runClientMutation(operation: ClientMutationOperation, form
     : await (await import('@/lib/backend/services/client-mutations')).executeClientMutation(operation, form);
   if (!result.error) {
     if (operation.startsWith('loyalty-')) { revalidatePath('/jogadores'); }
-    else if (['balance', 'merge', 'archive-many', 'import'].includes(operation)) {
+    else if (['dependent', 'balance', 'merge', 'archive-many', 'import'].includes(operation)) {
       revalidatePath('/jogadores'); revalidatePath('/agenda'); revalidatePath('/aulas');
     } else {
       refreshTournamentRoutes();

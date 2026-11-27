@@ -18,6 +18,9 @@ const domains = new Set([
 // Characterization follows the business implementation; facade transport has
 // separate contract/HTTP tests and must never be mistaken for domain execution.
 const backendDomains = new Map([
+  [path.resolve("src/lib/actions/public-event-results.ts"), path.resolve("src/lib/backend/services/public-event-results.ts")],
+  [path.resolve("src/lib/actions/dependents.ts"), path.resolve("src/lib/backend/services/dependents.ts")],
+
   [path.resolve("src/lib/actions/league-challenges.ts"), path.resolve("src/lib/backend/services/league-challenges.ts")],
   [path.resolve("src/lib/actions/league-medical-substitutions.ts"), path.resolve("src/lib/backend/services/league-medical-substitutions.ts")],
 
