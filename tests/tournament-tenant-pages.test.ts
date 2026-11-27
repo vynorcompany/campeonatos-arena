@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 test("consultas das telas internas de torneios restringem jogos e pedidos médicos à arena ativa", () => {
-  const games = readFileSync(new URL("../src/app/(app)/torneios/[tournamentId]/jogos/page.tsx", import.meta.url), "utf8");
+  const games = readFileSync(new URL("../src/lib/backend/services/tournament-workspaces.ts", import.meta.url), "utf8");
   const category = readFileSync(new URL("../src/app/(app)/torneios/[tournamentId]/categorias/[categoryId]/page.tsx", import.meta.url), "utf8");
   const registrations = readFileSync(new URL("../src/app/(app)/torneios/[tournamentId]/inscricoes/page.tsx", import.meta.url), "utf8");
 

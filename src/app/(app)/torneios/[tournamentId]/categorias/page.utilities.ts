@@ -6,7 +6,7 @@ export const viewStyles = {
   "page_header_tournament_management_header": sharedUtilities.pageHeaderTournamentManagementHeader,
   "eyebrow": sharedUtilities.eyebrow,
   "muted": sharedUtilities.muted,
-  "button": (sharedUtilities.button) + " " + managementControls.secondary,
+  "button": managementControls.secondary,
   "section_card_tournament_category_management_page": [
     "section-card", "tournament-category-management-page", "tw:pt-[24px]", "tw:pr-[24px]",
     "tw:pb-[24px]", "tw:pl-[24px]", "tw:border-t-[length:1px]", "tw:[border-top-style:solid]",

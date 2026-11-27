@@ -1,4 +1,3 @@
-import { arenaDatabase } from "@/lib/arena-database";
 import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -7,20 +6,15 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { updateCategoryMatchScheduleAction } from "@/lib/actions/category-competition";
 import { requireModuleView } from "@/lib/auth/guards";
 import { canPerformPermission } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
+import { getTournamentGames } from "@/lib/tournaments/workspaces";
 
 export default async function TournamentGamesPage({ params }: { params: Promise<{ tournamentId: string }> }) {
   const auth = await requireModuleView("tournaments");
-  const prisma = arenaDatabase(auth.arenaId);
   const { tournamentId } = await params;
   if (!canPerformPermission("tournaments:manage", auth.arenaRole, auth.systemRole, auth.editPermissions)) {
     redirect(`/jogos?tournamentId=${encodeURIComponent(tournamentId)}`);
   }
-  const [tournament, courts, matches] = await Promise.all([
-    prisma.tournament.findFirst({ where: { id: tournamentId, arenaId: auth.arenaId }, select: { id: true, name: true } }),
-    prisma.court.findMany({ where: { arenaId: auth.arenaId, active: true }, select: { name: true }, orderBy: { name: "asc" } }),
-    prisma.categoryMatch.findMany({ where: { competition: { category: { tournamentId, tournament: { arenaId: auth.arenaId } } } }, include: { competition: { select: { category: { select: { name: true } } } }, homePair: { select: { name: true } }, awayPair: { select: { name: true } } }, orderBy: { roundOrder: "asc" } })
-  ]);
+  const { tournament, courts, matches } = await getTournamentGames(tournamentId);
   if (!tournament) notFound();
   return <div className={viewStyles.stack_md_workspace_page_tournament_games_page}>
     <header className="tw:flex tw:min-w-0 tw:flex-wrap tw:items-center tw:justify-end tw:gap-2"><h1 className="tw:sr-only">Jogos · {tournament.name}</h1><Link className={viewStyles.button} href={`/torneios/${tournament.id}`}>Voltar ao torneio</Link></header>
