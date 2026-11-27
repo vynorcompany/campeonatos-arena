@@ -7,7 +7,7 @@ import vm from "node:vm";
 import ts from "typescript";
 
 const require = createRequire(import.meta.url);
-const source = readFileSync(new URL("../src/lib/auth/player-session.ts", import.meta.url), "utf8");
+const source = readFileSync(new URL("../src/lib/backend/services/player-session.ts", import.meta.url), "utf8");
 
 function fixture(expired = false) {
   let reads = 0;

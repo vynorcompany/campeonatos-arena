@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -47,6 +48,28 @@ try {
     const response = await fetch(origin + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     assert.equal(response.status, 401, path);
   }
+  const anonymousSession = await fetch(origin + '/api/portal/session?arena=goal-arena-a');
+  assert.equal(anonymousSession.status, 200);
+  assert.deepEqual(await anonymousSession.json(), { currentClient: null, athleteIdentity: null });
+  assert.equal(anonymousSession.headers.get('cache-control'), 'private, no-store');
+  const athleteToken = createHash('sha256').update(`goal-player:${token}`).digest('hex');
+  const identityResponse = await fetch(origin + '/api/portal/session', { headers: { cookie: `arena_player_session=${athleteToken}` } });
+  assert.equal(identityResponse.status, 200);
+  const identity = await identityResponse.json();
+  assert.equal(identity.currentClient, null);
+  assert.ok(identity.athleteIdentity?.arenas.length > 0, 'Athlete cookie did not resolve identity');
+  const arenaSlug = identity.athleteIdentity.arenas[0].slug;
+  const ownContext = await fetch(origin + '/api/portal/session?arena=' + encodeURIComponent(arenaSlug), { headers: { cookie: `arena_player_session=${athleteToken}` } });
+  const own = await ownContext.json();
+  assert.equal(own.currentClient?.playerId, 'goal-athlete-a');
+  assert.equal(JSON.stringify(own).includes('passwordHash'), false);
+  const otherContext = await fetch(origin + '/api/portal/session?arena=arena-beta-goal', { headers: { cookie: `arena_player_session=${athleteToken}` } });
+  assert.equal((await otherContext.json()).currentClient, null);
+  const invalidSession = await fetch(origin + '/api/portal/session', { headers: { cookie: 'arena_player_session=invalid' } });
+  assert.deepEqual(await invalidSession.json(), { currentClient: null, athleteIdentity: null });
+  const branding = await fetch(origin + '/api/portal/login-branding?host=unknown.invalid');
+  assert.equal(branding.status, 200);
+  assert.deepEqual(await branding.json(), { arena: null });
   const response = await fetch(origin + '/api/manual-upcoming-matches', { redirect: 'manual', headers: { cookie: `padel_session=${token}` } });
   assert.equal(response.status, 200, 'Backend did not preserve authenticated API access');
   assert.ok(response.headers.get('content-type')?.includes('application/json'));

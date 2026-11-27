@@ -35,3 +35,21 @@ saudável.
 saúde, ausência de rotas de interface, rejeição de acesso anônimo, proteção das
 rotinas e leitura autenticada com credenciais restritas. A aplicação unificada
 mantém seus comandos de build e start até a migração ser concluída.
+
+## Contratos do Portal em migração
+
+`GET /api/portal/login-branding?host=...` retorna apenas nome e logo públicos de
+uma arena ativa, usando o mapa de domínios configurado no backend. O host recebido
+não é usado como destino de rede nem estabelece uma sessão.
+
+`GET /api/portal/session?arena=...` resolve a identidade pelo cookie HttpOnly
+`arena_player_session` e devolve o contexto permitido para a arena solicitada.
+A resposta possui `Cache-Control: private, no-store` e não contém hashes ou tokens.
+
+Durante a migração, `VX4_BACKEND_ORIGIN` no servidor web seleciona o transporte
+HTTP desses contratos. O destino deve ser uma origem HTTP(S) sem credenciais,
+caminho ou parâmetros. Redirecionamentos são recusados, a resposta é validada e
+falhas não retornam silenciosamente ao banco. Sem essa configuração, a aplicação
+unificada conserva o fluxo local até o corte definitivo. Essa compatibilidade é
+temporária: as ações de autenticação e os demais domínios ainda precisam migrar
+antes da retirada das credenciais do frontend.
