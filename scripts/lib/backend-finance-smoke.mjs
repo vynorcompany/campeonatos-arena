@@ -1,3 +1,4 @@
+import { assertFiscalInvoicesSmoke } from './backend-fiscal-invoices-smoke.mjs';
 import { assertNfeSmoke } from './backend-nfe-smoke.mjs';
 import { assertCashSmoke } from './backend-cash-smoke.mjs';
 import { assertProductsSmoke } from './backend-products-smoke.mjs';
@@ -117,7 +118,8 @@ export async function prepareFinanceSmoke(db, databaseUrl, origin, staffId, staf
     await assertProductsSmoke(db, origin, arena.id, cookie, staffId);
     await assertCashSmoke(db, origin, arena.id, cookie, staffId);
     await assertNfeSmoke(db, origin, arena.id, cookie, staffId);
-    return { arenaId: arena.id, cookie, cleanup, teacherId: academy.teacherId };
+    const fiscalDocumentId = await assertFiscalInvoicesSmoke(db, origin, arena.id, cookie, staffId);
+    return { arenaId: arena.id, cookie, cleanup, teacherId: academy.teacherId, fiscalDocumentId };
   } catch (error) { await cleanup(); throw error; }
 }
 

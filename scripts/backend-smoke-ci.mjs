@@ -411,6 +411,14 @@ try {
   await assertFinancialSettingsSSR('http://127.0.0.1:3014', financeFixture.cookie);
   await assertFinanceWorkspacesSSR('http://127.0.0.1:3014', financeFixture.cookie);
   for (const path of ['/professores', '/aulas/alunos', '/aulas/registrar', '/aulas', '/pdv/servicos', '/pdv/estoque', '/pdv/vendas', '/pdv/caixa']) { const response = await fetch('http://127.0.0.1:3014' + path, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200, path); assert.equal((await response.text()).includes('passwordHash'), false); }
+  for (const suffix of ['', '?documentId=' + financeFixture.fiscalDocumentId, '?documentId=not-this-arena']) {
+    const response = await fetch('http://127.0.0.1:3014/financeiro/notas-fiscais' + suffix, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200, 'Fiscal listing SSR');
+    const html = await response.text(); assert.equal(html.includes('SYNTHETIC-MISMATCH'), false); assert.equal(html.includes('private-fiscal-'), false);
+  }
+  const fiscalFileBase = 'http://127.0.0.1:3014/api/fiscal/documents/';
+  const fiscalFile = await fetch(fiscalFileBase + financeFixture.fiscalDocumentId + '/print', { headers: { cookie: financeFixture.cookie }, redirect: 'manual' });
+  assert.equal(fiscalFile.status, 303); assert.equal(fiscalFile.headers.get('location'), 'https://homologacao.focusnfe.com.br/synthetic.html'); assert.equal(fiscalFile.headers.get('referrer-policy'), 'no-referrer'); assert.equal(fiscalFile.headers.get('cache-control'), 'private, no-store');
+  for (const suffix of ['not-this-arena/xml', financeFixture.fiscalDocumentId + '/unknown', financeFixture.fiscalDocumentId + '/xml?arenaId=forged']) assert.equal((await fetch(fiscalFileBase + suffix, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' })).status, 404);
   for (const path of ['/pdv/balanco', '/pdv/balanco?historico=1']) { const response = await fetch('http://127.0.0.1:3014' + path, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200, path); }
   const stockMember = await fixtureDb.arenaMember.findFirstOrThrow({ where: { arenaId: financeFixture.arenaId, userId: staffFixtureId } });
   assert.equal((await fetch('http://127.0.0.1:3014/pdv/novo', { headers: { cookie: financeFixture.cookie }, redirect: 'manual' })).status, 404);

@@ -1,7 +1,7 @@
 import "server-only";
 
-export type FocusEnvironment = "SANDBOX" | "PRODUCTION";
-export const focusBaseUrl = (environment: FocusEnvironment) => environment === "PRODUCTION" ? "https://api.focusnfe.com.br" : "https://homologacao.focusnfe.com.br";
+import { focusBaseUrl, type FocusEnvironment } from './focus-document-url';
+export { focusBaseUrl, focusDocumentUrl, type FocusEnvironment } from './focus-document-url';
 export class FocusHttpError extends Error {
   constructor(public status: number, public providerCode: string) { super(`Focus: requisição não concluída (HTTP ${status}).`); }
 }
@@ -15,11 +15,4 @@ export async function focusRequest(environment: FocusEnvironment, token: string,
   const data = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) throw new FocusHttpError(response.status, String(data.codigo ?? ""));
   return data;
-}
-export function focusDocumentUrl(environment: FocusEnvironment, path: unknown) {
-  if (typeof path !== "string" || !path) return "";
-  try {
-    const url = new URL(path, focusBaseUrl(environment));
-    return url.origin === focusBaseUrl(environment) && !url.username && !url.password ? url.toString() : "";
-  } catch { return ""; }
 }

@@ -17,6 +17,9 @@ const nextConfig = {
         // Mantemos os demais recursos sensíveis bloqueados.
         { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=(), payment=()" }
       ]
+    }, {
+      source: "/api/fiscal/documents/:path*",
+      headers: [{ key: "Referrer-Policy", value: "no-referrer" }]
     }];
   },
   experimental: {
