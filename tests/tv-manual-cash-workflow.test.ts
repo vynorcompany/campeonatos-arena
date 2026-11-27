@@ -17,10 +17,10 @@ test("TV manual games stay in the modal and enforce three games on the server", 
 });
 
 test("cash reports use recorded registers and POS movements", () => {
-  const report = source("../src/app/(app)/relatorios/[relatorio]/page.tsx");
+  const report = source("../src/lib/backend/services/report-workspace.ts");
   const reportData = source("../src/lib/reports/operational-report-data.ts");
   const pos = source("../src/lib/actions/pos.ts");
-  assert.match(report, /withArenaTransaction\(auth\.arenaId, \(tx\) => loadCashReportData\(tx/);
+  assert.match(report, /withArenaTransaction\(auth\.arenaId,\s*tx\s*=>\s*loadCashReportData\(tx/);
   assert.match(reportData, /db\.cashRegister\.findMany/);
   assert.match(report, /register\.movements/);
   assert.match(pos, /referenceDate: cashReferenceDate\(\)/);
