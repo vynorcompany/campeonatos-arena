@@ -17,3 +17,12 @@ test('class-group makeup preserves repeated attendance targets without accepting
   assert.equal(portalAcademyOperations.includes('approve-class-group-request'), false);
   assert.equal(portalAcademyOperations.includes('request-class-group'), true);
 });
+
+import { lessonCreditBalanceSchema, lessonCreditRequestsSchema } from '../src/lib/backend/contracts/lesson-credit-reads';
+test('credit read contracts exclude student identity, account secrets and internal batch fields', () => {
+  const row = { id: 'request', message: '', batch: { remaining: 1, expiresAt: null, student: { name: 'Aluno' } } };
+  assert.deepEqual(lessonCreditRequestsSchema.parse([row]), [row]);
+  assert.equal(lessonCreditRequestsSchema.safeParse([{ ...row, arenaId: 'other' }]).success, false);
+  assert.equal(lessonCreditRequestsSchema.safeParse([{ ...row, batch: { ...row.batch, student: { name: 'Aluno', passwordHash: 'private' } } }]).success, false);
+  assert.equal(lessonCreditBalanceSchema.safeParse({ available: 1, batches: [], makeupEnabled: true, makeupPolicy: '', noticeDays: 7, playerId: 'forged' }).success, false);
+});
