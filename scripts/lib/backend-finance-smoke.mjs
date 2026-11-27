@@ -1,3 +1,4 @@
+import { assertArenaConfigurationSmoke } from './backend-arena-configuration-smoke.mjs';
 import { assertUserMutationsSmoke } from './backend-user-mutations-smoke.mjs';
 import { assertAccessSmoke } from './backend-access-smoke.mjs';
 import { assertAssistantSmoke } from './backend-assistant-smoke.mjs';
@@ -130,6 +131,7 @@ export async function prepareFinanceSmoke(db, databaseUrl, origin, staffId, staf
     await assertAdminSettingsSmoke(db, origin, arena.id, cookie, staffId);
     await assertDeviceSessionsSmoke(db, origin, cookie, staffId);
     await assertUserMutationsSmoke(db, origin, arena.id, cookie, staffId);
+    await assertArenaConfigurationSmoke(db, origin, arena.id, cookie, staffId);
     const access = await assertAccessSmoke(db, origin, arena.id, cookie, staffId);
     const assistant = await assertAssistantSmoke(db, origin, arena.id, cookie, staffId);
     const support = await assertSupportSmoke(db, origin, arena.id, cookie, staffId);

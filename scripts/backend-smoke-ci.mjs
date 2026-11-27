@@ -1,8 +1,9 @@
+import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, mkdtempSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { runtimeEnvironment } from './runtime-server.mjs';
 import { prepareFinanceSmoke, assertFinanceSSR, assertFinancialSettingsSSR, assertFinanceWorkspacesSSR } from './lib/backend-finance-smoke.mjs';
@@ -38,6 +39,8 @@ assert.ok(Object.keys(paths).every(path => path.startsWith('/api/') || path === 
 url.username = 'arena_runtime'; url.password = 'fixture';
 const environment = runtimeEnvironment({ ...process.env, APP_DATABASE_URL: url.toString(), PORT: '3012' });
 environment.VX4_FRONTEND_ORIGINS = JSON.stringify(['http://127.0.0.1:3014']);
+environment.RAILWAY_VOLUME_MOUNT_PATH = mkdtempSync(join(tmpdir(), 'vx4-backend-uploads-'));
+for (const key of ['R2_ENDPOINT','R2_BUCKET','R2_ACCESS_KEY_ID','R2_SECRET_ACCESS_KEY','R2_PUBLIC_BASE_URL']) environment[key] = '';
 environment.HOSTNAME = '127.0.0.1'; environment.NODE_ENV = 'production';
 // Disposable fixture only: no production connector credentials are used.
 environment.PAYMENT_CONNECTIONS_ENCRYPTION_KEY = 'synthetic-backend-contract-key-not-for-production';
