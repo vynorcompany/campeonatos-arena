@@ -1,3 +1,4 @@
+import { assertAdminSettingsSmoke, assertDeviceSessionsSmoke } from './backend-admin-settings-smoke.mjs';
 import { assertBoletoQueueSmoke } from './backend-boleto-queue-smoke.mjs';
 import { assertFiscalInvoicesSmoke } from './backend-fiscal-invoices-smoke.mjs';
 import { assertNfeSmoke } from './backend-nfe-smoke.mjs';
@@ -12,7 +13,7 @@ export async function prepareFinanceSmoke(db, databaseUrl, origin, staffId, staf
   assert.equal(database.hostname, '127.0.0.1'); assert.equal(database.port, '55433'); assert.equal(database.pathname, '/arena_goal');
   const slug = 'finance-contract-' + tag;
   const arena = await db.arena.create({ data: { name: 'Finance disposable contract', slug, createdById: 'goal-test' } });
-  const cleanup = () => db.arena.deleteMany({ where: { id: arena.id, slug } });
+  const cleanup = async () => { await db.erasedContactReference.deleteMany({ where: { arenaId: arena.id } }); await db.privacyRequest.deleteMany({ where: { arenaId: arena.id } }); return db.arena.deleteMany({ where: { id: arena.id, slug } }); };
   try {
     await db.arenaMember.create({ data: { arenaId: arena.id, userId: staffId, role: 'STAFF', viewPermissions: ['finance:receivable:view'], editPermissions: [] } });
     const cookie = `padel_session=${staffToken}; padel_arena=${arena.id}`;
@@ -121,8 +122,10 @@ export async function prepareFinanceSmoke(db, databaseUrl, origin, staffId, staf
     await assertNfeSmoke(db, origin, arena.id, cookie, staffId);
     const fiscalDocumentId = await assertFiscalInvoicesSmoke(db, origin, arena.id, cookie, staffId);
     await assertBoletoQueueSmoke(db, origin, arena.id, cookie, staffId);
+    await assertAdminSettingsSmoke(db, origin, arena.id, cookie, staffId);
+    await assertDeviceSessionsSmoke(db, origin, cookie, staffId);
     const queueMember = await db.arenaMember.findFirstOrThrow({ where: { arenaId: arena.id, userId: staffId } });
-    await db.arenaMember.update({ where: { id: queueMember.id }, data: { editPermissions: [...queueMember.editPermissions, "finance:receivable:view"] } });
+    await db.arenaMember.update({ where: { id: queueMember.id }, data: { editPermissions: [...queueMember.editPermissions, "finance:receivable:view", "arena:settings"] } });
     return { arenaId: arena.id, cookie, cleanup, teacherId: academy.teacherId, fiscalDocumentId };
   } catch (error) { await cleanup(); throw error; }
 }
