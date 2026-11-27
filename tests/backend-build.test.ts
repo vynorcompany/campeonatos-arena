@@ -20,6 +20,9 @@ test('independent backend includes API handlers without copying frontend pages o
   assert.equal(existsSync(join(target, 'src/app/portal')), false);
   assert.equal(existsSync(join(target, '.env')), false);
   assert.equal(existsSync(join(root, '.service-build/backend.json')), false, 'unfinished builds must not become runnable');
+  const paths = JSON.parse(readFileSync(join(target, 'tsconfig.json'), 'utf8')).compilerOptions.paths;
+  assert.match(paths['@/lib/auth/session'][0], /backend\/services\/management-session\.ts$/);
+  assert.match(paths['@/lib/auth/player-session'][0], /backend\/services\/player-session\.ts$/);
   recordBackendBuild(root, target);
   assert.equal(readBackendBuild(root), target);
   assert.match(readFileSync(join(target, '.next/standalone/server.js'), 'utf8'), /backendOnlyHandler\(productionAuditHandler/);

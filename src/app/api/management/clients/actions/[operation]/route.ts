@@ -1,3 +1,4 @@
+import { ZodError } from 'zod';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireArenaAccess } from '@/lib/backend/services/management-session';
 import { canEditModule, canPerformPermission } from '@/lib/permissions';
@@ -28,5 +29,5 @@ export async function POST(request: NextRequest, context: { params: Promise<{ op
     form.set(operation === 'import' ? 'file' : 'photo', new File([bytes], input.file.name, { type: input.file.type }));
   }
   try { return NextResponse.json(clientMutationOutcomeSchema.parse(await executeClientMutation(operation, form)), { headers }); }
-  catch (error) { return NextResponse.json({ error: error instanceof ClientOperationError ? error.message : 'Não foi possível concluir a alteração.' }, { status: error instanceof ClientOperationError ? 400 : 500, headers }); }
+  catch (error) { return NextResponse.json({ error: error instanceof ClientOperationError ? error.message : error instanceof ZodError ? 'Dados inválidos.' : 'Não foi possível concluir a alteração.' }, { status: error instanceof ClientOperationError || error instanceof ZodError ? 400 : 500, headers }); }
 }

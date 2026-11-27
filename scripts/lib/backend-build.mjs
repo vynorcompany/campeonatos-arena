@@ -12,7 +12,13 @@ export function prepareBackendBuild(root) {
   chmodSync(target, 0o755);
   cpSync(join(root, 'src/app/api'), join(target, 'src/app/api'), { recursive: true });
   const tsconfig = JSON.parse(readFileSync(join(root, 'tsconfig.json'), 'utf8'));
-  tsconfig.compilerOptions.paths = { '@/*': [relative(target, join(root, 'src/*'))] };
+  // Bind shared authorization policies to local backend session implementations.
+  // The web target keeps its HTTP facades; API guards must never call those facades.
+  tsconfig.compilerOptions.paths = {
+    '@/lib/auth/session': [relative(target, join(root, 'src/lib/backend/services/management-session.ts'))],
+    '@/lib/auth/player-session': [relative(target, join(root, 'src/lib/backend/services/player-session.ts'))],
+    '@/*': [relative(target, join(root, 'src/*'))],
+  };
   tsconfig.compilerOptions.incremental = false;
   tsconfig.include = ['next-env.d.ts', 'src/**/*.ts', '.next/types/**/*.ts', relative(target, join(root, 'src/**/*.d.ts'))];
   tsconfig.exclude = ['node_modules'];

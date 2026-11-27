@@ -1,10 +1,11 @@
 import { z } from 'zod';
 const identityFields = ['name', 'points', 'class', 'gender', 'phone', 'email', 'cpf', 'addressZipCode', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressCity', 'addressState', 'birthDate', 'leagueTier', 'isTeacher', 'personType', 'cnpj', 'allowOverdueComandas', 'guardianId'] as const;
 export const clientMutationFields = {
+  'loyalty-settings': ['enabled', 'visitsRequired', 'rewardLabel'], 'loyalty-visit': ['playerId', 'notes'], 'loyalty-redeem': ['playerId'], 'loyalty-fulfill': ['activityId'],
   create: identityFields, update: [...identityFields, 'playerId', 'dependentPlayerId'], archive: ['playerId'], reactivate: ['playerId'], delete: ['playerId'], points: ['playerId', 'points'], 'reset-ranking': [],
   balance: ['playerId', 'kind', 'operation', 'amount', 'reason'], merge: ['primaryPlayerId', 'duplicatePlayerId'], 'archive-many': ['playerId'], import: [],
 } as const;
-export const clientMutationOperations = ['create', 'update', 'archive', 'reactivate', 'delete', 'points', 'reset-ranking', 'balance', 'merge', 'archive-many', 'import'] as const;
+export const clientMutationOperations = ['create', 'update', 'archive', 'reactivate', 'delete', 'points', 'reset-ranking', 'balance', 'merge', 'archive-many', 'import', 'loyalty-settings', 'loyalty-visit', 'loyalty-redeem', 'loyalty-fulfill'] as const;
 export type ClientMutationOperation = typeof clientMutationOperations[number];
 export const clientMutationOutcomeSchema = z.object({ error: z.string().nullable(), success: z.string().nullable().optional(), imported: z.number().int().nonnegative().optional() }).strict();
 export type ClientMutationOutcome = z.infer<typeof clientMutationOutcomeSchema>;

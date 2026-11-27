@@ -8,7 +8,8 @@ export async function runClientMutation(operation: ClientMutationOperation, form
     ? await remoteClientMutation(process.env.VX4_BACKEND_ORIGIN, operation, form)
     : await (await import('@/lib/backend/services/client-mutations')).executeClientMutation(operation, form);
   if (!result.error) {
-    if (['balance', 'merge', 'archive-many', 'import'].includes(operation)) {
+    if (operation.startsWith('loyalty-')) { revalidatePath('/jogadores'); }
+    else if (['balance', 'merge', 'archive-many', 'import'].includes(operation)) {
       revalidatePath('/jogadores'); revalidatePath('/agenda'); revalidatePath('/aulas');
     } else {
       refreshTournamentRoutes();
