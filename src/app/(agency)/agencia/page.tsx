@@ -1,24 +1,13 @@
 import { viewStyles } from "./page.utilities";
 import { SectionCard } from "@/components/section-card";
 import { requireAgencyPageAccess } from "@/lib/auth/guards";
-import { agencyDatabase as prisma } from "@/lib/auth/database";
+import { getAgencyRecentTickets } from "@/lib/agency/pages";
 import { agencyStatusLabel } from "@/lib/agency/status-label";
 import { formatCurrency, getAgencyMetrics } from "@/lib/services/agency";
 
 export default async function AgencyDashboardPage() {
   await requireAgencyPageAccess();
-  const [metrics, tickets] = await Promise.all([
-    getAgencyMetrics(),
-    prisma.supportTicket.findMany({
-      include: {
-        arena: true,
-        requester: true,
-        assignee: true
-      },
-      orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
-      take: 8
-    })
-  ]);
+  const [metrics, { tickets }] = await Promise.all([getAgencyMetrics(), getAgencyRecentTickets()]);
   const activeArenas = metrics.arenas.filter((arena) => arena.accountStatus === "ACTIVE").length;
 
   return (

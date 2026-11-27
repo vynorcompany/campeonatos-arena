@@ -4,14 +4,17 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
+import * as contracts from "../src/lib/backend/contracts/agency-pages";
 
-const source = readFileSync(new URL("../src/lib/services/agency.ts", import.meta.url), "utf8");
+const source = readFileSync(new URL("../src/lib/backend/services/agency-pages.ts", import.meta.url), "utf8");
 
 test("financeiro da agência separa faturas em revisão das efetivamente pagas", async () => {
   const exports: Record<string, () => Promise<Record<string, number>>> = {};
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, Date, Intl,
     require: withDatabaseModuleMocks((name: string) => {
+      if (name === "server-only" || name === "@/lib/arena-database") return {};
+      if (name === "../contracts/agency-pages") return contracts;
       if (name !== "@/lib/prisma") throw new Error(`Unexpected import: ${name}`);
       return { prisma: {
         arena: { findMany: async () => [] },
@@ -30,7 +33,7 @@ test("financeiro da agência separa faturas em revisão das efetivamente pagas",
       } };
     }),
   });
-  const metrics = await exports.getAgencyMetrics();
+  const metrics = await exports.resolveAgencyMetrics();
   assert.equal(metrics.paidInvoiceCents, 10000);
   assert.equal(metrics.openInvoiceCents, 3000);
   assert.equal(metrics.reviewInvoiceCents, 12000);
