@@ -8,6 +8,10 @@ test("booking contracts reject forged scope, duplicate fields and private respon
   assert.equal(courtBookingInputSchema("confirm").safeParse({ fields: { occurrenceId: ["own"], paymentMethod: ["CASH"] } }).success, false);
   assert.equal(courtBookingOutcomeSchema.safeParse({ error: null, version: "2026-11-27T12:00:00.000Z" }).success, true);
   assert.equal(courtBookingOutcomeSchema.safeParse({ error: null, providerToken: "private" }).success, false);
+  assert.equal(courtBookingInputSchema("checkin").safeParse({ fields: { occurrenceId: ["own"], playerId: ["own"], actorId: ["forged"] } }).success, false);
+  assert.equal(courtBookingInputSchema("open-slot").safeParse({ fields: { courtId: ["own"], arenaId: ["foreign"] } }).success, false);
+  assert.equal(courtBookingOutcomeSchema.safeParse({ error: null, checkedInAt: "2026-11-27T12:00:00.000Z" }).success, true);
+  assert.equal(courtBookingOutcomeSchema.safeParse({ error: null, charges: { version: "2026-11-27T12:00:00.000Z", totalAmountCents: 100, participants: [{ playerId: "own", amountCents: 100, paymentMethod: "", checkedInAt: null, accessToken: "private" }], services: [] } }).success, false);
 });
 
 test("booking facade invalidates after confirmation only and hides uncertain transport errors", async () => {

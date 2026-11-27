@@ -45,7 +45,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ op
   try { input = courtBookingInputSchema(operation).parse(await readBoundedJson(request, 128 * 1024)); }
   catch (error) { return NextResponse.json({ error: "Dados inválidos." }, { status: error instanceof RequestBodyTooLargeError ? 413 : 400, headers }); }
   const fields = input.fields;
-  const permission = operation === "confirm" ? "calendar:booking:edit" : operation === "cancel" ? fields.mode?.[0] === "FREE" ? "calendar:recurrence:release" : "calendar:booking:cancel" : fields.occurrenceId?.[0]?.trim() ? "calendar:booking:edit" : "calendar:booking:create";
+  const extraPermissions = { checkin: "calendar:booking:edit", "service-add": "calendar:booking:edit", "service-remove": "calendar:booking:edit", "block-slots": "calendar:booking:create", move: "calendar:booking:edit", "release-block": "calendar:recurrence:release", "open-slot": "calendar:recurrence:release" } as const;
+  const permission = operation in extraPermissions ? extraPermissions[operation as keyof typeof extraPermissions] : operation === "confirm" ? "calendar:booking:edit" : operation === "cancel" ? fields.mode?.[0] === "FREE" ? "calendar:recurrence:release" : "calendar:booking:cancel" : fields.occurrenceId?.[0]?.trim() ? "calendar:booking:edit" : "calendar:booking:create";
   if (!canPerformPermission(permission, auth.arenaRole, auth.systemRole, auth.editPermissions)) return NextResponse.json({ error: "Sem permissão para esta alteração." }, { status: 403, headers });
   if (operation === "save") {
     let participants;

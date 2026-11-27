@@ -10,9 +10,9 @@ export async function assertAgendaQueriesSmoke(db,backend,frontend,staffId,sessi
   const court=await db.court.create({data:{arenaId:arena.id,name:'Query court',weeklyRules:{create:{weekday:1,startsAtMinute:480,endsAtMinute:540,priceCents:7500,available:true}},dateAvailability:[{date:'2026-12-07',startsAtMinute:600,endsAtMinute:780,priceCents:9000,online:false}]}});
   const foreignCourt=await db.court.create({data:{arenaId:foreign.id,name:'Foreign query court'}});
   const create=(arenaId,courtId,start,end)=>db.scheduleOccurrence.create({data:{arenaId,sourceType:'BOOKING',title:'Query fixture',startsAt:new Date(start),endsAt:new Date(end),occurrenceCourts:{create:{courtId}}}});
-  const original=await create(arena.id,court.id,'2026-12-07T13:00:00Z','2026-12-07T14:00:00Z');
-  await create(arena.id,court.id,'2026-12-07T11:00:00Z','2026-12-07T11:30:00Z');
-  const outsider=await create(foreign.id,foreignCourt.id,'2026-12-07T13:00:00Z','2026-12-07T14:00:00Z');
+  const original=await create(arena.id,court.id,'2026-12-07T10:00:00','2026-12-07T11:00:00');
+  await create(arena.id,court.id,'2026-12-07T08:00:00','2026-12-07T08:30:00');
+  const outsider=await create(foreign.id,foreignCourt.id,'2026-12-07T10:00:00','2026-12-07T11:00:00');
   const read=(origin,path,authCookie=cookie)=>fetch(origin+path,{headers:{cookie:authCookie},redirect:'manual'});
   const query=`courtId=${court.id}&date=2026-12-07`;
   let expectedVersion;
@@ -30,7 +30,7 @@ export async function assertAgendaQueriesSmoke(db,backend,frontend,staffId,sessi
   }
   await db.scheduleOccurrence.update({where:{id:outsider.id},data:{status:'CANCELED'}});assert.deepEqual(await(await read(backend,'/api/management/agenda/version?date=2026-12-07')).json(),expectedVersion);
   await db.scheduleOccurrence.update({where:{id:original.id},data:{notes:'Version changed'}});assert.notDeepEqual(await(await read(frontend,'/api/agenda/version?date=2026-12-07')).json(),expectedVersion);
-  const overnightCourt=await db.court.create({data:{arenaId:arena.id,name:'Overnight query court',dateAvailability:[{date:'2026-12-07',startsAtMinute:0,endsAtMinute:60,priceCents:1000,online:false}]}});await create(arena.id,overnightCourt.id,'2026-12-07T02:30:00Z','2026-12-07T03:30:00Z');assert.deepEqual((await(await read(backend,`/api/management/agenda/availability?courtId=${overnightCourt.id}&date=2026-12-07`)).json()).availableMinutes,[30]);
+  const overnightCourt=await db.court.create({data:{arenaId:arena.id,name:'Overnight query court',dateAvailability:[{date:'2026-12-07',startsAtMinute:0,endsAtMinute:60,priceCents:1000,online:false}]}});await create(arena.id,overnightCourt.id,'2026-12-06T23:30:00','2026-12-07T00:30:00');assert.deepEqual((await(await read(backend,`/api/management/agenda/availability?courtId=${overnightCourt.id}&date=2026-12-07`)).json()).availableMinutes,[30]);
   await db.arena.update({where:{id:arena.id},data:{accountStatus:'SUSPENDED'}});
   for(const area of ['availability','version'])assert.equal((await read(backend,`/api/management/agenda/${area}?${area==='availability'?query:'date=2026-12-07'}`)).status,403);
   await db.arena.update({where:{id:arena.id},data:{accountStatus:'ACTIVE'}});

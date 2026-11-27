@@ -2,8 +2,8 @@ import "server-only";
 import { refreshCalendarRoutes } from "@/lib/calendar/revalidation";
 import { refreshFinanceRoutes } from "@/lib/finance/revalidation";
 import { courtBookingFormFields, remoteCourtBookingMutation } from "@/lib/backend/court-booking-client";
-import type { CourtBookingOperation } from "@/lib/backend/contracts/court-booking";
-export async function runCourtBookingMutation(operation: CourtBookingOperation, form: FormData) {
+import type { CourtBookingOutcome, CourtBookingOperation } from "@/lib/backend/contracts/court-booking";
+export async function runCourtBookingMutation(operation: CourtBookingOperation, form: FormData): Promise<CourtBookingOutcome> {
   let result;
   try {
     const origin = process.env.VX4_BACKEND_ORIGIN;
@@ -12,7 +12,7 @@ export async function runCourtBookingMutation(operation: CourtBookingOperation, 
   } catch { return { error: "Não foi possível confirmar a alteração. Confira a grade antes de tentar novamente." }; }
   if (!result.error) {
     refreshCalendarRoutes();
-    if (operation === "save" || operation === "cancel" && form.get("cancelOpenCharges") === "yes") refreshFinanceRoutes();
+    if (operation === "service-add" || operation === "service-remove" || operation === "save" || operation === "cancel" && form.get("cancelOpenCharges") === "yes") refreshFinanceRoutes();
   }
   return result;
 }
