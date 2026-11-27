@@ -2,15 +2,15 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 import { backendOrigin } from "@/lib/backend/http-client";
 import { managementAuthenticationCookie } from "@/lib/backend/management-auth-cookie";
-import { managementAuthFields, managementAuthInputSchema, managementAuthOutcomeSchema, type ManagementAuthOperation } from "@/lib/backend/contracts/management-auth";
+import { managementFieldsFor, managementInputSchemaFor, managementAuthOutcomeSchema, type ManagementAuthOperation } from "@/lib/backend/contracts/management-auth";
 
 export async function remoteManagementAuthentication(origin: string, operation: ManagementAuthOperation, form: FormData) {
   const values: Record<string, string> = {};
-  for (const name of managementAuthFields) {
+  for (const name of managementFieldsFor(operation)) {
     const value = form.get(name);
     if (typeof value === 'string') values[name] = value;
   }
-  const payload = managementAuthInputSchema.parse(values);
+  const payload = managementInputSchemaFor(operation).parse(values);
   const names = [process.env.SESSION_COOKIE_NAME || 'padel_session', process.env.ARENA_COOKIE_NAME || 'padel_arena'];
   const store = await cookies();
   const cookie = names.map(name => {

@@ -245,4 +245,3 @@ export async function setWorkspaceAction(formData: FormData): Promise<Management
   nextFormData.set("arenaId", workspaceId);
   return setActiveArenaAction(nextFormData);
 }
-

@@ -12,7 +12,7 @@ function fixture(options: { configured?: boolean; failEmail?: boolean; appUrl?: 
   const exports: Record<string, (...args: any[]) => Promise<any>> = {};
   const mocks: Record<string, unknown> = {
     "next/cache": { revalidatePath() {} },
-    "@/lib/auth/session": { requireArenaAccess: async () => ({ arenaId: "arena", arenaRole: options.forbidden ? "STAFF" : options.role ?? "OWNER", systemRole: "VIEWER" }) },
+    "@/lib/backend/services/management-session": { requireArenaAccess: async () => ({ arenaId: "arena", arenaRole: options.forbidden ? "STAFF" : options.role ?? "OWNER", systemRole: "VIEWER" }) },
     "@/lib/auth/account-email": { accountEmailIsConfigured: () => options.configured ?? false, sendAccountEmail: async (...args: any[]) => { deliveries.push(args); if (options.failEmail) throw new Error("Provider unavailable"); } },
     "@/lib/auth/account-tokens": { createAccountToken: async (data: any) => { tokens.push(data); return { token: "a".repeat(64), record: { id: "invite" } }; } },
     "@/lib/env": { env: { appUrl: options.appUrl } },
@@ -25,7 +25,7 @@ function fixture(options: { configured?: boolean; failEmail?: boolean; appUrl?: 
       arenaMember: { findUnique: async ({ where }: any) => where.userId_arenaId.arenaId === "arena" && where.userId_arenaId.userId === "member" ? { user: { id: "member", email: "member@example.invalid" } } : null },
     } },
   };
-  vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/account-access.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, { exports, Date, URL, URLSearchParams, require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)) });
+  vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/backend/services/account-access.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, { exports, Date, URL, URLSearchParams, require: withDatabaseModuleMocks((name: string) => name in mocks ? mocks[name] : require(name)) });
   const form = new FormData(); form.set("name", "Pessoa de Teste"); form.set("email", "USER@example.invalid"); form.set("permissionProfileId", "profile");
   const recoveryForm = new FormData(); recoveryForm.set("userId", "member");
   return { invite: () => exports.inviteArenaUserAction({ error: null, success: null }, form), recover: (userId = "member") => { recoveryForm.set("userId", userId); return exports.sendArenaUserRecoveryAction({ error: null, success: null }, recoveryForm); }, tokens, deliveries };

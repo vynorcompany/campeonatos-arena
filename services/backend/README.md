@@ -101,3 +101,19 @@ Cookies são validados integralmente antes de modificar a sessão do navegador.
 
 A recuperação gerencial por e-mail e os demais domínios ainda precisam migrar.
 Não retirar as credenciais do frontend antes de concluir também esses contratos.
+
+## Recuperação e convites gerenciais
+
+As operações `invite`, `revoke-invite`, `request-reset`, `send-user-recovery`,
+`complete-reset` e `accept-invite` executam os fluxos de conta no backend. Cada
+operação possui campos próprios. Convites e recuperação administrativa exigem
+arena/permissão válidas; links manuais conservam as restrições de proprietário.
+O frontend revalida a listagem de usuários após convidar ou revogar e preserva os
+redirecionamentos quando a sessão expira ou a arena está bloqueada.
+
+`POST /api/management/account/token-info` é uma consulta somente de leitura,
+autorizada pelo próprio token forte do link. Recebe tipo e token em corpo limitado
+a 1 KiB, para não inserir o segredo em URLs de API. Retorna apenas validade e, para
+convite válido, e-mail convidado, nome da arena e existência de conta. Não fornece
+IDs, hashes nem tokens de sessão. As páginas de convite/redefinição usam esse
+contrato; tokens expirados ou usados não exibem o formulário.

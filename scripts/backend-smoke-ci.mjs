@@ -94,6 +94,16 @@ try {
     method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014' }, body: JSON.stringify({ email: 'goal-staff@example.test', password: 'SenhaDescartavelGOAL123!', systemRole: 'SUPER_ADMIN' }),
   });
   assert.equal(forgedManagement.status, 400);
+  const anonymousInvite = await fetch(origin + '/api/management/auth/invite', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014' }, body: JSON.stringify({ email: 'synthetic@example.invalid', name: 'Synthetic Staff', permissionProfileId: 'synthetic' }),
+  });
+  assert.deepEqual(await anonymousInvite.json(), { error: null, success: null, redirectTo: '/login' });
+  const invalidTokenInfo = await fetch(origin + '/api/management/account/token-info', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'INVITE', token: 'a'.repeat(64) }),
+  });
+  assert.equal(invalidTokenInfo.status, 200);
+  assert.deepEqual(await invalidTokenInfo.json(), { valid: false, invitation: null });
+  assert.equal(invalidTokenInfo.headers.get('cache-control'), 'private, no-store');
   const managementLogin = await fetch(origin + '/api/management/auth/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014', 'user-agent': 'Mozilla/5.0 Synthetic Browser' },
     body: JSON.stringify({ email: 'goal-staff@example.test', password: 'SenhaDescartavelGOAL123!' }),
@@ -206,6 +216,11 @@ try {
   assert.ok(athleteHtml.includes('Atleta GOAL A'));
   assert.ok(athleteHtml.includes('Arena Teste GOAL'));
   assert.equal(athleteHtml.includes('Arena Beta GOAL'), false);
+  for (const path of ['/convite?token=' + 'a'.repeat(64), '/redefinir-senha?token=' + 'a'.repeat(64)]) {
+    const invalidLinkPage = await fetch('http://127.0.0.1:3014' + path);
+    assert.equal(invalidLinkPage.status, 200);
+    assert.match(await invalidLinkPage.text(), /expirou|indisponível/);
+  }
   const managementPage = await fetch('http://127.0.0.1:3014/painel', { headers: { cookie: staffCookie }, redirect: 'manual' });
   assert.equal(managementPage.status, 200, 'Management SSR did not preserve restricted staff context');
   console.log('Independent backend and SSR frontend: authentication, session contracts, arena isolation, restricted credentials and API-only boundary passed.');

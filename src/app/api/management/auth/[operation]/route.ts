@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { allowedFrontendOrigin } from "@/lib/backend/origin-policy";
 import { readBoundedJson, RequestBodyTooLargeError } from "@/lib/http/json-body";
-import { managementAuthOperations, managementAuthInputSchema, managementAuthOutcomeSchema } from "@/lib/backend/contracts/management-auth";
+import { managementAuthOperations, managementInputSchemaFor, managementAuthOutcomeSchema } from "@/lib/backend/contracts/management-auth";
+import { getArenaAccessDecision } from "@/lib/backend/services/management-session";
+import * as access from "@/lib/backend/services/account-access";
 import * as auth from "@/lib/backend/services/management-auth";
 
 export const dynamic = "force-dynamic";
 const operations = {
+  invite: (form: FormData) => access.inviteArenaUserAction({ error: null, success: null }, form),
+  'revoke-invite': access.revokeArenaInviteAction,
+  'request-reset': (form: FormData) => access.requestPasswordResetAction({ error: null, success: null }, form),
+  'send-user-recovery': (form: FormData) => access.sendArenaUserRecoveryAction({ error: null, success: null }, form),
+  'complete-reset': (form: FormData) => access.completePasswordResetAction({ error: null, success: null }, form),
+  'accept-invite': (form: FormData) => access.acceptArenaInviteAction({ error: null, success: null }, form),
   login: (form: FormData) => auth.loginAction({ error: null }, form),
   'register-arena': (form: FormData) => auth.registerArenaAction({ error: null }, form),
   logout: (_form: FormData) => auth.logoutAction(),
@@ -18,8 +26,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ op
   const { operation } = await context.params;
   if (!managementAuthOperations.includes(operation as typeof managementAuthOperations[number])) return NextResponse.json({ error: 'Not found' }, { status: 404, headers });
   let values;
-  try { values = managementAuthInputSchema.parse(await readBoundedJson(request, 16384)); }
+  try { values = managementInputSchemaFor(operation as typeof managementAuthOperations[number]).parse(await readBoundedJson(request, 16384)); }
   catch (error) { return NextResponse.json({ error: 'Invalid payload' }, { status: error instanceof RequestBodyTooLargeError ? 413 : 400, headers }); }
+  if (['invite', 'revoke-invite', 'send-user-recovery'].includes(operation)) {
+    const decision = await getArenaAccessDecision();
+    if (decision.redirectTo) return NextResponse.json({ error: null, success: null, redirectTo: decision.redirectTo }, { headers });
+  }
   const form = new FormData();
   for (const [key, value] of Object.entries(values)) form.set(key, value);
   try {

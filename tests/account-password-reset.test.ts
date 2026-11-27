@@ -33,10 +33,10 @@ function fixture() {
     loginAttempt: { deleteMany: async () => { clearedAttempts += 1; } }
   };
   const exports: Record<string, (...args: unknown[]) => Promise<{ error: string | null; success: string | null }>> = {};
-  const source = readFileSync(new URL("../src/lib/actions/account-access.ts", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../src/lib/backend/services/account-access.ts", import.meta.url), "utf8");
   const mocks: Record<string, unknown> = {
     "next/cache": { revalidatePath() {} },
-    "@/lib/auth/session": {},
+    "@/lib/backend/services/management-session": {},
     "@/lib/auth/account-email": {},
     "@/lib/auth/account-tokens": { hashAccountToken: () => "token-hash" },
     "@/lib/env": { env: { appUrl: "https://example.test" } },

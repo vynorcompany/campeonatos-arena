@@ -2,13 +2,10 @@ import { viewStyles } from "./page.utilities";
 import Link from "next/link";
 import { LoginBrandPanel } from "@/components/auth/login-brand-panel";
 import { AcceptInviteForm } from "@/components/auth/account-access-forms";
-import { hashAccountToken } from "@/lib/auth/account-tokens";
-import { prisma } from "@/lib/auth/database";
+import { getAccountTokenInfo } from "@/lib/auth/account-token-info";
 
 export default async function ArenaInvitePage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token = "" } = await searchParams;
-  const invite = /^[a-f0-9]{64}$/i.test(token) ? await prisma.accountActionToken.findUnique({ where: { tokenHash: hashAccountToken(token) }, select: { kind: true, email: true, arenaId: true, usedAt: true, expiresAt: true } }) : null;
-  const valid = invite?.kind === "INVITE" && invite.arenaId && !invite.usedAt && invite.expiresAt > new Date();
-  const [arena, existingUser] = valid ? await Promise.all([prisma.arena.findUnique({ where: { id: invite.arenaId! }, select: { name: true } }), prisma.user.findUnique({ where: { email: invite.email }, select: { id: true } })]) : [null, null];
-  return <div className={viewStyles.auth_page_login_page}><div className={viewStyles.login_shell}><LoginBrandPanel /><main className={viewStyles.login_form_panel}><div className={viewStyles.login_form_content}><span className={viewStyles.login_form_eyebrow}>CONVITE DE ACESSO</span><h1>{arena ? `Acesse ${arena.name}` : "Convite indisponível"}</h1>{valid && arena ? <><p className={viewStyles.login_form_intro}>Este convite vincula {invite.email} à arena.</p><AcceptInviteForm token={token} existingUser={Boolean(existingUser)} /></> : <p className={viewStyles.form_error}>O convite expirou ou já foi utilizado. Peça um novo link ao administrador da arena.</p>}<p className={viewStyles.auth_switch}><Link href="/login">Voltar ao login</Link></p></div></main></div></div>;
+  const { valid, invitation } = await getAccountTokenInfo('INVITE', token);
+  return <div className={viewStyles.auth_page_login_page}><div className={viewStyles.login_shell}><LoginBrandPanel /><main className={viewStyles.login_form_panel}><div className={viewStyles.login_form_content}><span className={viewStyles.login_form_eyebrow}>CONVITE DE ACESSO</span><h1>{invitation ? `Acesse ${invitation.arenaName}` : "Convite indisponível"}</h1>{valid && invitation ? <><p className={viewStyles.login_form_intro}>Este convite vincula {invitation.email} à arena.</p><AcceptInviteForm token={token} existingUser={invitation.existingUser} /></> : <p className={viewStyles.form_error}>O convite expirou ou já foi utilizado. Peça um novo link ao administrador da arena.</p>}<p className={viewStyles.auth_switch}><Link href="/login">Voltar ao login</Link></p></div></main></div></div>;
 }

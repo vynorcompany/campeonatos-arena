@@ -44,9 +44,9 @@ test("colaborador redefine senha por link privado e entra, sem manter bloqueio o
       const token = randomBytes(32).toString("hex");
       const hashAccountToken = (value: string) => createHash("sha256").update(value).digest("hex");
       const prisma = { ...tx, $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) };
-      const recovery = loadActions("../src/lib/actions/account-access.ts", {
+      const recovery = loadActions("../src/lib/backend/services/account-access.ts", {
         "next/cache": { revalidatePath() {} },
-        "@/lib/auth/session": { requireArenaAccess: async () => ({ arenaId: arena.id, arenaRole: "OWNER", systemRole: "VIEWER" }) },
+        "@/lib/backend/services/management-session": { requireArenaAccess: async () => ({ arenaId: arena.id, arenaRole: "OWNER", systemRole: "VIEWER" }) },
         "@/lib/auth/account-email": { accountEmailIsConfigured: () => false, sendAccountEmail: async () => { throw new Error("E-mail não configurado"); } },
         "@/lib/auth/account-tokens": {
           hashAccountToken,

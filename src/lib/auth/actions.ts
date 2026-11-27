@@ -18,6 +18,7 @@ async function execute(operation: ManagementAuthOperation, form: FormData): Prom
       case "logout": result = await local.logoutAction(); break;
       case "select-arena": result = await local.setActiveArenaAction(form); break;
       case "select-workspace": result = await local.setWorkspaceAction(form); break;
+      default: throw new Error("Unsupported authentication operation");
     }
   }
   if (result.redirectTo) redirect(result.redirectTo);
