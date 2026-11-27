@@ -1,13 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { withArenaTransaction } from "@/lib/rls";
-import { instantToArenaWallClock } from "@/lib/calendar/arena-wall-clock";
-import { dateOnly } from "./plan-transfer-calculation";
+import { academyToday } from "./today";
 import { applyDuePlanPriceChanges } from "./plan-price-changes";
 
-export function academyToday(now = new Date()) {
-  const local = instantToArenaWallClock(now);
-  return dateOnly(`${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, "0")}-${String(local.getDate()).padStart(2, "0")}`);
-}
+export { academyToday } from "./today";
 export async function processPlanPriceChanges(now = new Date()) {
   const today = academyToday(now);
   const arenas = await prisma.arena.findMany({ select: { id: true } });

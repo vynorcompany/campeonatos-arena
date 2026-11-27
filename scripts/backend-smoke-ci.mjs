@@ -411,6 +411,10 @@ try {
   await assertFinancialSettingsSSR('http://127.0.0.1:3014', financeFixture.cookie);
   await assertFinanceWorkspacesSSR('http://127.0.0.1:3014', financeFixture.cookie);
   for (const path of ['/professores', '/aulas/alunos', '/aulas/registrar', '/aulas']) { const response = await fetch('http://127.0.0.1:3014' + path, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' }); assert.equal(response.status, 200, path); assert.equal((await response.text()).includes('passwordHash'), false); }
+  for (const tab of ['plans', 'students', 'classes', 'report']) {
+    const response = await fetch(`http://127.0.0.1:3014/professores/${financeFixture.teacherId}?tab=${tab}&inicio=2026-11-01&fim=2026-11-30`, { headers: { cookie: financeFixture.cookie }, redirect: 'manual' });
+    assert.equal(response.status, 200, `Teacher profile SSR failed: ${tab}`); const html = await response.text(); assert.ok(html.includes('Professor Academia Contrato')); assert.equal(html.includes('passwordHash'), false); if (tab === 'report') assert.match(html, /name="fim"[^>]*value="2026-11-30"/);
+  }
   console.log('Independent backend and SSR frontend: authentication, session contracts, arena isolation, restricted credentials and API-only boundary passed.');
 } catch (error) { console.error(output); throw error; }
 finally {

@@ -7,6 +7,7 @@ export async function assertAcademySmoke(db, origin, arenaId, cookie, staffId, p
   const member = await db.arenaMember.findFirstOrThrow({ where: { arenaId, userId: staffId } });
   const page = name => fetch(`${origin}/api/management/academy/pages/${name}`, { headers: { cookie } });
   assert.equal((await page('teachers')).status, 404, 'Financial access must not expose teachers');
+  assert.equal((await fetch(`${origin}/api/management/academy/teachers/missing`, { headers: { cookie } })).status, 404, 'Financial view alone must not expose a teacher profile');
   assert.equal((await fetch(`${origin}/api/management/academy/credit-requests`, { headers: { cookie } })).status, 404, 'Financial access must not expose student requests');
   await db.arenaMember.update({ where: { id: member.id }, data: { editPermissions: [...member.editPermissions, 'students', 'teachers', 'lessons'], viewPermissions: [...member.viewPermissions, 'students', 'teachers', 'lessons'] } });
   assert.equal((await post('create-student', { ...studentFields, arenaId: 'forged' })).status, 400);
@@ -100,5 +101,21 @@ export async function assertAcademySmoke(db, origin, arenaId, cookie, staffId, p
   assert.equal(JSON.stringify(workspace.playerOptions).includes('phone'), false);
   const directory = await (await page('teachers')).json(); assert.equal(directory.teachers[0].name, player.name); assert.equal(directory.teachers[0].studentAssignments.length, 1);
   assert.equal((await fetch(`${origin}/api/management/academy/pages/students?arenaId=forged`, { headers: { cookie } })).status, 400);
+  const assignedPlan = await db.teacherPlan.upsert({ where: { teacherId_planId: { teacherId: teacher.id, planId } }, update: {}, create: { arenaId, teacherId: teacher.id, planId, monthlyPriceCents: 12500 } });
+  const scheduledChange = await db.planPriceChange.create({ data: { arenaId, teacherPlanId: assignedPlan.id, amountCents: 15000, effectiveDate: new Date('2027-02-01T00:00:00Z'), createdByUserId: staffId } });
+  const detailRead = (id = teacher.id, query = '') => fetch(`${origin}/api/management/academy/teachers/${id}${query}`, { headers: { cookie } });
+  const detailResponse = await detailRead(); assert.equal(detailResponse.status, 200); assert.equal(detailResponse.headers.get('cache-control'), 'private, no-store');
+  const detail = await detailResponse.json(); assert.equal(detail.teacher.id, teacher.id); assert.equal(detail.canRegisterEnrollmentPayment, true); assert.ok(detail.enrollmentBankAccounts.length);
+  const assignment = detail.teacher.planAssignments.find(row => row.planId === planId); assert.ok(assignment.priceChanges.some(row => row.id === scheduledChange.id));
+  assert.equal(assignment.plan.subscriptions.find(row => row.studentId === student.id).student.remainingClasses, afterCheckin.remainingClasses);
+  assert.ok(detail.teacher.classGroups.some(row => row.id === groupStored.id && row.enrollments.some(link => link.student.id === student.id)));
+  assert.equal(JSON.stringify(detail).includes('passwordHash'), false); assert.equal(JSON.stringify(detail).includes('onlinePaymentId'), false); assert.equal(JSON.stringify(detail).includes('createdByUserId'), false);
+  for (const query of ['?arenaId=forged', '?canRegisterPayment=true', '?inicio=2026-02-29', '?inicio=2026-11-01&inicio=2026-11-02']) assert.equal((await detailRead(teacher.id, query)).status, 400);
+  const period = await (await detailRead(teacher.id, '?inicio=2026-11-01&fim=2026-11-30')).json(); assert.equal(period.reportStart, new Date('2026-11-01T00:00:00').toISOString()); assert.equal(period.reportEnd, new Date('2026-11-30T23:59:59').toISOString());
+  const foreignTeacher = await db.teacher.create({ data: { arenaId: foreignStudent.arenaId, name: 'Professor outra arena sintético' } });
+  try { assert.equal(await (await detailRead(foreignTeacher.id)).json(), null, 'A teacher ID from another arena must reveal no data'); } finally { await db.teacher.delete({ where: { id: foreignTeacher.id } }); }
+  await db.arenaMember.update({ where: { id: member.id }, data: { editPermissions: [] } });
+  const readOnly = await (await detailRead()).json(); assert.equal(readOnly.canRegisterEnrollmentPayment, false); assert.deepEqual(readOnly.enrollmentBankAccounts, []);
   await db.arenaMember.update({ where: { id: member.id }, data: { editPermissions: member.editPermissions } });
+  return { teacherId: teacher.id };
 }
