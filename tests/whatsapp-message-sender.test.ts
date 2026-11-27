@@ -71,7 +71,7 @@ test("an inbound reply received during delivery stays unread and most recent", a
 test("text, audio and attachments store authenticated authors without sending their names to WhatsApp", async () => {
   const persisted: Record<string, unknown>[] = [];
   const delivered: unknown[][] = [];
-  const source = readFileSync(new URL("../src/lib/actions/whatsapp-chat.ts", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../src/lib/backend/services/whatsapp-chat-actions.ts", import.meta.url), "utf8");
   const exports: Record<string, (form: FormData) => Promise<unknown>> = {};
   const deliver = async (...args: unknown[]) => { delivered.push(args); return { key: { id: "provider" } }; };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
@@ -111,7 +111,7 @@ test("text, audio and attachments store authenticated authors without sending th
 
 test("a mensagem aceita pelo provedor não é tratada como falha de envio se a gravação local falhar", async () => {
   let delivered = 0;
-  const source = readFileSync(new URL("../src/lib/actions/whatsapp-chat.ts", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../src/lib/backend/services/whatsapp-chat-actions.ts", import.meta.url), "utf8");
   const actions: Record<string, (form: FormData) => Promise<unknown>> = {};
   const deliver = async () => { delivered++; return { key: { id: `provider-${delivered}` } }; };
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {

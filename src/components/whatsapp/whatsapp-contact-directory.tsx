@@ -6,7 +6,7 @@ import { useFilterMemory } from "@/components/filters/filter-memory";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/modal";
-import { syncWhatsAppContactsAction, openWhatsAppContactConversationAction } from "@/lib/actions/whatsapp-chat";
+import { syncWhatsAppContactsAction, openWhatsAppContactConversationAction } from "@/lib/whatsapp/client-actions";
 import type { EvolutionContact } from "@/lib/integrations/evolution/contacts";
 import { WhatsAppIcon } from "./whatsapp-icons";
 import { formatWhatsAppPhone } from "./types";

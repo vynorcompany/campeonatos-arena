@@ -139,7 +139,7 @@ test("reply and reaction actions validate the account and send original provider
   const stored: any[] = [];
   const target = { id: "message", providerId: "original-provider", direction: "INBOUND", body: "Victor: Pergunta original", senderName: "", participantJid: "participant@s.whatsapp.net", providerPayload: { conversation: "Pergunta original" }, conversation: { id: "conversation", arenaId: "arena", accountJid: "current", remoteJid: "123456789012@g.us", contactName: "Grupo" } };
   const deliver = (kind: string) => async (...args: any[]) => { delivered.push({ kind, args }); return { key: { id: "new-provider" } }; };
-  const actions = load("../src/lib/actions/whatsapp-chat.ts", {
+  const actions = load("../src/lib/backend/services/whatsapp-chat-actions.ts", {
     "next/cache": { revalidatePath() {} },
     "@/lib/auth/guards": { requireWhatsAppSend: async () => ({ arenaId: "arena", userId: "user", userName: "Atendente" }) },
     "@/lib/whatsapp-active-account": { getActiveWhatsAppAccountJid: async () => "current" },

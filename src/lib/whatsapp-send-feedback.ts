@@ -1,3 +1,4 @@
+export const whatsAppUncertainMessage = "Não foi possível confirmar a operação. Atualize a conversa antes de tentar novamente.";
 const knownSendFailures = [
   /^A Evolution recusou o envio da mensagem \(\d{3}\)\.$/,
   /^O WhatsApp desta arena ainda não está conectado\.$/,
@@ -8,7 +9,7 @@ const knownSendFailures = [
 
 export function whatsAppSendFailureMessage(error: unknown) {
   const message = error instanceof Error ? error.message : "";
-  return knownSendFailures.some((pattern) => pattern.test(message))
+  return message === whatsAppUncertainMessage || knownSendFailures.some((pattern) => pattern.test(message))
     ? message
     : "Não foi possível enviar a mensagem. Tente novamente ou informe o suporte.";
 }

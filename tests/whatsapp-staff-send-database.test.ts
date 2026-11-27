@@ -70,7 +70,7 @@ test("colaborador autorizado envia texto, áudio e PDF só pela conta da arena c
         }
         return { key: { id: `goal-provider-${delivered}` } };
       };
-      const actions = loadActions("../src/lib/actions/whatsapp-chat.ts", {
+      const actions = loadActions("../src/lib/backend/services/whatsapp-chat-actions.ts", {
         "next/cache": { revalidatePath() {} },
         "@/lib/auth/guards": guards,
         "@/lib/integrations/evolution/client": {

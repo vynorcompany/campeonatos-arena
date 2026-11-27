@@ -23,7 +23,7 @@ import {
   reactToWhatsAppMessageAction,
   updateWhatsAppConversationAction,
   updateWhatsAppSlaAction,
-} from "@/lib/actions/whatsapp-chat";
+} from "@/lib/whatsapp/client-actions";
 import { normalizeBrazilianPhone } from "@/lib/phone";
 import { WhatsAppIcon, type WhatsAppIconName } from "./whatsapp-icons";
 import { formatWhatsAppPhone, whatsAppConversationName, initials, type WhatsAppClient, type WhatsAppConversation, type WhatsAppFilter, type WhatsAppMessage } from "./types";

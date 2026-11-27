@@ -1,3 +1,4 @@
+import { assertWhatsAppActionsSmoke } from "./lib/backend-whatsapp-actions-smoke.mjs";
 import { assertWhatsAppWorkspaceSmoke } from "./lib/backend-whatsapp-workspace-smoke.mjs";
 import { assertTournamentEventsSmoke } from "./lib/backend-tournament-events-smoke.mjs";
 import { assertManagementUtilitiesSmoke } from "./lib/backend-management-utilities-smoke.mjs";
@@ -448,6 +449,7 @@ try {
   }
   assert.ok(frontendReady, 'SSR frontend did not become healthy');
   await assertTournamentEventsSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
+  await assertWhatsAppActionsSmoke(fixtureDb, origin, "http://127.0.0.1:3014", providerFixture);
   await assertWhatsAppWorkspaceSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
   await assertManagementUtilitiesSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
   await assertAgencyBillingSmoke(fixtureDb, origin, "http://127.0.0.1:3014");
