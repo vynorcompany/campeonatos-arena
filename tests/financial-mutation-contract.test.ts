@@ -55,10 +55,23 @@ test('financial transport sends only management cookies and never retries uncert
 test('financial facade refreshes only confirmed writes and preserves the original void result', async () => {
   const vm = await import('node:vm'); const ts = await import('typescript'); const { readFileSync } = await import('node:fs');
   let refreshes = 0; let result: Record<string, string> = {};
-  const modules: Record<string, unknown> = { 'server-only': {}, '@/lib/backend/financial-mutations-client': { remoteFinancialMutation: async () => result }, '@/lib/finance/revalidation': { refreshFinanceRoutes: () => refreshes++ } };
+  const modules: Record<string, unknown> = { 'server-only': {}, '@/lib/backend/financial-mutations-client': { remoteFinancialMutation: async () => result }, 'next/cache': { revalidatePath: () => refreshes++ }, '@/lib/finance/revalidation': { refreshFinanceRoutes: () => refreshes++, refreshFinancialSettings: () => refreshes++ } };
   const exports: Record<string, (...args: any[]) => Promise<any>> = {};
   vm.runInNewContext(ts.transpileModule(readFileSync('src/lib/finance/mutation.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, Object, process: { env: { VX4_BACKEND_ORIGIN: 'https://backend.example.test' } }, require: (name: string) => { assert.ok(name in modules, name); return modules[name]; } });
   assert.equal(await exports.runFinancialMutation('create', new FormData()), undefined); assert.equal(refreshes, 1);
   result = { error: 'Versão alterada.' }; await exports.runFinancialMutation('update', new FormData()); assert.equal(refreshes, 1);
   result = { notice: 'Emissão pendente.' }; await exports.runFinancialMutation('recurrence', new FormData()); assert.equal(refreshes, 2);
+  result = {}; await exports.runFinancialMutation('settings-reconcile-bank-account-balance', new FormData()); assert.equal(refreshes, 4);
+  await exports.runFinancialMutation('settings-update-fiscal-settings', new FormData()); assert.equal(refreshes, 6);
+  await exports.runFinancialMutation('settings-connect-payment-provider', new FormData()); assert.equal(refreshes, 7);
+  result = { error: 'Configuração inválida.' }; await exports.runFinancialMutation('settings-update-fiscal-settings', new FormData()); assert.equal(refreshes, 7);
+});
+
+
+test('settings contract includes Focus validation and secret inputs without accepting secret outputs', () => {
+  const fields = { provider: ['FOCUS'], focusCnpj: ['00000000000000'], focusSandboxToken: ['synthetic-token'], focusProductionToken: [''], confirmProduction: ['on'] };
+  assert.deepEqual(financialMutationInputSchema('settings-update-fiscal-settings').parse({ fields }), { fields });
+  assert.equal(financialMutationInputSchema('settings-connect-payment-provider').safeParse({ fields: { privateKey: ['x'.repeat(65536)] } }).success, true);
+  assert.equal(financialMutationInputSchema('settings-connect-payment-provider').safeParse({ fields: { privateKey: ['x'.repeat(65537)] } }).success, false);
+  assert.equal(financialMutationOutcomeSchema.safeParse({ encryptedSecrets: 'must-never-be-returned' }).success, false);
 });

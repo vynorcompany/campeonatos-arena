@@ -1,5 +1,20 @@
 import { z } from "zod";
 export const financialMutationFields = {
+  "settings-create-financial-setting": ["area", "bankName", "document", "dreGroup", "email", "name", "notes", "openingBalance", "phone", "type"],
+  "settings-reconcile-bank-account-balance": ["balance", "bankAccountId"],
+  "settings-create-product-category": ["name"],
+  "settings-create-coupon": ["code", "discountType", "discountValue", "endsAt", "maxUses", "minimumAmount", "startsAt"],
+  "settings-update-coupon": ["active", "code", "couponId", "discountType", "discountValue", "endsAt", "maxUses", "minimumAmount", "startsAt"],
+  "settings-delete-coupon": ["couponId"],
+  "settings-toggle-coupon-active": ["active", "couponId"],
+  "settings-update-financial-category": ["categoryId", "dreGroup", "name", "type"],
+  "settings-delete-financial-category": ["categoryId"],
+  "settings-update-supplier": ["active", "document", "email", "name", "notes", "phone", "supplierId"],
+  "settings-delete-supplier": ["supplierId"],
+  "settings-update-fiscal-settings": ["crt", "environment", "issuerState", "nextNumber", "notes", "provider", "series", "focusCnpj", "focusSandboxToken", "focusProductionToken", "confirmProduction"],
+  "settings-update-online-payment-settings": ["cardEnabled", "instructions", "pixEnabled", "provider", "webhookUrl"],
+  "settings-connect-payment-provider": ["accessToken", "certificate", "certificatePassword", "clientId", "clientSecret", "environment", "pixKey", "privateKey", "provider"],
+
   "create": [
     "amount",
     "bankAccountId",
@@ -127,7 +142,7 @@ export function financialMutationInputSchema(operation: FinancialMutationOperati
     for (const [key, values] of Object.entries(input.fields)) {
       if (!(financialMutationFields[operation] as readonly string[]).includes(key)) ctx.addIssue({ code: 'custom', message: 'Unexpected field', path: ['fields', key] });
       if (key !== 'entryIds' && values.length !== 1) ctx.addIssue({ code: 'custom', message: 'Repeated scalar field', path: ['fields', key] });
-      const maximum = key === 'expectedVersions' ? 524288 : key === 'cardInstallmentRows' ? 10000 : 16384;
+      const maximum = key === 'expectedVersions' ? 524288 : key === 'cardInstallmentRows' ? 10000 : ['certificate', 'privateKey'].includes(key) ? 65536 : 16384;
       if (values.some(value => value.length > maximum)) ctx.addIssue({ code: 'custom', message: 'Field too long', path: ['fields', key] });
     }
   });

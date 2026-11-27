@@ -63,7 +63,28 @@ export async function prepareFinanceSmoke(db, databaseUrl, origin, staffId, staf
     assert.equal(recurrence.status, 200, await recurrence.text());
     assert.equal(await db.financialRecurrence.count({ where: { arenaId: arena.id, description: 'Recorrência contrato' } }), 1);
 
-    await db.arenaMember.updateMany({ where: { arenaId: arena.id, userId: staffId }, data: { editPermissions: [] } });
+    const settings = area => fetch(`${origin}/api/management/finance/settings/${area}`, { headers: { cookie } });
+    assert.equal((await settings('contas-bancarias')).status, 404, 'Ledger access must not grant settings');
+    await db.arenaMember.updateMany({ where: { arenaId: arena.id, userId: staffId }, data: { editPermissions: ['finance:settings:manage'] } });
+    const createSupplier = await write('settings-create-financial-setting', { area: 'fornecedores', name: 'Fornecedor Contrato', type: 'EXPENSE', email: 'supplier@example.test' }); assert.equal(createSupplier.status, 200, await createSupplier.text());
+    const suppliers = await (await settings('fornecedores')).json(); assert.equal(suppliers.rows[0].supplier.email, 'supplier@example.test');
+    const coupon = await write('settings-create-coupon', { code: ' contrato 10 ', discountType: 'PERCENTAGE', discountValue: '10', minimumAmount: '25,00', maxUses: '', startsAt: '', endsAt: '' }); assert.equal(coupon.status, 200, await coupon.text());
+    const coupons = await (await settings('cupons')).json(); assert.equal(coupons.coupons[0].code, 'CONTRATO10'); assert.equal(coupons.coupons[0].minimumAmountCents, 2500);
+    const invalidCoupon = await write('settings-update-coupon', { couponId: coupons.coupons[0].id, code: 'CONTRATO10', discountType: 'PERCENTAGE', discountValue: '101', minimumAmount: '0', maxUses: '', startsAt: '', endsAt: '' }); assert.equal(invalidCoupon.status, 400, await invalidCoupon.text());
+    const reconcile = { bankAccountId: bank.id, balance: '200,00' };
+    const reconciled = await write('settings-reconcile-bank-account-balance', reconcile); assert.equal(reconciled.status, 200, await reconciled.text());
+    const countBefore = await db.financialEntry.count({ where: { arenaId: arena.id, category: 'AJUSTE DE SALDO BANCÁRIO' } });
+    assert.equal((await write('settings-reconcile-bank-account-balance', reconcile)).status, 200); assert.equal(await db.financialEntry.count({ where: { arenaId: arena.id, category: 'AJUSTE DE SALDO BANCÁRIO' } }), countBefore);
+    const connected = await write('settings-connect-payment-provider', { provider: 'SICOOB', environment: 'SANDBOX', clientId: 'synthetic-client', clientSecret: 'synthetic-secret-value', pixKey: 'synthetic-pix', certificate: 'synthetic-certificate', privateKey: 'synthetic-private-key' }); assert.equal(connected.status, 200, await connected.text());
+    const stored = await db.paymentConnection.findFirstOrThrow({ where: { arenaId: arena.id, provider: 'SICOOB' } }); assert.ok(stored.encryptedSecrets); assert.equal(stored.encryptedSecrets.includes('synthetic-secret-value'), false);
+    const connections = await (await settings('pagamentos-online')).json(); assert.equal(connections.connections[0].status, 'CONFIGURED'); assert.equal(JSON.stringify(connections).includes(stored.encryptedSecrets), false); assert.equal(JSON.stringify(connections).includes('synthetic-private-key'), false);
+    await db.arena.update({ where: { id: arena.id }, data: { cnpj: '11222333000181' } });
+    const fiscal = await write('settings-update-fiscal-settings', { provider: 'FOCUS', environment: 'SANDBOX', crt: '1', issuerState: 'PR', series: '1', nextNumber: '1', focusCnpj: '11222333000181', focusSandboxToken: 'synthetic-focus-token' }); assert.equal(fiscal.status, 200, await fiscal.text());
+    const fiscalRead = await (await settings('notas-fiscais')).json(); assert.equal(fiscalRead.fiscal.hasFocusTokens, true); assert.equal(JSON.stringify(fiscalRead).includes('synthetic-focus-token'), false);
+    assert.ok(await db.auditEvent.findFirst({ where: { arenaId: arena.id, actorId: staffId, entityId: stored.id } }), 'Connector mutation must retain the authenticated audit actor');
+    const audit = await db.auditEvent.findMany({ where: { arenaId: arena.id } }); const auditText = JSON.stringify(audit); assert.equal(auditText.includes('synthetic-secret-value'), false); assert.equal(auditText.includes('synthetic-private-key'), false); assert.equal(auditText.includes('synthetic-focus-token'), false);
+    for (const area of ['categorias-produtos', 'categorias-financeiras', 'formas-pagamento', 'contas-bancarias']) { const response = await settings(area); assert.equal(response.status, 200, area); }
+    assert.equal((await fetch(`${origin}/api/management/finance/settings/cupons?arenaId=forged`, { headers: { cookie } })).status, 400);
     return { arenaId: arena.id, cookie, cleanup };
   } catch (error) { await cleanup(); throw error; }
 }
@@ -73,5 +94,13 @@ export async function assertFinanceSSR(frontendOrigin, cookie) {
     const response = await fetch(`${frontendOrigin}/financeiro/${path}?start=2026-11-01&end=2026-11-30&status=ALL`, { headers: { cookie }, redirect: 'manual' });
     assert.equal(response.status, 200, 'Financial SSR failed');
     const html = await response.text(); assert.ok(html.includes(expected)); assert.equal(html.includes('Atleta Exclusivo Outra Arena GOAL'), false);
+  }
+}
+
+export async function assertFinancialSettingsSSR(frontendOrigin, cookie) {
+  for (const area of ['categorias-produtos', 'cupons', 'notas-fiscais', 'pagamentos-online', 'categorias-financeiras', 'formas-pagamento', 'contas-bancarias', 'fornecedores']) {
+    const response = await fetch(`${frontendOrigin}/financeiro/configuracoes/${area}`, { headers: { cookie }, redirect: 'manual' });
+    assert.equal(response.status, 200, `Settings SSR failed: ${area}`);
+    const html = await response.text(); assert.equal(html.includes('synthetic-focus-token'), false); assert.equal(html.includes('synthetic-secret-value'), false);
   }
 }

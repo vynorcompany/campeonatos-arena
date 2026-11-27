@@ -67,7 +67,8 @@ test("financial settings expose coupon and supplier maintenance", () => {
   assert.match(settings, /SupplierDialog/);
   assert.match(supplierDialog, /updateSupplierAction/);
   assert.match(supplierDialog, /<Modal /);
-  assert.match(settings, /Cartão de débito/);
+  assert.match(readFileSync(resolve(process.cwd(), "src/lib/backend/services/financial-settings.ts"), "utf8"), /Cartão de débito/);
+  assert.match(settings, /getFinancialSettingsPage/);
   assert.match(actions, /deleteCouponAction/);
   assert.match(actions, /deleteSupplierAction/);
 });

@@ -5,7 +5,7 @@ import { createServer } from 'node:net';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { runtimeEnvironment } from './runtime-server.mjs';
-import { prepareFinanceSmoke, assertFinanceSSR } from './lib/backend-finance-smoke.mjs';
+import { prepareFinanceSmoke, assertFinanceSSR, assertFinancialSettingsSSR } from './lib/backend-finance-smoke.mjs';
 import { readBackendBuild } from './lib/backend-build.mjs';
 
 const url = new URL(process.env.DATABASE_URL || 'http://invalid');
@@ -38,6 +38,8 @@ url.username = 'arena_runtime'; url.password = 'fixture';
 const environment = runtimeEnvironment({ ...process.env, APP_DATABASE_URL: url.toString(), PORT: '3012' });
 environment.VX4_FRONTEND_ORIGINS = JSON.stringify(['http://127.0.0.1:3014']);
 environment.HOSTNAME = '127.0.0.1'; environment.NODE_ENV = 'production';
+// Disposable fixture only: no production connector credentials are used.
+environment.PAYMENT_CONNECTIONS_ENCRYPTION_KEY = 'synthetic-backend-contract-key-not-for-production';
 // Deliberately unusable: the API's shared guards must bind local session readers.
 environment.VX4_BACKEND_ORIGIN = 'http://127.0.0.1:9';
 for (const key of ['ARENA_GOAL_TEST_DATABASE_URL', 'ARENA_GOAL_TEST_SESSION_TOKEN']) delete environment[key];
@@ -405,6 +407,7 @@ try {
   assert.ok(clientHtml.includes('Atleta GOAL A'));
   assert.equal(clientHtml.includes('Atleta Exclusivo Outra Arena GOAL'), false);
   await assertFinanceSSR('http://127.0.0.1:3014', financeFixture.cookie);
+  await assertFinancialSettingsSSR('http://127.0.0.1:3014', financeFixture.cookie);
   console.log('Independent backend and SSR frontend: authentication, session contracts, arena isolation, restricted credentials and API-only boundary passed.');
 } catch (error) { console.error(output); throw error; }
 finally {

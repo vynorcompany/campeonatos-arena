@@ -57,3 +57,21 @@ test("conciliação cria receita atual e não repete ajuste quando o saldo já c
   assert.equal(await actions.reconcileBankAccountBalanceAction(form), undefined);
   assert.equal(created.length, 1);
 });
+
+test('provider connector accepts its own form without unrelated optional credentials', async () => {
+  const { paymentConnectionSchema } = await import('../src/lib/finance/action-schemas');
+  const saved: any[] = [];
+  const actions: Record<string, (form: FormData) => Promise<unknown>> = {};
+  const mocks: Record<string, unknown> = {
+    '@/lib/auth/guards': { requirePermission: async () => ({ arenaId: 'arena-a' }) },
+    '@/lib/finance/action-schemas': { paymentConnectionSchema },
+    '@/lib/rls': { withArenaTransaction: async (_id: string, run: any) => run({ paymentConnection: { upsert: async (input: any) => saved.push(input) } }) },
+    '@/lib/payments/connection-secrets': { encryptConnectionSecrets: () => 'encrypted-synthetic-credentials' },
+  };
+  vm.runInNewContext(compiled, { exports: actions, FormData, Date, require: (name: string) => mocks[name] ?? {} });
+  const form = new FormData();
+  for (const [name, value] of Object.entries({ provider: 'SICOOB', environment: 'SANDBOX', clientId: 'synthetic-client', clientSecret: 'synthetic-secret', pixKey: 'synthetic-pix', certificate: 'synthetic-certificate', privateKey: 'synthetic-private-key' })) form.set(name, value);
+  await actions.connectPaymentProviderAction(form); assert.equal(saved.length, 1);
+  assert.equal(saved[0].create.encryptedSecrets, 'encrypted-synthetic-credentials');
+  form.delete('clientSecret'); await assert.rejects(actions.connectPaymentProviderAction(form), /Informe Client ID/); assert.equal(saved.length, 1);
+});
