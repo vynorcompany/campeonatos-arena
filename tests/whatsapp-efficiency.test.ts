@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { test } from "node:test";
 
-const page = readFileSync("src/app/(app)/whatsapp/page.tsx", "utf8");
+const page = readFileSync("src/lib/backend/services/whatsapp-workspace.ts", "utf8");
 const pulse = readFileSync("src/app/api/whatsapp/pulse/route.ts", "utf8");
 const realtime = readFileSync("src/components/whatsapp/use-whatsapp-realtime.ts", "utf8");
 const workspace = readFileSync("src/components/whatsapp/whatsapp-chat-workspace.tsx", "utf8");
