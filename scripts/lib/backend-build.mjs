@@ -1,4 +1,4 @@
-import { cpSync, chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve, relative, join } from 'node:path';
 
 // Generate only API routes. Shared business modules remain in their canonical
@@ -11,6 +11,15 @@ export function prepareBackendBuild(root) {
   // traverse the generated code directory after the root launcher drops UID.
   chmodSync(target, 0o755);
   cpSync(join(root, 'src/app/api'), join(target, 'src/app/api'), { recursive: true });
+  // Compatibility URLs are gateways in the web service, but dispatch locally
+  // in the API artifact even when a frontend/backend origin is configured.
+  for (const area of ['availability', 'version']) {
+    if (existsSync(join(root, `src/app/api/management/agenda/${area}/route.ts`))) {
+      const file = join(target, `src/app/api/agenda/${area}/route.ts`);
+      mkdirSync(join(target, `src/app/api/agenda/${area}`), { recursive: true });
+      writeFileSync(file, `export { dynamic, GET } from "@/app/api/management/agenda/${area}/route";\n`);
+    }
+  }
   const tsconfig = JSON.parse(readFileSync(join(root, 'tsconfig.json'), 'utf8'));
   // Bind shared authorization policies to local backend session implementations.
   // The web target keeps its HTTP facades; API guards must never call those facades.
