@@ -13,8 +13,8 @@ export const dynamic = "force-dynamic";
 export default async function GlobalAthletePortalPage() {
   const athlete = await getPublicAthleteIdentity();
   if (!athlete) {
-    const { arena } = await getLoginBranding((await headers()).get("host"));
-    return <AthletePortalLoginLayout showInstallControl arena={arena ?? undefined}><GlobalAthleteAuthForm /></AthletePortalLoginLayout>;
+    const { arena, arenas } = await getLoginBranding((await headers()).get("host"));
+    return <AthletePortalLoginLayout showInstallControl arena={arena ?? undefined}><GlobalAthleteAuthForm arenaSlug={arena?.slug} arenas={arenas} /></AthletePortalLoginLayout>;
   }
   return <main className="athlete-portal-page tw:min-h-dvh tw:bg-[#ffffff] tw:px-4 tw:py-6 tw:text-[#231f20] tw:dark:bg-[#07111f] tw:dark:text-[#e9edf3] tw:[&_*]:box-border tw:min-[700px]:p-10"><div className="tw:mx-auto tw:max-w-[1000px]">
     <header className="tw:mb-12 tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-4"><Link href="/portal" className="tw:flex tw:items-center tw:gap-3 tw:text-inherit tw:no-underline"><AthletePortalWordmark compact/></Link><div className="tw:flex tw:items-center tw:gap-4"><Link href="/portal/eventos" className="tw:text-xs tw:font-medium tw:text-[#174983] tw:no-underline tw:dark:text-[#d0def0]">Radar de eventos ↗</Link><form action={logoutAthletePortalAction}><button type="submit" className="tw:min-h-10 tw:cursor-pointer tw:rounded-xl tw:border tw:border-[#dce1e7] tw:bg-transparent tw:px-4 tw:text-xs tw:text-inherit tw:dark:border-[#33455c]">Sair</button></form></div></header>

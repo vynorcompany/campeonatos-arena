@@ -1,0 +1,3 @@
+export class PortalAccountOperationError extends Error{}
+const safeImageMessages=new Set(["Envie uma foto JPG, PNG ou WEBP.","A foto deve ter no máximo 4 MB.","Imagem inválida. Envie um arquivo JPG, PNG ou WEBP válido, estático e com até 24 megapixels.","Não foi possível processar a imagem. Envie um JPG, PNG ou WEBP válido com até 24 megapixels."]);
+export function publicPortalAccountError(error:unknown){if(error instanceof PortalAccountOperationError)return error.message;const message=error&&typeof error==="object"&&"message"in error?error.message:null;return typeof message==="string"&&safeImageMessages.has(message)?message:null;}

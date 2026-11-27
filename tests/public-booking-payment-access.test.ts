@@ -5,12 +5,13 @@ import test from "node:test";
 
 test("a página de pagamento limita o resumo ao atleta da arena e à reserva ainda válida", () => {
   const page = readFileSync(resolve(process.cwd(), "src/app/reservar/[arenaSlug]/pagamento/[occurrenceId]/page.tsx"), "utf8");
-  assert.match(page, /getPublicPlayerAuth\(params\.arenaSlug\)/);
-  assert.match(page, /auth\?\.arenaId === arena\.id/);
-  assert.match(page, /participants: \{ some: \{ playerId: auth\.playerId \} \}/);
-  assert.match(page, /participants: \{ where: \{ playerId: auth\.playerId \}/);
-  assert.match(page, /createdAt: \{ gt: onlineBookingHoldCutoff\(\) \}/);
-  assert.match(page, /holdExpiresAt=\{holdExpiresAt\}/);
+  const service = readFileSync(resolve(process.cwd(), "src/lib/backend/services/portal-support.ts"), "utf8");
+  assert.match(service, /getPublicPlayerAuth\(arenaSlug\)/);
+  assert.match(service, /auth\?\.arenaId!==arena\.id/);
+  assert.match(service, /participants:\{some:\{playerId:auth\.playerId\}\}/);
+  assert.match(service, /participants:\{where:\{playerId:auth\.playerId\}/);
+  assert.match(service, /createdAt:\{gt:onlineBookingHoldCutoff\(\)\}/);
+  assert.match(page, /holdExpiresAt=\{booking\.holdExpiresAt\}/);
   assert.match(page, /Reserva indisponível/);
   const choice = readFileSync(resolve(process.cwd(), "src/components/public-booking-payment-choice.tsx"), "utf8");
   assert.match(choice, /Tempo para pagar:/);

@@ -8,7 +8,8 @@ export async function resolveLoginBranding(host: string | null): Promise<LoginBr
   const slug = portalArenaSlugForHost(host, env.portalArenaHosts);
   const arena = slug ? await prisma.arena.findFirst({
     where: { slug, archivedAt: null },
-    select: { name: true, logoUrl: true, athletePortalLogoUrl: true },
+    select: { slug: true, name: true, logoUrl: true, athletePortalLogoUrl: true },
   }) : null;
-  return { arena: arena ? { name: arena.name, logoUrl: arena.athletePortalLogoUrl || arena.logoUrl } : null };
+  const arenas = arena ? [] : await prisma.arena.findMany({where:{archivedAt:null,accountStatus:"ACTIVE"},select:{name:true,slug:true},orderBy:{name:"asc"},take:1000});
+  return { arenas, arena: arena ? { name: arena.name, slug: arena.slug, logoUrl: arena.athletePortalLogoUrl || arena.logoUrl } : null };
 }

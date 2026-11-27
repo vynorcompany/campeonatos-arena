@@ -1,0 +1,11 @@
+import{z}from"zod";
+import{safePortalUrl}from"./portal-support";
+export const portalAccountFields={profile:["arenaSlug","name","phone","email","bio","birthDate","gender","padelCategory","padelSide"],availability:["arenaSlug","tournamentAvailability"],partner:["arenaSlug","targetPlayerId"],privacy:["arenaSlug","password","operation","kind","message","confirmRemoval","confirmation","contactWebsite"],payment:["arenaSlug","entryId"]}as const;
+export type PortalAccountOperation=keyof typeof portalAccountFields;
+export const portalAccountPhotoLimit=4*1024*1024;
+export function portalAccountInputSchema(operation:PortalAccountOperation){return z.object({fields:z.record(z.string(),z.array(z.string().max(4096)).min(1).max(50)),file:z.object({name:z.string().max(255),type:z.string().max(120),base64:z.string().max(Math.ceil(portalAccountPhotoLimit/3)*4).refine(value=>value.length%4===0&&/^[A-Za-z0-9+/]*={0,2}$/.test(value))}).strict().optional()}).strict().superRefine(({fields,file},ctx)=>{for(const[key,values]of Object.entries(fields)){if(!(portalAccountFields[operation]as readonly string[]).includes(key)||(!["padelCategory","entryId"].includes(key)&&values.length!==1)||(key==="padelCategory"&&values.length>9))ctx.addIssue({code:"custom",message:"Campo inválido.",path:["fields",key]});}if(!fields.arenaSlug?.[0]?.trim()||fields.arenaSlug[0].length>160)ctx.addIssue({code:"custom",message:"Arena inválida.",path:["fields","arenaSlug"]});if(file&&operation!=="profile")ctx.addIssue({code:"custom",message:"Arquivo inesperado.",path:["file"]});});}
+export const publicProfileOutcomeSchema=z.object({error:z.string().max(3000).nullable(),success:z.string().max(3000).nullable()}).strict();
+export const portalSimpleOutcomeSchema=z.object({error:z.string().max(3000).nullable()}).strict();
+export const portalPrivacyOutcomeSchema=z.object({error:z.string().max(3000).nullable(),notice:z.string().optional(),download:z.string().optional(),closed:z.boolean().optional()}).strict();
+export const portalPaymentOutcomeSchema=z.union([z.object({checkoutUrl:safePortalUrl}).strict(),z.object({error:z.string().max(3000)}).strict()]);
+export const portalAccountOutcomes={profile:publicProfileOutcomeSchema,availability:portalSimpleOutcomeSchema,partner:portalSimpleOutcomeSchema,privacy:portalPrivacyOutcomeSchema,payment:portalPaymentOutcomeSchema}as const;

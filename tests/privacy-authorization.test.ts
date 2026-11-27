@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import ts from "typescript";
 import { z } from "zod";
 
@@ -16,7 +16,7 @@ test("privacy mutations require own authenticated account, fresh password, throt
     bcryptjs: { compare: async (password: string, hash: string) => { assert.ok([account.identity.passwordHash, account.passwordHash].includes(hash)); return validPassword && password === "correct-password" && (!validHash || hash === validHash); } }, zod: { z }, "next/cache": { revalidatePath() {} },
     "@/lib/auth/player-session": { getPublicPlayerAuth: async () => signedIn ? auth : null },
     "@/lib/auth/login-attempts": { activeLoginLock: async () => locked ? new Date() : null, clearLoginFailures: async () => {}, recordFailedLogin: async () => { failures++; } },
-    "@/lib/prisma": { prisma: { playerAccount: { findFirst: async (args: any) => { assert.deepEqual(JSON.parse(JSON.stringify(args.where)), { id: "own-account", arenaId: "own-arena", playerId: "own-player" }); return account; } } } },
+    "@/lib/auth/database": { prisma: { playerAccount: { findFirst: async (args: any) => { assert.deepEqual(JSON.parse(JSON.stringify(args.where)), { id: "own-account", arenaId: "own-arena", playerId: "own-player" }); return account; } } } },
     "@/lib/rls": { withArenaTransaction: async (arenaId: string, operation: (value: unknown) => unknown) => { assert.equal(arenaId, "own-arena"); transactionCalls++; return operation(tx); } },
     "@/lib/legal/membership-erasure": { eraseArenaMembership: async () => ({ protocol: "own-receipt", retentionNotice: "Financial records retained" }) },
     "@/lib/legal/privacy-service": {

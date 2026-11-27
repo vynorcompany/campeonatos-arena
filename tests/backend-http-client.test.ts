@@ -18,12 +18,12 @@ test('public branding contract validates responses and refuses redirects and tra
     requests++;
     if (mode === 'redirect') { res.writeHead(302, { location: '/api/other' }); res.end(); return; }
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify(mode === 'invalid' ? { arena: { name: 'Arena', databaseUrl: 'private' } } : { arena: { name: 'Arena', logoUrl: null } }));
+    res.end(JSON.stringify(mode === 'invalid' ? { arena: { name: 'Arena', databaseUrl: 'private' } } : { arenas: [], arena: { name: 'Arena', slug: 'arena', logoUrl: null } }));
   });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
   try {
-    assert.deepEqual(await readBackendContract(origin, '/api/portal/login-branding?host=arena.example', loginBrandingSchema), { arena: { name: 'Arena', logoUrl: null } });
+    assert.deepEqual(await readBackendContract(origin, '/api/portal/login-branding?host=arena.example', loginBrandingSchema), { arenas: [], arena: { name: 'Arena', slug: 'arena', logoUrl: null } });
     for (const path of ['//outside.invalid/api/health', '/api/../private', '/api/%2e%2e/private', '/api/\\outside']) {
       await assert.rejects(readBackendContract(origin, path, loginBrandingSchema));
     }

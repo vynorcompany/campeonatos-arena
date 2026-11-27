@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
-import { readFileSync } from "node:fs";
+import { readFileSync } from "./helpers/domain-source";
 import ts from "typescript";
 import { z } from "zod";
 import { normalizeBrazilianPhone } from "../src/lib/phone";
