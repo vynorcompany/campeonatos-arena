@@ -392,7 +392,9 @@ test("ranking workspace creates named cycles and filters usage by the active ran
   assert.match(page, /name="label"/);
   assert.match(page, /name="startedAt"/);
   assert.match(page, /name="endedAt"/);
-  assert.match(page, /createdAt:\s*\{[\s\S]*gte:\s*ranking\.period\.start/);
+  const workspaceService = readFileSync(path.join(workspaceRoot, "src/lib/backend/services/tournament-ranking-workspace.ts"), "utf8");
+  assert.match(workspaceService, /createdAt:\s*\{[\s\S]*gte:\s*ranking\.period\.start/);
+  assert.match(page, /getTournamentRankingWorkspace/);
   assert.match(actions, /export async function createRankingCycleAction/);
   assert.match(actions, /rankingCycle\.create/);
 });

@@ -432,6 +432,7 @@ function buildRankingView(
 async function getRankingSourceEntries(arenaId: string, rankingId: string) {
   return arenaDatabase(arenaId).tournamentPlayer.findMany({
     where: {
+      player: { arenaId },
       tournament: {
         arenaId,
         rankingId
@@ -462,6 +463,7 @@ async function getRankingSourceEntries(arenaId: string, rankingId: string) {
 async function getRankingSourceEntriesByRankingIds(arenaId: string, rankingIds: string[]) {
   return arenaDatabase(arenaId).tournamentPlayer.findMany({
     where: {
+      player: { arenaId },
       tournament: {
         arenaId,
         rankingId: {
@@ -497,6 +499,7 @@ async function getGeneralRankingSourceEntries(
 ): Promise<RankingSourceEntry[]> {
   const entries = await arenaDatabase(arenaId).categoryPair.findMany({
     where: {
+      players: { every: { player: { arenaId } } },
       competition: {
         status: "FINISHED",
         application: { is: { feedsGeneralRanking: true } },
@@ -553,6 +556,7 @@ async function getCategoryPairRankingSourceEntries(
 ) {
   return arenaDatabase(arenaId).categoryPair.findMany({
     where: {
+      players: { every: { player: { arenaId } } },
       competition: {
         rankingId: { in: rankingIds },
         status: "FINISHED",
