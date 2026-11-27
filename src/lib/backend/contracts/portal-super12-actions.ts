@@ -1,0 +1,5 @@
+import {z} from "zod";
+export const portalSuper12Fields={create:["arenaSlug","name","format","groupCount","knockoutQualification","pairs"],score:["arenaSlug","matchId","homeScore","awayScore"],advance:["arenaSlug","eventId"],finish:["arenaSlug","eventId"]} as const;
+export type PortalSuper12Operation=keyof typeof portalSuper12Fields;
+export function portalSuper12InputSchema(operation:PortalSuper12Operation){return z.object({fields:z.record(z.string(),z.array(z.string().max(65536)).length(1))}).strict().superRefine(({fields},ctx)=>{for(const key of Object.keys(fields))if(!(portalSuper12Fields[operation] as readonly string[]).includes(key))ctx.addIssue({code:"custom",message:"Campo inválido.",path:["fields",key]});if(!fields.arenaSlug?.[0]?.trim()||fields.arenaSlug[0].length>160)ctx.addIssue({code:"custom",message:"Arena inválida.",path:["fields","arenaSlug"]});});}
+export const portalSuper12OutcomeSchema=z.object({error:z.string().max(3000).nullable(),eventId:z.string().optional()}).strict();
