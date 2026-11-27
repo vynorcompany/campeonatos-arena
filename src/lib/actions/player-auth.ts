@@ -22,6 +22,7 @@ async function execute(operation: PublicAuthOperation, form: FormData): Promise<
       case "confirm-reset": result = await local.confirmPublicPasswordResetAction({ error: null }, form); break;
       case "logout": result = await local.logoutPublicClientAction(form); break;
       case "logout-portal": result = await local.logoutAthletePortalAction(form); break;
+      default: throw new Error("Unsupported Portal operation");
     }
   }
   if (result.redirectTo) redirect(result.redirectTo);

@@ -67,3 +67,11 @@ O cookie de sessão viaja em Set-Cookie, separado do JSON; o frontend aceita ape
 Os tokens e credenciais dos provedores permanecem na implementação do backend.
 As ações web mantêm o fluxo local temporário quando a origem do backend não está
 configurada; esse caminho será removido no artefato final do frontend.
+
+As operações `request-email-verification`, `confirm-email`, `request-email-reset`
+e `complete-email-reset` pertencem ao mesmo domínio de autenticação do Portal.
+Possuem campos permitidos próprios: os tokens de e-mail não são aceitos nas
+operações de login. A confirmação resolve a identidade pela sessão; o pedido de
+recuperação não revela a existência da conta. O backend guarda os hashes dos links,
+valida uso único e revoga sessões ao trocar a senha. A revalidação da interface
+após confirmar o e-mail permanece na ação web.

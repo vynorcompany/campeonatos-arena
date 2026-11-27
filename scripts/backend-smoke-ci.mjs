@@ -101,6 +101,20 @@ try {
   const authenticatedCookie = issuedCookie.split(';', 1)[0];
   const authenticatedContext = await fetch(origin + '/api/portal/session', { headers: { cookie: authenticatedCookie } });
   assert.equal((await authenticatedContext.json()).athleteIdentity.arenas[0].slug, arenaSlug);
+  const anonymousEmailConfirmation = await fetch(origin + '/api/portal/auth/confirm-email', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014' }, body: JSON.stringify({ token: 'a'.repeat(64) }),
+  });
+  assert.equal(anonymousEmailConfirmation.status, 200);
+  assert.match((await anonymousEmailConfirmation.json()).error, /Entre na sua conta/);
+  const invalidEmailConfirmation = await fetch(origin + '/api/portal/auth/confirm-email', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014', cookie: authenticatedCookie }, body: JSON.stringify({ token: 'a'.repeat(64) }),
+  });
+  assert.equal(invalidEmailConfirmation.status, 200);
+  assert.match((await invalidEmailConfirmation.json()).error, /expirou|utilizado|outra conta/);
+  const injectedEmailIdentity = await fetch(origin + '/api/portal/auth/confirm-email', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014', cookie: authenticatedCookie }, body: JSON.stringify({ token: 'a'.repeat(64), identityId: 'forged' }),
+  });
+  assert.equal(injectedEmailIdentity.status, 400);
   const loggedOut = await fetch(origin + '/api/portal/auth/logout-portal', {
     method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014', cookie: authenticatedCookie }, body: '{}',
   });

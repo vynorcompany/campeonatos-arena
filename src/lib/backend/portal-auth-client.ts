@@ -2,15 +2,15 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 import { backendOrigin } from "@/lib/backend/http-client";
 import { athleteSessionCookie } from "@/lib/backend/auth-cookie";
-import { publicAuthFields, publicAuthInputSchema, publicAuthOutcomeSchema, type PublicAuthOperation } from "@/lib/backend/contracts/player-auth";
+import { authFieldsFor, authInputSchemaFor, publicAuthOutcomeSchema, type PublicAuthOperation } from "@/lib/backend/contracts/player-auth";
 
 export async function remotePortalAuthentication(origin: string, operation: PublicAuthOperation, form: FormData) {
   const values: Record<string, string> = {};
-  for (const field of publicAuthFields) {
+  for (const field of authFieldsFor(operation)) {
     const value = form.get(field);
     if (typeof value === 'string') values[field] = value;
   }
-  const payload = publicAuthInputSchema.parse(values);
+  const payload = authInputSchemaFor(operation).parse(values);
   const cookieStore = await cookies();
   const token = cookieStore.get('arena_player_session')?.value;
   const requestHeaders = new Headers({ 'Content-Type': 'application/json', Accept: 'application/json' });

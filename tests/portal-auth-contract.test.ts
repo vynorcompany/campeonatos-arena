@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { athleteSessionCookie } from '../src/lib/backend/auth-cookie';
 import { allowedFrontendOrigin } from '../src/lib/backend/origin-policy';
-import { publicAuthInputSchema, publicAuthOutcomeSchema } from '../src/lib/backend/contracts/player-auth';
+import { publicAuthInputSchema, publicAuthOutcomeSchema, authFieldsFor, authInputSchemaFor } from '../src/lib/backend/contracts/player-auth';
 
 test('Portal mutation origins require an exact configured browser origin', () => {
   const configuration = JSON.stringify(['https://arena.example', 'http://127.0.0.1:3014']);
@@ -26,4 +26,14 @@ test('cookie relay accepts only the athlete session and forces protected browser
   assert.equal(cookie.value, token); assert.equal(cookie.maxAge, 120);
   assert.equal(athleteSessionCookie('arena_player_session=; Max-Age=0').maxAge, 0);
   for (const header of ['padel_session=forged', 'arena_player_session=forged', `arena_player_session=${token}; Max-Age=99999999`, `arena_player_session=${token}; Expires=invalid`]) assert.throws(() => athleteSessionCookie(header));
+});
+
+
+test('email contracts accept their token without widening login or accepting a supplied identity', () => {
+  const input = { token: 'a'.repeat(64), password: 'SyntheticPassword123!', confirmPassword: 'SyntheticPassword123!' };
+  assert.equal(authInputSchemaFor('complete-email-reset').safeParse(input).success, true);
+  assert.equal(authInputSchemaFor('login-global').safeParse(input).success, false);
+  assert.equal(authInputSchemaFor('confirm-email').safeParse({ token: input.token, identityId: 'forged' }).success, false);
+  assert.equal(authFieldsFor('request-email-verification').includes('currentPassword'), true);
+  assert.equal(authFieldsFor('request-email-verification').includes('playerId'), false);
 });
