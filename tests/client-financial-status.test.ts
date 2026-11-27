@@ -22,7 +22,7 @@ test("vencimento de hoje não está atrasado; faturas futuras são abertas e qui
 });
 
 test("listagem consulta lançamentos diretos do cliente, inclusive mensalidades de plano", () => {
-  const page = readFileSync(new URL("../src/app/(app)/jogadores/page.tsx", import.meta.url), "utf8");
+  const page = readFileSync(new URL("../src/lib/backend/services/client-directory.ts", import.meta.url), "utf8");
   assert.match(page, /financialEntries: \{ where: \{ status: \{ in: \["PENDING", "OVERDUE"\]/);
   assert.match(page, /clientFinancialStatus\(entriesFor\(player\)\)/);
 });

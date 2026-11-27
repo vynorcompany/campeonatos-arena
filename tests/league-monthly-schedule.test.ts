@@ -208,7 +208,7 @@ test("Liga persists athlete eligibility by modality and keeps a tier history", (
 test("client profile can set the athlete's Liga A or B eligibility", () => {
   const clientEditor = readFileSync(resolve(process.cwd(), "src/components/players/client-management-workspace.tsx"), "utf8");
   const playerAction = readFileSync(resolve(process.cwd(), "src/lib/actions/tournament.ts"), "utf8");
-  const playerPage = readFileSync(resolve(process.cwd(), "src/app/(app)/jogadores/page.tsx"), "utf8");
+  const playerPage = readFileSync(resolve(process.cwd(), "src/lib/backend/services/client-directory.ts"), "utf8");
 
   assert.match(clientEditor, /Liga do atleta/);
   assert.match(clientEditor, /name="leagueTier"/);

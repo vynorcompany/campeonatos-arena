@@ -55,7 +55,7 @@ try {
     assert.equal(response.status, 404, path);
     assert.deepEqual(await response.json(), { error: 'Not found' });
   }
-  for (const path of ['/api/manual-upcoming-matches', '/api/management/dashboard', '/api/management/shell', '/api/whatsapp/pulse', '/api/agenda/availability?courtId=synthetic-court&date=2026-10-17']) {
+  for (const path of ['/api/manual-upcoming-matches', '/api/management/dashboard', '/api/management/shell', '/api/management/clients', '/api/whatsapp/pulse', '/api/agenda/availability?courtId=synthetic-court&date=2026-10-17']) {
     const response = await fetch(origin + path, { redirect: 'manual' });
     assert.ok([302, 303, 307, 308, 401].includes(response.status), `Anonymous API accepted ${path}`);
   }
@@ -95,6 +95,18 @@ try {
   assert.notEqual(staffContext.auth.arenaId, otherArenaId);
   assert.equal(JSON.stringify(staffContext).includes('passwordHash'), false);
   assert.equal(staffContext.auth.editPermissions.includes('support'), true);
+  const directory = await fetch(origin + '/api/management/clients?q=Atleta%20GOAL', { headers: { cookie: staffCookie } });
+  assert.equal(directory.status, 200);
+  assert.equal(directory.headers.get('cache-control'), 'private, no-store');
+  const directoryData = await directory.json();
+  assert.ok(directoryData.clients.some(client => client.id === 'goal-athlete-a'));
+  assert.equal(JSON.stringify(directoryData).includes('Atleta Exclusivo Outra Arena GOAL'), false);
+  assert.equal(JSON.stringify(directoryData).includes('passwordHash'), false);
+  assert.equal(Object.hasOwn(directoryData.clients[0], 'account'), false);
+  assert.equal((await fetch(origin + '/api/management/clients?arenaId=' + otherArenaId, { headers: { cookie: staffCookie } })).status, 400);
+  await fixtureDb.arenaMember.updateMany({ where: { userId: staffFixtureId }, data: { permissionProfileId: null, viewPermissions: ['dashboard'] } });
+  assert.equal((await fetch(origin + '/api/management/clients', { headers: { cookie: staffCookie } })).status, 404, 'No clients permission must deny access');
+  await fixtureDb.arenaMember.updateMany({ where: { userId: staffFixtureId }, data: { permissionProfileId: originalMembership.permissionProfileId, viewPermissions: originalMembership.viewPermissions } });
   const shellResponse = await fetch(origin + '/api/management/shell', { headers: { cookie: staffCookie } });
   assert.equal(shellResponse.status, 200);
   assert.equal(shellResponse.headers.get('cache-control'), 'private, no-store');
@@ -291,6 +303,11 @@ try {
   }
   const managementPage = await fetch('http://127.0.0.1:3014/painel', { headers: { cookie: staffCookie }, redirect: 'manual' });
   assert.equal(managementPage.status, 200, 'Management SSR did not preserve restricted staff context');
+  const clientPage = await fetch('http://127.0.0.1:3014/jogadores?q=Atleta%20GOAL&utm_source=synthetic', { headers: { cookie: staffCookie }, redirect: 'manual' });
+  assert.equal(clientPage.status, 200, 'Client directory SSR failed');
+  const clientHtml = await clientPage.text();
+  assert.ok(clientHtml.includes('Atleta GOAL A'));
+  assert.equal(clientHtml.includes('Atleta Exclusivo Outra Arena GOAL'), false);
   console.log('Independent backend and SSR frontend: authentication, session contracts, arena isolation, restricted credentials and API-only boundary passed.');
 } catch (error) { console.error(output); throw error; }
 finally {
