@@ -1,3 +1,4 @@
+import { createForeignArenaFixture } from './backend-foreign-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID, createHash } from 'node:crypto';
 export function syntheticNfeXml(key, items) {
@@ -22,7 +23,7 @@ export async function assertNfeSmoke(db, origin, arenaId, cookie, staffId) {
   const mappings=rows.map((row,index)=>({index,productId:index===0?existing.id:'',name:row.name,sku:row.code,costCents:250,priceCents:index===0?0:750}));
   assert.equal((await post('import',{file,items:[mappings[0],mappings[0]]})).status,400);
   assert.equal((await post('import',{file,items:[mappings[0]]})).status,400);
-  const other=await db.arena.findFirstOrThrow({where:{id:{not:arenaId}},select:{id:true}});const foreign=await db.product.create({data:{arenaId:other.id,name:'Foreign NFE fixture '+randomUUID(),stockQuantity:7}});
+  const other=await createForeignArenaFixture(db, 'nfe');const foreign=await db.product.create({data:{arenaId:other.id,name:'Foreign NFE fixture '+randomUUID(),stockQuantity:7}});
   try { assert.equal((await post('import',{file,items:[mappings[0],{...mappings[1],productId:foreign.id}]})).status,400);assert.equal((await db.product.findUniqueOrThrow({where:{id:existing.id}})).stockQuantity,10);assert.equal((await db.product.findUniqueOrThrow({where:{id:foreign.id}})).stockQuantity,7);assert.equal(await db.fiscalDocument.count({where:{arenaId,accessKey:key}}),0); } finally { await db.product.delete({where:{id:foreign.id}}); }
   const responses=await Promise.all([post('import',{file,items:mappings}),post('import',{file,items:mappings})]);assert.deepEqual(responses.map(row=>row.status).sort(),[200,400]);for(const response of responses)if(response.status===200)assert.deepEqual(await response.json(),{createdProducts:1,updatedProducts:1,importedItems:2});
   const updated=await db.product.findUniqueOrThrow({where:{id:existing.id}});assert.equal(updated.stockQuantity,13);assert.equal(updated.priceCents,500);assert.equal(updated.costCents,250);assert.equal(updated.updatedByUserId,staffId);

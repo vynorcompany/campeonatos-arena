@@ -17,5 +17,6 @@ test("cancelamento da agenda exige escolha explícita e preserva cobranças quit
   assert.match(actions, /source: "SCHEDULE_BOOKING", externalReference: \{ in: occurrenceIds \}, status: "PENDING"/);
   assert.match(actions, /settlements: \{ none: \{ amountCents: \{ gt: 0 \} \} \}/);
   assert.match(actions, /status: "VOIDED", voidedAt: new Date\(\)/);
-  assert.match(actions, /refreshFinanceRoutes\(\)/);
+  const facade = readFileSync(resolve(process.cwd(), "src/lib/calendar/booking-mutation.ts"), "utf8");
+  assert.match(facade, /refreshFinanceRoutes\(\)/);
 });

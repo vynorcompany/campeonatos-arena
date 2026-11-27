@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { prepareBackendBuild, recordBackendBuild } from '../scripts/lib/backend-build.mjs';
 
 test('independent API artifact preserves authentication and rejects frontend routes', {
-  skip: process.env.GITHUB_ACTIONS !== 'true', timeout: 360_000,
+  skip: process.env.GITHUB_ACTIONS !== 'true', timeout: 480_000,
 }, () => {
   const database = new URL(process.env.DATABASE_URL || 'http://invalid');
   if (database.hostname !== '127.0.0.1' || database.port !== '55433' || database.pathname !== '/arena_goal' || database.username !== 'postgres') {
@@ -16,5 +16,5 @@ test('independent API artifact preserves authentication and rejects frontend rou
   const target = prepareBackendBuild(resolve('.'));
   execFileSync(process.execPath, ['node_modules/next/dist/bin/next', 'build', target], { timeout: 300_000, maxBuffer: 5 * 1024 * 1024 });
   recordBackendBuild(resolve('.'), target);
-  execFileSync(process.execPath, ['scripts/backend-smoke-ci.mjs'], { timeout: 45_000, maxBuffer: 1024 * 1024 });
+  execFileSync(process.execPath, ['scripts/backend-smoke-ci.mjs'], { timeout: 120_000, maxBuffer: 1024 * 1024 });
 });

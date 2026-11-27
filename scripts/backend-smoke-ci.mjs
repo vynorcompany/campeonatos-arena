@@ -1,3 +1,5 @@
+import { cleanupForeignArenaFixtures } from './lib/backend-foreign-fixtures.mjs';
+import { assertCourtBookingSmoke } from './lib/backend-court-booking-smoke.mjs';
 import { assertCalendarManagementSmoke } from './lib/backend-calendar-management-smoke.mjs';
 import { assertAgendaDaySmoke } from './lib/backend-agenda-day-smoke.mjs';
 import { assertCourtSettingsSmoke } from './lib/backend-court-settings-smoke.mjs';
@@ -61,6 +63,12 @@ child.stderr.on('data', value => { output = (output + value).slice(-4000); });
 const exited = new Promise(resolve => child.once('exit', resolve));
 let frontend;
 let frontendExited;
+// Let interrupted tests release their own runtimes and fixtures through finally.
+for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, () => {
+  process.exitCode = 1;
+  frontend?.kill('SIGTERM');
+  child.kill('SIGTERM');
+});
 const origin = 'http://127.0.0.1:3012';
 try {
   let ready = false;
@@ -220,6 +228,7 @@ try {
   await assertCourtSettingsSmoke(fixtureDb, origin, staffFixtureId, financeFixture.cookie);
   await assertAgendaDaySmoke(fixtureDb, origin, staffFixtureId, financeFixture.cookie);
   await assertCalendarManagementSmoke(fixtureDb, origin, staffFixtureId, financeFixture.cookie);
+  await assertCourtBookingSmoke(fixtureDb, origin, staffFixtureId, financeFixture.cookie);
   const shellResponse = await fetch(origin + '/api/management/shell', { headers: { cookie: staffCookie } });
   assert.equal(shellResponse.status, 200);
   assert.equal(shellResponse.headers.get('cache-control'), 'private, no-store');
@@ -483,6 +492,7 @@ finally {
   clearTimeout(timeout);
   await providerFixture.close();
   await fixtureDb.playerNotification.deleteMany({ where: { id: { startsWith: notificationFixturePrefix } } });
+  await cleanupForeignArenaFixtures(fixtureDb);
   if (financeFixture) await financeFixture.cleanup();
   if (loyaltyFixtureArenaId) await fixtureDb.arena.deleteMany({ where: { id: loyaltyFixtureArenaId, slug: 'loyalty-' + clientFixtureTag } });
   if (clientFixtureArenaId) {

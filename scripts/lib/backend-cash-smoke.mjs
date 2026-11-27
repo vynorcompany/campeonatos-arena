@@ -1,3 +1,4 @@
+import { createForeignArenaFixture } from './backend-foreign-fixtures.mjs';
 import assert from 'node:assert/strict';
 export async function assertCashSmoke(db, origin, arenaId, cookie, staffId) {
   const read = name => fetch(`${origin}/api/management/pos/workspaces/${name}`, { headers: { cookie } });
@@ -21,7 +22,7 @@ export async function assertCashSmoke(db, origin, arenaId, cookie, staffId) {
   assert.equal((await db.cashRegister.findUniqueOrThrow({where:{id:register.id}})).expectedAmountCents,10750);
   assert.equal((await post('movement',{registerId:register.id,type:'WITHDRAWAL',amount:'7,50',description:'Synthetic withdrawal'})).status,200);
   assert.equal((await post('movement',{registerId:register.id,type:'WITHDRAWAL',amount:'100,01',description:'Too much'})).status,400);
-  const other = await db.arena.findFirstOrThrow({where:{id:{not:arenaId}},select:{id:true}});
+  const other = await createForeignArenaFixture(db, 'cash');
   const foreign = await db.cashRegister.create({data:{arenaId:other.id,referenceDate:new Date('2042-01-01T00:00:00Z'),openingAmountCents:777,expectedAmountCents:777}});
   try { assert.equal((await post('movement',{registerId:foreign.id,type:'SUPPLY',amount:'1,00',description:'Foreign'})).status,400); assert.equal((await post('close',{registerId:foreign.id,countedAmount:'0,00'})).status,400); assert.equal((await db.cashRegister.findUniqueOrThrow({where:{id:foreign.id}})).expectedAmountCents,777); } finally { await db.cashRegister.delete({where:{id:foreign.id}}); }
   const closing = await Promise.all([post('close',{registerId:register.id,countedAmount:'99,00',closingNotes:'Synthetic closing'}),post('close',{registerId:register.id,countedAmount:'99,00'})]);

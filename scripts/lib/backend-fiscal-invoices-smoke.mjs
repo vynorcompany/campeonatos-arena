@@ -1,3 +1,4 @@
+import { createForeignArenaFixture } from './backend-foreign-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
@@ -12,7 +13,7 @@ export async function assertFiscalInvoicesSmoke(db, origin, arenaId, cookie, sta
   const authorized = await create({ status: 'AUTHORIZED', xmlUrl: 'https://homologacao.focusnfe.com.br/synthetic.xml', printUrl: '/synthetic.html' });
   const pending = await create({ status: 'PENDING' });
   const unsafe = await create({ status: 'AUTHORIZED', xmlUrl: 'https://user@homologacao.focusnfe.com.br/synthetic.xml', printUrl: 'https://foreign.invalid/synthetic.html' });
-  const otherArena = await db.arena.findFirstOrThrow({ where: { id: { not: arenaId } }, select: { id: true } });
+  const otherArena = await createForeignArenaFixture(db, 'fiscal-invoices');
   const foreign = await db.fiscalDocument.create({ data: { arenaId: otherArena.id, accessKey: randomUUID(), provider: 'FOCUS', status: 'PENDING', supplierName: marker } });
   try {
     await db.arenaMember.update({ where: { id: member.id }, data: { editPermissions: [], viewPermissions: ['finance:receivable:view'] } });

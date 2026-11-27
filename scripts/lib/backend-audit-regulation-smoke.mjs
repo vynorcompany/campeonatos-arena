@@ -1,8 +1,9 @@
+import { createForeignArenaFixture } from './backend-foreign-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 export async function assertAuditRegulationSmoke(db,origin,arenaId,cookie,staffId) {
  const member=await db.arenaMember.findFirstOrThrow({where:{arenaId,userId:staffId}});const tag='AuditContract'+randomUUID().replace(/-/g,'');const secret='private-audit-'+randomUUID();
- const other=await db.arena.findFirstOrThrow({where:{id:{not:arenaId}},select:{id:true}});
+ const other=await createForeignArenaFixture(db, 'audit-regulation');
  const special={before:{amountCents:1000,status:'PENDING',password:secret},after:{amountCents:1500,status:'PAID',name:'Registro sintético',token:secret},changedFields:['amountCents','status','token','password'],source:'AGENT_API'};
  await db.auditEvent.createMany({data:Array.from({length:51},(_,i)=>({id:tag+'-'+String(i).padStart(3,'0'),arenaId,actorName:tag,actorId:staffId,action:'DB:UPDATE:FinancialEntry',entityId:tag+'-entity-'+i,createdAt:new Date(Date.parse('2026-11-03T12:00:00Z')+i*1000),details:special}))});
  const boundary=await db.auditEvent.create({data:{arenaId,actorName:tag,actorId:staffId,action:'DB:CREATE:Product',entityId:tag+'-boundary',createdAt:new Date('2026-11-04T03:00:00Z'),details:{after:{name:'No limite do dia'}}}});

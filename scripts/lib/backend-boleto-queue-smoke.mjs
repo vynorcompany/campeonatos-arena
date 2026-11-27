@@ -1,3 +1,4 @@
+import { createForeignArenaFixture } from './backend-foreign-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
@@ -16,7 +17,7 @@ export async function assertBoletoQueueSmoke(db, origin, arenaId, cookie, staffI
  const issued = await create({onlinePaymentId:'synthetic-boleto-'+randomUUID(),onlinePaymentUrl:'https://private.invalid/boleto'});
  const paid = await create({status:'PAID',paidAt:new Date()});
  const voided = await create({status:'VOIDED'});
- const other = await db.arena.findFirstOrThrow({where:{id:{not:arenaId}},select:{id:true}});
+ const other = await createForeignArenaFixture(db, 'boleto-queue');
  const foreign = await db.financialEntry.create({data:{arenaId:other.id,type:'REVENUE',category:'Teste',description:'Foreign boleto '+randomUUID(),amountCents:5000,automaticBoleto:true}});
  try {
   await db.arenaMember.update({where:{id:member.id},data:{viewPermissions:['finance:payable:view'],editPermissions:[]}});

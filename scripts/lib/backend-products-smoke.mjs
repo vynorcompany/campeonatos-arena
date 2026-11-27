@@ -1,3 +1,4 @@
+import { createForeignArenaFixture } from './backend-foreign-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 export async function assertProductsSmoke(db, origin, arenaId, cookie, staffId) {
@@ -22,7 +23,7 @@ export async function assertProductsSmoke(db, origin, arenaId, cookie, staffId) 
   assert.equal((await post('save-service', { ...fields, arenaId: 'forged' })).status, 400);
   assert.equal((await post('save-service', fields, 'https://foreign.invalid')).status, 403);
   assert.equal((await post('save-service', { ...fields, bookingRules: '{invalid' })).status, 400);
-  const other = await db.arena.findFirstOrThrow({ where: { id: { not: arenaId } }, select: { id: true } });
+  const other = await createForeignArenaFixture(db, 'products');
   const foreignCourt = await db.court.create({ data: { arenaId: other.id, name: `Foreign service fixture ${randomUUID()}` } });
   const foreignService = await db.product.create({ data: { arenaId: other.id, name: `Foreign service fixture ${randomUUID()}`, isService: true } });
   try {

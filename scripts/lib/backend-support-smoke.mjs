@@ -1,9 +1,10 @@
+import { createForeignArenaFixture } from './backend-foreign-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
 export async function assertSupportSmoke(db, origin, arenaId, cookie, staffId) {
   const tag = 'SupportContract' + randomUUID();
-  const other = await db.arena.findFirstOrThrow({where:{id:{not:arenaId}},select:{id:true}});
+  const other = await createForeignArenaFixture(db, 'support');
   const staff = await db.user.findUniqueOrThrow({where:{id:staffId},select:{systemRole:true}});
   const foreign = await db.supportTicket.create({data:{arenaId:other.id,requesterId:staffId,code:tag+'-foreign',title:'Chamado de outra arena',description:'Descrição sintética estrangeira'}});
   const post = (operation,body,requestOrigin='http://127.0.0.1:3014') => fetch(`${origin}/api/management/support/actions/${operation}`,{method:'POST',headers:{cookie,origin:requestOrigin,'content-type':'application/json'},body:JSON.stringify(body),redirect:'manual'});

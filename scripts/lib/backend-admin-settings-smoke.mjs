@@ -1,3 +1,4 @@
+import { createForeignArenaFixture } from './backend-foreign-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID, createHash } from 'node:crypto';
 export async function assertAdminSettingsSmoke(db,origin,arenaId,cookie,staffId) {
@@ -10,8 +11,8 @@ export async function assertAdminSettingsSmoke(db,origin,arenaId,cookie,staffId)
  const hash=createHash('sha256').update(randomUUID()).digest('hex');
  const reference=await db.erasedContactReference.create({data:{arenaId,playerId:player.id,contactHash:hash}});
  const receivable=await db.financialEntry.create({data:{arenaId,playerId:player.id,type:'REVENUE',category:'Teste',description:'Histórico preservado privacidade',amountCents:8900,status:'PENDING'}});
- const other=await db.arena.findFirstOrThrow({where:{id:{not:arenaId},players:{some:{}}},select:{id:true}});
- const otherPlayer=await db.player.findFirstOrThrow({where:{arenaId:other.id},select:{id:true}});
+ const other=await createForeignArenaFixture(db, 'admin-settings');
+ const otherPlayer=await db.player.create({data:{arenaId:other.id,name:'Foreign privacy holder fixture'},select:{id:true}});
  const foreign=await db.privacyRequest.create({data:{arenaId:other.id,playerId:otherPlayer.id,kind:'ACCESS',message:'Foreign request '+randomUUID()}});
  try {
   await db.arenaMember.update({where:{id:member.id},data:{editPermissions:[]}});
