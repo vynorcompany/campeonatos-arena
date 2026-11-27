@@ -52,7 +52,7 @@ async function resolveActor(db, req, source = process.env, responseCookies = [],
   }
   const now = new Date();
   const url = requestUrl(req);
-  const publicRoute = publicAction || /^\/(?:home|portal|classificacao|reservar|checkin)(?:\/|$)/.test(url.pathname) || /^\/[^/]+\/portaldoatleta(?:\/|$)/.test(url.pathname) || /^\/api\/(?:reservar|checkin)(?:\/|$)/.test(url.pathname);
+  const publicRoute = publicAction || /^\/(?:home|portal|classificacao|reservar|checkin)(?:\/|$)/.test(url.pathname) || /^\/[^/]+\/portaldoatleta(?:\/|$)/.test(url.pathname) || /^\/api\/(?:portal|reservar|checkin)(?:\/|$)/.test(url.pathname);
   const agentRoute = url.pathname.startsWith('/api/agents/');
   if (url.pathname === '/api/jobs/recovery-monitor' && source.RECOVERY_MONITOR_SECRET?.length >= 32 && req.headers.authorization === `Bearer ${source.RECOVERY_MONITOR_SECRET}`) return { arenaId: null, actorId: 'SYSTEM:RECOVERY', actorName: 'Monitor de recuperação' };
   if (url.pathname.startsWith('/api/jobs/') && source.CRON_SECRET &&

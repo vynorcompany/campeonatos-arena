@@ -8,7 +8,7 @@ import { resolvePublicClientPlayer } from "@/lib/services/public-client-registra
 
 test("client accounts use a dedicated player session linked to an existing phone", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
-  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/player-auth.ts"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/backend/services/player-auth.ts"), "utf8");
   const session = readFileSync(resolve(process.cwd(), "src/lib/auth/player-session.ts"), "utf8");
   const form = readFileSync(resolve(process.cwd(), "src/components/public-client-auth-form.tsx"), "utf8");
 
@@ -51,7 +51,7 @@ test("public client identity ignores presentation characters in either phone val
 });
 
 test("public authentication also resolves legacy account phones by their digits", () => {
-  const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/player-auth.ts"), "utf8");
+  const actions = readFileSync(resolve(process.cwd(), "src/lib/backend/services/player-auth.ts"), "utf8");
 
   assert.match(actions, /function findAccountByPhone[\s\S]*?findMany/);
   assert.match(actions, /legacyAccounts\.find\(\(candidate\) => normalizePhone\(candidate\.phone\) === normalizePhone\(phone\)\)/);

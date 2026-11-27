@@ -14,7 +14,7 @@ export function prepareBackendBuild(root) {
   const tsconfig = JSON.parse(readFileSync(join(root, 'tsconfig.json'), 'utf8'));
   tsconfig.compilerOptions.paths = { '@/*': [relative(target, join(root, 'src/*'))] };
   tsconfig.compilerOptions.incremental = false;
-  tsconfig.include = ['next-env.d.ts', 'src/**/*.ts', '.next/types/**/*.ts'];
+  tsconfig.include = ['next-env.d.ts', 'src/**/*.ts', '.next/types/**/*.ts', relative(target, join(root, 'src/**/*.d.ts'))];
   tsconfig.exclude = ['node_modules'];
   writeFileSync(join(target, 'tsconfig.json'), JSON.stringify(tsconfig, null, 2));
   writeFileSync(join(target, 'package.json'), JSON.stringify({ name: 'vx4-backend', private: true, version: '0.1.0' }));

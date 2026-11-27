@@ -108,10 +108,12 @@ test("sessões simultâneas atribuem a ação do portal ao cliente e a API à ch
   tx.agentApiKey = { findUnique: async () => ({ name: "Integração de teste" }) };
   await server(createAuditedHandler((_req: any, res: any) => { res.end("ok"); }, { db }), async url => {
     await fetch(`${url}/arena-client/portaldoatleta/agendamento`, { headers: { cookie: `padel_session=${token}; arena_player_session=client-token` } });
+    await fetch(`${url}/api/portal/session`, { headers: { cookie: `padel_session=${token}; arena_player_session=client-token` } });
+    await fetch(`${url}/api/portal/auth/logout-portal`, { method: "POST", headers: { cookie: `padel_session=${token}; arena_player_session=client-token` } });
     await fetch(`${url}/api/agents/clients`, { headers: { cookie: `padel_session=${token}`, authorization: `Bearer arena_${"c".repeat(64)}` } });
     await settled(state.records);
   });
-  assert.deepEqual([...state.records.values()].map(row => [row.actorId, row.arenaId]), [["client", "arena-client"], ["key", "arena-agent"]]);
+  assert.deepEqual([...state.records.values()].map(row => [row.actorId, row.arenaId]), [["client", "arena-client"], ["client", "arena-client"], ["client", "arena-client"], ["key", "arena-agent"]]);
 });
 
 test("erro inesperado do handler preserva a tentativa e registra interrupção sem expor detalhes", async () => {

@@ -65,13 +65,13 @@ test("WhatsApp routing reveals only tenant metadata and callbacks cannot authent
     }
     const sent: Array<{ phone: string; arenaId: string }> = [];
     const authMocks: Record<string, unknown> = {
-      "@/lib/legal/version": { legalVersion }, "next/navigation": {}, "@/lib/auth/player-session": {}, "@/lib/prisma": { prisma: admin },
+      "@/lib/legal/version": { legalVersion }, "next/navigation": {}, "@/lib/backend/services/player-session": {}, "@/lib/prisma": { prisma: admin },
       "@/lib/services/public-client-registration": {}, "@/lib/env": { env: {} }, "@/lib/auth/login-attempts": {}, "@/lib/phone": { normalizeBrazilianPhone: (value: string) => value.replace(/\D/g, "") },
       "@/lib/integrations/evolution/client": { sendEvolutionTextMessage: async (target: string, _message: string, arenaId: string) => { sent.push({ phone: target, arenaId }); } },
       "@/lib/rls": { withArenaTransaction: (arenaId: string, operation: (tx: unknown) => Promise<unknown>) => runtime.$transaction(async tx => { await tx.$executeRaw`SELECT set_config('app.arena_id', ${arenaId}, true)`; return operation(tx); }) },
     };
     const authActions: any = {};
-    vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/actions/player-auth.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, { exports: authActions, Date, Buffer, FormData, require: withDatabaseModuleMocks((name: string) => name in authMocks ? authMocks[name] : require(name)) });
+    vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/backend/services/player-auth.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, { exports: authActions, Date, Buffer, FormData, require: withDatabaseModuleMocks((name: string) => name in authMocks ? authMocks[name] : require(name)) });
     const form = new FormData(); form.set("phone", phone);
     assert.equal((await authActions.requestGlobalPublicPasswordResetAction({}, form)).requested, true);
     assert.deepEqual(sent, [{ phone, arenaId: ids[1] }]);

@@ -51,5 +51,19 @@ HTTP desses contratos. O destino deve ser uma origem HTTP(S) sem credenciais,
 caminho ou parâmetros. Redirecionamentos são recusados, a resposta é validada e
 falhas não retornam silenciosamente ao banco. Sem essa configuração, a aplicação
 unificada conserva o fluxo local até o corte definitivo. Essa compatibilidade é
-temporária: as ações de autenticação e os demais domínios ainda precisam migrar
-antes da retirada das credenciais do frontend.
+temporária: os demais domínios ainda precisam migrar antes da retirada das
+credenciais do frontend.
+
+`POST /api/portal/auth/{operation}` trata exclusivamente cadastro/confirmação,
+login global ou da arena, solicitação/confirmação de recuperação e saída do Portal.
+O backend recebe somente campos de autenticação permitidos, limita o corpo a 16 KiB
+e exige `Origin` na lista JSON `VX4_FRONTEND_ORIGINS`, por exemplo
+`["https://arena.example"]`. Não usar curinga nem confiar em Host encaminhado.
+
+O servidor web encaminha a origem original da ação e somente o cookie do atleta.
+O resultado contém estado do formulário e um caminho interno de redirecionamento.
+O cookie de sessão viaja em Set-Cookie, separado do JSON; o frontend aceita apenas
+`arena_player_session`, força HttpOnly/SameSite=Lax/Path=/ e Secure em produção.
+Os tokens e credenciais dos provedores permanecem na implementação do backend.
+As ações web mantêm o fluxo local temporário quando a origem do backend não está
+configurada; esse caminho será removido no artefato final do frontend.

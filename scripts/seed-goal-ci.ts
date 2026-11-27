@@ -58,11 +58,14 @@ async function main() {
 
     const athlete = await db.player.create({ data: { id: "goal-athlete-a", arenaId: arenaA.id, name: "Atleta GOAL A" } });
     await db.player.create({ data: { arenaId: arenaB.id, name: "Atleta Exclusivo Outra Arena GOAL" } });
+    const athletePasswordHash = await bcrypt.hash("GoalAthleteContract123!", 10);
+    const athleteIdentity = await db.athleteIdentity.create({ data: { phone: "00000000000", passwordHash: athletePasswordHash } });
     const athleteAccount = await db.playerAccount.create({ data: {
       arenaId: arenaA.id,
       playerId: athlete.id,
       phone: "5500000000000",
-      passwordHash: "test-only",
+      passwordHash: athletePasswordHash,
+      identityId: athleteIdentity.id,
     } });
     const athleteToken = createHash("sha256").update(`goal-player:${testSessionToken}`).digest("hex");
     await db.playerSession.create({ data: {

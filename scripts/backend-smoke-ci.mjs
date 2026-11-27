@@ -26,6 +26,7 @@ assert.ok(Object.keys(paths).length > 20);
 assert.ok(Object.keys(paths).every(path => path.startsWith('/api/') || path === '/_not-found/page'), 'Backend contains a frontend route');
 url.username = 'arena_runtime'; url.password = 'fixture';
 const environment = runtimeEnvironment({ ...process.env, APP_DATABASE_URL: url.toString(), PORT: '3012' });
+environment.VX4_FRONTEND_ORIGINS = JSON.stringify(['http://127.0.0.1:3014']);
 environment.HOSTNAME = '127.0.0.1'; environment.NODE_ENV = 'production';
 for (const key of ['ARENA_GOAL_TEST_DATABASE_URL', 'ARENA_GOAL_TEST_SESSION_TOKEN']) delete environment[key];
 const child = spawn(process.execPath, [join(target, '.next/standalone/server.js')], { env: environment, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -83,6 +84,29 @@ try {
   assert.equal(response.status, 200, 'Backend did not preserve authenticated API access');
   assert.ok(response.headers.get('content-type')?.includes('application/json'));
   await response.json();
+  const authPayload = { phone: '5500000000000', password: 'GoalAthleteContract123!' };
+  for (const requestOrigin of [undefined, 'https://untrusted.invalid']) {
+    const denied = await fetch(origin + '/api/portal/auth/login-global', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...(requestOrigin ? { origin: requestOrigin } : {}) }, body: JSON.stringify(authPayload),
+    });
+    assert.equal(denied.status, 403);
+  }
+  const loggedIn = await fetch(origin + '/api/portal/auth/login-global', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014' }, body: JSON.stringify(authPayload),
+  });
+  assert.equal(loggedIn.status, 200);
+  assert.deepEqual(await loggedIn.json(), { error: null, redirectTo: '/portal' });
+  const issuedCookie = loggedIn.headers.getSetCookie().find(value => value.startsWith('arena_player_session='));
+  assert.ok(issuedCookie?.includes('HttpOnly'));
+  const authenticatedCookie = issuedCookie.split(';', 1)[0];
+  const authenticatedContext = await fetch(origin + '/api/portal/session', { headers: { cookie: authenticatedCookie } });
+  assert.equal((await authenticatedContext.json()).athleteIdentity.arenas[0].slug, arenaSlug);
+  const loggedOut = await fetch(origin + '/api/portal/auth/logout-portal', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', origin: 'http://127.0.0.1:3014', cookie: authenticatedCookie }, body: '{}',
+  });
+  assert.equal(loggedOut.status, 200);
+  const revoked = await fetch(origin + '/api/portal/session', { headers: { cookie: authenticatedCookie } });
+  assert.equal((await revoked.json()).athleteIdentity, null);
   // Exercise the existing SSR frontend against a different backend process, using
   // the same restricted-role derivation as deployment, not administrative test credentials.
   frontend = spawn(process.execPath, [resolve('.next/standalone/server.js')], {

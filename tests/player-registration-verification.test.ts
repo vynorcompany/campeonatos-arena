@@ -9,7 +9,7 @@ import vm from "node:vm";
 import ts from "typescript";
 
 const require = createRequire(import.meta.url);
-const source = readFileSync(new URL("../src/lib/actions/player-auth.ts", import.meta.url), "utf8");
+const source = readFileSync(new URL("../src/lib/backend/services/player-auth.ts", import.meta.url), "utf8");
 
 function fixture(options: { existingAccount?: boolean; deliveryError?: string; official?: boolean } = {}) {
   const codes: Array<{ id: string; arenaId: string; phone: string; purpose: string; codeHash: string; attempts: number; usedAt: Date | null; expiresAt: Date; createdAt: Date }> = [];
@@ -52,7 +52,7 @@ function fixture(options: { existingAccount?: boolean; deliveryError?: string; o
   const mocks: Record<string, unknown> = {
     "@/lib/legal/version": { legalVersion },
     "next/navigation": { redirect: (url: string) => { throw new Error(`redirect:${url}`); } },
-    "@/lib/auth/player-session": { createPublicPlayerSession: async (id: string) => { sessions.push(id); }, destroyPublicPlayerSession: async () => {} },
+    "@/lib/backend/services/player-session": { createPublicPlayerSession: async (id: string) => { sessions.push(id); }, destroyPublicPlayerSession: async () => {} },
     "@/lib/prisma": { prisma },
     "@/lib/rls": { withArenaTransaction: async (_arenaId: string, callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma) },
     "@/lib/services/public-client-registration": { resolvePublicClientPlayer: () => null },
@@ -81,7 +81,7 @@ test("cadastro verificado envia código, confirma uma vez e vincula a arena corr
   assert.equal(app.accounts.length, 0);
   const code = app.sent[0]?.match(/\b\d{6}\b/)?.[0];
   assert.ok(code);
-  await assert.rejects(app.confirm(code), /redirect:\/reservar\/arena-teste/);
+  assert.equal((await app.confirm(code)).redirectTo, "/reservar/arena-teste");
   assert.equal(app.accounts.length, 1);
   assert.equal(app.accounts[0].arenaId, "arena-a");
   assert.equal(app.sessions.length, 1);
@@ -125,7 +125,7 @@ test("cadastro exige termos atuais antes de enviar códigos e grava o aceite no 
  await app.request(); const code = app.sent[0].match(/\b\d{6}\b/)![0];
  assert.match((await app.confirmCustom(code, { termsAccepted: "" })).error, /Termos de Uso/); assert.equal(app.codes[0].usedAt, null);
  const since = Date.now();
- await assert.rejects(app.confirmCustom(code, { termsAcceptedAt: "2000-01-01", privacyNoticeVersion: "forged" }), /redirect:/);
+ assert.equal((await app.confirmCustom(code, { termsAcceptedAt: "2000-01-01", privacyNoticeVersion: "forged" })).redirectTo, "/reservar/arena-teste");
  assert.equal(app.accounts[0].termsVersion, legalVersion); assert.equal(app.accounts[0].privacyNoticeVersion, legalVersion);
  assert.ok(app.accounts[0].termsAcceptedAt!.getTime() >= since);
 });
@@ -148,7 +148,7 @@ test("official registration works without Evolution and keeps one-time verificat
   assert.deepEqual(app.deliveryCalls, { evolution: 0, official: 1 });
   const code = app.sent[0];
   assert.match(code, /^\d{6}$/);
-  await assert.rejects(app.confirm(code), /redirect:/);
+  assert.equal((await app.confirm(code)).redirectTo, "/reservar/arena-teste");
   assert.equal(app.accounts.length, 1);
   assert.match((await app.confirm(code)).error ?? "", /código|conta/i);
 });

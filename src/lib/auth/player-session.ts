@@ -3,9 +3,6 @@ import { cookies } from "next/headers";
 import { readBackendContract } from "@/lib/backend/http-client";
 import { publicPlayerContextSchema } from "@/lib/backend/contracts/player-context";
 
-// Session writes move with the authentication actions in the next migration.
-export { createPublicPlayerSession, destroyPublicPlayerSession } from "@/lib/backend/services/player-session";
-
 export async function getPublicPlayerContext(arenaSlug: string) {
   if (process.env.VX4_BACKEND_ORIGIN) {
     const token = (await cookies()).get("arena_player_session")?.value;

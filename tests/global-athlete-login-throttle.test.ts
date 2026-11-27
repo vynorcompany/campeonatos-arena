@@ -11,7 +11,7 @@ import ts from "typescript";
 const require = createRequire(import.meta.url);
 
 function fixture(storedPhone?: string) {
-  const source = readFileSync(new URL("../src/lib/actions/player-auth.ts", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../src/lib/backend/services/player-auth.ts", import.meta.url), "utf8");
   const exports: Record<string, (...args: any[]) => Promise<any>> = {};
   const attempts = new Map<string, number>();
   const sessions: string[] = [];
@@ -20,7 +20,7 @@ function fixture(storedPhone?: string) {
     "@/lib/legal/version": { legalVersion },
     bcryptjs: { compare: async (password: string) => password === "SenhaCorreta123!" },
     "next/navigation": { redirect: (path: string) => { throw new Error(`redirect:${path}`); } },
-    "@/lib/auth/player-session": { createPublicPlayerSession: async (id: string) => { sessions.push(id); }, destroyPublicPlayerSession: async () => {} },
+    "@/lib/backend/services/player-session": { createPublicPlayerSession: async (id: string) => { sessions.push(id); }, destroyPublicPlayerSession: async () => {} },
     "@/lib/prisma": { prisma: {
       arena: { findUnique: async () => ({ id: "arena-goal" }) },
       playerAuthAttempt: { findUnique: async () => null, deleteMany: async () => ({ count: 0 }) },
@@ -64,7 +64,7 @@ test("portal global limita palpites e não consulta identidade após bloqueio", 
 test("portal global limpa falhas depois de autenticação correta", async () => {
   const app = fixture();
   assert.match((await app.login("SenhaErrada123!")).error, /Telefone ou senha inválidos/);
-  await assert.rejects(app.login("SenhaCorreta123!"), /redirect:\/portal/);
+  assert.equal((await app.login("SenhaCorreta123!")).redirectTo, "/portal");
   assert.equal(app.attempts.size, 0);
   assert.deepEqual(app.sessions, ["account-goal"]);
 });
@@ -80,7 +80,7 @@ test("login da arena e login global compartilham o mesmo limite por telefone", a
 
 test("global login reuses legacy identity stored with 55 for either input format", async () => {
  const app=fixture("5511977770042");
- for (const phone of ["11977770042", "+55 (11) 97777-0042"]) await assert.rejects(app.login("SenhaCorreta123!",phone), /redirect:\/portal/);
+ for (const phone of ["11977770042", "+55 (11) 97777-0042"]) assert.equal((await app.login("SenhaCorreta123!",phone)).redirectTo, "/portal");
  assert.deepEqual(app.sessions,["account-goal","account-goal"]);
 });
 
