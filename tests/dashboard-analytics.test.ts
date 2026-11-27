@@ -45,7 +45,7 @@ test("dashboard only reads prior-period totals when comparison is enabled", () =
 });
 
 test("shared layout waits for tenant-scoped notifications during a connection spike", () => {
-  const layout = readFileSync(resolve(process.cwd(), "src/app/(app)/layout.tsx"), "utf8");
+  const layout = readFileSync(resolve(process.cwd(), "src/lib/backend/services/management-shell.ts"), "utf8");
   assert.match(layout, /arenaDatabase\(auth\.arenaId\)\.\$transaction\(/);
   assert.match(layout, /tx\.arenaNotification\.findMany\(\{ where: \{ arenaId: auth\.arenaId/);
   assert.match(layout, /maxWait: 20_000, timeout: 10_000/);

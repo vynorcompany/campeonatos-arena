@@ -66,6 +66,6 @@ test("technical failures stay in the recovery monitor and logs, never tenant not
 });
 
 test("initial tenant notification rendering excludes historical recovery alerts", () => {
-  const source = readFileSync("src/app/(app)/layout.tsx", "utf8");
-  assert.match(source, /type: \{ notIn: \["SYSTEM_RECOVERY",/);
+  const source = readFileSync("src/lib/backend/services/management-shell.ts", "utf8");
+  assert.match(source, /type: \{ notIn: \[['"]SYSTEM_RECOVERY['"],/);
 });

@@ -50,7 +50,7 @@ try {
     assert.equal(response.status, 404, path);
     assert.deepEqual(await response.json(), { error: 'Not found' });
   }
-  for (const path of ['/api/manual-upcoming-matches', '/api/management/dashboard', '/api/whatsapp/pulse', '/api/agenda/availability?courtId=synthetic-court&date=2026-10-17']) {
+  for (const path of ['/api/manual-upcoming-matches', '/api/management/dashboard', '/api/management/shell', '/api/whatsapp/pulse', '/api/agenda/availability?courtId=synthetic-court&date=2026-10-17']) {
     const response = await fetch(origin + path, { redirect: 'manual' });
     assert.ok([302, 303, 307, 308, 401].includes(response.status), `Anonymous API accepted ${path}`);
   }
@@ -81,6 +81,17 @@ try {
   assert.notEqual(staffContext.auth.arenaId, otherArenaId);
   assert.equal(JSON.stringify(staffContext).includes('passwordHash'), false);
   assert.equal(staffContext.auth.editPermissions.includes('support'), true);
+  const shellResponse = await fetch(origin + '/api/management/shell', { headers: { cookie: staffCookie } });
+  assert.equal(shellResponse.status, 200);
+  assert.equal(shellResponse.headers.get('cache-control'), 'private, no-store');
+  assert.ok(shellResponse.headers.get('vary').split(',').map(value => value.trim().toLowerCase()).includes('cookie'));
+  const shellData = await shellResponse.json();
+  assert.deepEqual(Object.keys(shellData).sort(), ['billingAlert', 'comandaRequestCount', 'notifications', 'whatsappUnreadCount']);
+  assert.ok(Array.isArray(shellData.notifications));
+  assert.equal(shellData.comandaRequestCount, 0, 'Counter must respect missing POS permission');
+  assert.equal(JSON.stringify(shellData).includes('Atleta Exclusivo Outra Arena GOAL'), false);
+  const shellForgedArena = await fetch(origin + '/api/management/shell?arenaId=' + otherArenaId, { headers: { cookie: staffCookie } });
+  assert.equal(shellForgedArena.status, 400);
   const dashboard = await fetch(origin + '/api/management/dashboard?dataInicial=2026-01-01&dataFinal=2026-01-31', { headers: { cookie: staffCookie } });
   assert.equal(dashboard.status, 200);
   assert.equal(dashboard.headers.get('cache-control'), 'private, no-store');
