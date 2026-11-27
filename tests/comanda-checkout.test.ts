@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
+const queries = readFileSync(resolve(process.cwd(), "src/lib/backend/services/comanda-queries.ts"), "utf8");
 
 test("command checkout persists split payments and an open receivable for the unpaid balance", () => {
   const schema = readFileSync(resolve(process.cwd(), "prisma/schema.prisma"), "utf8");
@@ -39,8 +40,8 @@ test("command checkout offers only the client's pending balances for joint settl
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/comanda.ts"), "utf8");
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
 
-  assert.match(page, /pendingDebts/);
-  assert.match(page, /scheduleParticipant/);
+  assert.match(queries, /pendingDebts/);
+  assert.match(queries, /scheduleParticipant/);
   assert.match(page, /comanda/);
   assert.match(actions, /debtIds/);
   assert.match(actions, /selectedDebts/);
@@ -51,8 +52,8 @@ test("command checkout offers only the client's pending balances for joint settl
   assert.match(card, /Outros débitos em aberto/);
   assert.match(card, /Selecionar para quitar junto/);
   assert.match(card, /baixa parcial/);
-  assert.match(page, /settlements/);
-  assert.match(page, /getOutstandingCents/);
+  assert.match(queries, /settlements/);
+  assert.match(queries, /getOutstandingCents/);
 });
 
 test("command checkout can consume a client's available credit without treating it as a new receipt", () => {
@@ -60,7 +61,7 @@ test("command checkout can consume a client's available credit without treating 
   const actions = readFileSync(resolve(process.cwd(), "src/lib/actions/comanda.ts"), "utf8");
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
 
-  assert.match(page, /balanceMovements/);
+  assert.match(queries, /balanceMovements/);
   assert.match(page, /clientCreditCents/);
   assert.match(card, /Saldo do cliente/);
   assert.match(card, /Usar saldo/);
@@ -87,7 +88,7 @@ test("zero-value commands request explicit confirmation and schedule charges use
   assert.match(settingsFacade, /refreshCalendarRoutes\(\)/);
   assert.match(calendarRevalidation, /revalidatePath\("\/comandas"\)/);
   const debtFilter = readFileSync(resolve(process.cwd(), "src/lib/finance/comanda-debts.ts"), "utf8");
-  assert.match(page, /listedComandaDebtWhere/);
+  assert.match(queries, /listedComandaDebtWhere/);
   assert.match(debtFilter, /\["PENDING", "OVERDUE", "PARTIAL"\]/);
   assert.ok(existsSync(resolve(process.cwd(), "prisma/migrations/20260910110000_normalize_schedule_financial_entries/migration.sql")));
 });
@@ -102,7 +103,7 @@ test("zero-value commands keep the checkout available for debts linked to the cl
   assert.match(card, /setCheckoutOpen\(true\)/);
   assert.match(card, /event\.stopPropagation\(\); setDetailsOpen\(false\)/);
   assert.match(commandActions, /!comanda\.items\.length && !debtIdsToSettle\.length/);
-  assert.match(page, /comandaDebtOwnerId\(debt\)/);
+  assert.match(queries, /comandaDebtOwnerId\(debt\)/);
   assert.doesNotMatch(page, /commandPlayerIdsByName/);
 });
 
@@ -127,9 +128,9 @@ test("closed commands are excluded from the active command grid without a duplic
   const page = readFileSync(resolve(process.cwd(), "src/app/(app)/comandas/page.tsx"), "utf8");
   const card = readFileSync(resolve(process.cwd(), "src/components/comandas/command-card.tsx"), "utf8");
 
-  assert.match(page, /const commandWhere:[\s\S]*?arenaId: auth\.arenaId,[\s\S]*?status: "OPEN"/);
+  assert.match(queries, /const commandWhere:[\s\S]*?arenaId: auth\.arenaId,[\s\S]*?status: "OPEN"/);
   assert.doesNotMatch(page, /ServerListPagination|commandPage/);
-  assert.match(page, /tx\.comanda\.findMany\(\{\s*where: commandWhere/);
+  assert.match(queries, /tx\.comanda\.findMany\(\{\s*where: commandWhere/);
   assert.doesNotMatch(card, /setInterval/);
   assert.equal((page.match(/<VisiblePageRefresh/g) ?? []).length, 1);
 });
